@@ -61,6 +61,7 @@ function convert_global_assignment(ctx, ex, var, rhs0)
         # deal with the binding type at all.
         rhs1
     else
+        # FIXME: globaldecl ??
         type_var = ssavar(ctx, ex, "binding_type")
         push!(stmts, @ast ctx ex [K"="
             type_var

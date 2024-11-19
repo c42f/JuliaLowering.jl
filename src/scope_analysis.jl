@@ -375,7 +375,6 @@ function maybe_update_bindings!(ctx, ex)
             end
             if binfo.kind == :global && !ctx.scope_stack[end].in_toplevel_thunk
                 throw(LoweringError(ex, "type declarations for global variables must be at top level, not inside a function"))
-                # set_binding_type!
             end
             update_binding!(ctx, id; type=ex[2])
         end
@@ -506,12 +505,13 @@ function _resolve_scopes(ctx, ex::SyntaxTree)
             throw(LoweringError(ex, "Unknown syntax assertion"))
         end
         makeleaf(ctx, ex, K"TOMBSTONE")
-    elseif k == K"const_if_global"
-        id = _resolve_scopes(ctx, ex[1])
-        if lookup_binding(ctx, id).kind == :global
-            @ast ctx ex [K"const" ex[1]]
+    elseif k == K"assign_const_if_global"
+        bnd = _resolve_scopes(ctx, ex[1])
+        rhs = _resolve_scopes(ctx, ex[2])
+        if lookup_binding(ctx, bnd).kind == :global
+            @ast ctx ex [K"constdecl" bnd rhs]
         else
-            makeleaf(ctx, ex, K"TOMBSTONE")
+            @ast ctx ex [K"=" bnd rhs]
         end
     else
         ex_mapped = mapchildren(e->_resolve_scopes(ctx, e), ctx, ex)

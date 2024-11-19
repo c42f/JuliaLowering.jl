@@ -60,13 +60,20 @@ function _register_kinds()
             "core"
             "lambda"
             "toplevel_butfirst"
-            "const_if_global"
+            # `(assign_const_if_global x rhs)` expands to either
+            # `(constdecl x rhs)` if `x` is global or `(= x rhs)` if `x` is local
+            "assign_const_if_global"
             "moved_local"
             "label"
             "trycatchelse"
             "tryfinally"
             "unnecessary"
             "decl"
+            # Declare and assign a global constant (JuliaLang/julia#54773)
+            # This should probably be emitted into untyped IR rather than the
+            # current special nested form `(const (globalref M x) val)` which
+            # is used there?
+            "constdecl"
         "END_LOWERING_KINDS"
 
         # The following kinds are emitted by lowering and used in Julia's untyped IR
@@ -79,6 +86,8 @@ function _register_kinds()
             "static_parameter"
             # Reference to a global variable within a module
             "globalref"
+            # Declare a global
+            "globaldecl"
             # Unconditional goto
             "goto"
             # Conditional goto

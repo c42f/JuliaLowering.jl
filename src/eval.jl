@@ -12,7 +12,7 @@ function macroexpand(mod::Module, ex)
     ex1
 end
 
-_CodeInfo_need_ver = v"1.12.0-DEV.512"
+_CodeInfo_need_ver = v"1.12.0-DEV.674" # As of https://github.com/JuliaLang/julia/pull/54655
 if VERSION < _CodeInfo_need_ver
     function _CodeInfo(args...)
         error("Constructing a CodeInfo using JuliaLowering currently requires Julia version $_CodeInfo_need_ver or greater")
@@ -26,8 +26,8 @@ else
         fts = fieldtypes(Core.CodeInfo)
         conversions = [:(convert($t, $n)) for (t,n) in zip(fts, fns)]
 
-        expected_fns = (:code, :debuginfo, :ssavaluetypes, :ssaflags, :slotnames, :slotflags, :slottypes, :parent, :method_for_inference_limit_heuristics, :edges, :min_world, :max_world, :nargs, :propagate_inbounds, :has_fcall, :nospecializeinfer, :isva, :inlining, :constprop, :purity, :inlining_cost)
-        expected_fts = (Vector{Any}, Core.DebugInfo, Any, Vector{UInt32}, Vector{Symbol}, Vector{UInt8}, Any, Any, Any, Any, UInt64, UInt64, UInt64, Bool, Bool, Bool, Bool, UInt8, UInt8, UInt16, UInt16)
+        expected_fns = (:code, :debuginfo, :ssavaluetypes, :ssaflags, :slotnames, :slotflags, :slottypes, :rettype, :parent, :edges, :min_world, :max_world, :method_for_inference_limit_heuristics, :nargs, :propagate_inbounds, :has_fcall, :nospecializeinfer, :isva, :inlining, :constprop, :purity, :inlining_cost)
+        expected_fts = (Vector{Any}, Core.DebugInfo, Any, Vector{UInt32}, Vector{Symbol}, Vector{UInt8}, Any, Any, Any, Any, UInt64, UInt64, Any, UInt64, Bool, Bool, Bool, Bool, UInt8, UInt8, UInt16, UInt16)
 
         code = if fns != expected_fns || fts != expected_fts
             :(function _CodeInfo(args...)
@@ -143,13 +143,14 @@ function to_code_info(ex, mod, funcname, slots)
     # uninferred code.
     ssavaluetypes      = length(code) # Why does the runtime code do this?
     slottypes          = nothing
+    rettype            = Any
     parent             = nothing
+    edges              = Core.svec()
+    min_world          = Csize_t(1)
+    max_world          = typemax(Csize_t)
     method_for_inference_limit_heuristics = nothing
-    edges               = nothing
-    min_world           = Csize_t(1)
-    max_world           = typemax(Csize_t)
-    isva                = false
-    inlining_cost       = 0xffff
+    isva               = false
+    inlining_cost      = 0xffff
 
     _CodeInfo(
         code,
@@ -159,11 +160,12 @@ function to_code_info(ex, mod, funcname, slots)
         slotnames,
         slotflags,
         slottypes,
+        rettype,
         parent,
-        method_for_inference_limit_heuristics,
         edges,
         min_world,
         max_world,
+        method_for_inference_limit_heuristics,
         nargs,
         propagate_inbounds,
         has_fcall,
@@ -172,7 +174,7 @@ function to_code_info(ex, mod, funcname, slots)
         inlining,
         constprop,
         purity,
-        inlining_cost
+        inlining_cost,
     )
 end
 
@@ -191,6 +193,12 @@ function to_lowered_expr(mod, ex)
         else
             GlobalRef(ex.mod, Symbol(ex.name_val))
         end
+    elseif k == K"constdecl"
+        @assert kind(ex[1]) == K"globalref"
+        Expr(:const,
+             GlobalRef(ex[1].mod, Symbol(ex.name_val)),
+             to_lowered_expr(mod, ex[2])
+        )
     elseif k == K"Identifier"
         # Implicitly refers to name in parent module
         # TODO: Should we even have plain identifiers at this point or should

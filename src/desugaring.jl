@@ -1156,7 +1156,9 @@ end
 function strip_decls!(ctx, stmts, declkind, declkind2, ex)
     k = kind(ex)
     if k == K"Identifier"
-        push!(stmts, makenode(ctx, ex, declkind, ex))
+        if declkind != K"const"
+            push!(stmts, makenode(ctx, ex, declkind, ex))
+        end
         if !isnothing(declkind2)
             push!(stmts, makenode(ctx, ex, declkind2, ex))
         end
@@ -1177,16 +1179,23 @@ function strip_decls!(ctx, stmts, declkind, declkind2, ex)
 end
 
 # local x, (y=2), z ==> local x; local y; y = 2; local z
-# const x = 1       ==> const x; x = 1
+# const x = rhs     ==> (block (= tmp rhs) (const x rhs))
 # global x::T = 1   ==> (block (global x) (decl x T) (x = 1))
 function expand_decls(ctx, ex)
     declkind = kind(ex)
     if numchildren(ex) == 1 && kind(ex[1]) ∈ KSet"const global local"
         declkind2 = kind(ex[1])
         bindings = children(ex[1])
+        if declkind == declkind2
+            throw(LoweringError(ex, "Repeated $declkind in declaration"))
+        end
     else
         declkind2 = nothing
         bindings = children(ex)
+    end
+    if declkind2 == K"const"
+        # Ensure K"const" is always first for simplicity in strip_decls!
+        declkind, declkind2 = declkind2, declkind
     end
     stmts = SyntaxList(ctx)
     for binding in bindings
@@ -1194,9 +1203,35 @@ function expand_decls(ctx, ex)
         if is_prec_assignment(kb)
             @chk numchildren(binding) == 2
             lhs = strip_decls!(ctx, stmts, declkind, declkind2, binding[1])
-            push!(stmts, @ast ctx binding [kb lhs binding[2]])
+            rhs = binding[2]
+            if declkind == K"const"
+                kl = kind(lhs)
+                if kl == K"curly"
+                    # const X{T} = rhs
+                    expand_unionall_def(ctx, srcref, lhs, rhs)
+                elseif kl == K"tuple" && !has_parameters(lhs)
+                    # const (a,b) = rhs
+                    # TODO: const (f(),g()) = rhs  # Uuugh why did we allow this :-((
+                    TODO(lhs, "const with destructuring")
+                else
+                    # const x = rhs
+                    push!(stmts, @ast ctx binding [K"block"
+                        rhs_value = rhs
+                        [K"scope_block"(scope_type=:hard)
+                             [K"local" [kb lhs rhs_value]]
+                        ]
+                    ])
+                end
+            else
+                push!(stmts, @ast ctx binding [kb lhs rhs])
+            end
+        elseif kb == K"function"
+            # Syntax edition TODO: Disallow redundant `const` in `const f() = body`
+            # The `const` here is inoperative, but the syntax happened to work
+            # in earlier versions.
+            push!(stmts, binding)
         elseif is_sym_decl(binding)
-            if declkind == K"const" || declkind2 == K"const"
+            if declkind == K"const"
                 throw(LoweringError(ex, "expected assignment after `const`"))
             end
             strip_decls!(ctx, stmts, declkind, declkind2, binding)
@@ -1621,14 +1656,13 @@ function expand_abstract_or_primitive_type(ctx, ex)
         ]
         [K"assert" "toplevel_only"::K"Symbol" [K"inert" ex] ]
         [K"global" name]
-        [K"const" name]
         [K"if"
             [K"&&"
-                [K"isdefined" name]
+                [K"isdefined" name false::K"Bool"]
                 [K"call" "_equiv_typedef"::K"core" name newtype_var]
             ]
             nothing_(ctx, ex)
-            [K"=" name newtype_var]
+            [K"constdecl" name newtype_var]
         ]
         nothing_(ctx, ex)
     ]
@@ -2140,7 +2174,6 @@ function expand_struct_def(ctx, ex, docs)
         [K"scope_block"(scope_type=:hard)
             [K"block"
                 [K"global" global_struct_name]
-                [K"const" global_struct_name]
                 [K"local_def" struct_name]
                 typevar_stmts...
                 [K"="
@@ -2159,7 +2192,7 @@ function expand_struct_def(ctx, ex, docs)
                 [K"=" struct_name newtype_var]
                 [K"call"(supertype) "_setsuper!"::K"core" newtype_var supertype]
                 [K"if"
-                    [K"isdefined" global_struct_name]
+                    [K"isdefined" global_struct_name false::K"Bool"]
                     [K"if"
                         [K"call" "_equiv_typedef"::K"core" global_struct_name newtype_var]
                         [K"block"
@@ -2178,9 +2211,9 @@ function expand_struct_def(ctx, ex, docs)
                             end
                         ]
                         # Otherwise do an assignment to trigger an error
-                        [K"=" global_struct_name struct_name]
+                        [K"constdecl" global_struct_name struct_name]
                     ]
-                    [K"=" global_struct_name struct_name]
+                    [K"constdecl" global_struct_name struct_name]
                 ]
                 [K"call"(type_body)
                     "_typebody!"::K"core"
