@@ -69,7 +69,7 @@ end
 Context for creating linear IR.
 
 One of these is created per lambda expression to flatten the body down to
-a sequence of statements (linear IR).
+a sequence of statements (linear IR), which eventually becomes one CodeInfo.
 """
 struct LinearIRContext{GraphType} <: AbstractLoweringContext
     graph::GraphType
