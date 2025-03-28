@@ -12,6 +12,18 @@ function macroexpand(mod::Module, ex)
     ex1
 end
 
+function codeinfo_has_image_globalref(@nospecialize(e))
+    if e isa GlobalRef
+        return 0x00 !== @ccall jl_object_in_image(e.mod::Any)::UInt8
+    elseif e isa Core.CodeInfo
+        return any(codeinfo_has_image_globalref, e.code)
+    elseif e isa Expr
+        return any(codeinfo_has_image_globalref, e.args)
+    else
+        return false
+    end
+end
+
 _CodeInfo_need_ver = v"1.12.0-DEV.512"
 if VERSION < _CodeInfo_need_ver
     function _CodeInfo(args...)
@@ -20,19 +32,29 @@ if VERSION < _CodeInfo_need_ver
 else
     # debuginfo changed completely as of https://github.com/JuliaLang/julia/pull/52415
     # nargs / isva was added as of       https://github.com/JuliaLang/julia/pull/54341
+    # field rettype added in             https://github.com/JuliaLang/julia/pull/54655
+    # field has_image_globalref added in https://github.com/JuliaLang/julia/pull/57433
     # CodeInfo constructor. TODO: Should be in Core
     let
         fns = fieldnames(Core.CodeInfo)
         fts = fieldtypes(Core.CodeInfo)
         conversions = [:(convert($t, $n)) for (t,n) in zip(fts, fns)]
 
-        expected_fns = (:code, :debuginfo, :ssavaluetypes, :ssaflags, :slotnames, :slotflags, :slottypes, :parent, :method_for_inference_limit_heuristics, :edges, :min_world, :max_world, :nargs, :propagate_inbounds, :has_fcall, :nospecializeinfer, :isva, :inlining, :constprop, :purity, :inlining_cost)
-        expected_fts = (Vector{Any}, Core.DebugInfo, Any, Vector{UInt32}, Vector{Symbol}, Vector{UInt8}, Any, Any, Any, Any, UInt64, UInt64, UInt64, Bool, Bool, Bool, Bool, UInt8, UInt8, UInt16, UInt16)
+        expected_fns = (:code, :debuginfo, :ssavaluetypes, :ssaflags, :slotnames, :slotflags, :slottypes, :rettype, :parent, :edges, :min_world, :max_world, :method_for_inference_limit_heuristics, :nargs, :propagate_inbounds, :has_fcall, :has_image_globalref, :nospecializeinfer, :isva, :inlining, :constprop, :purity, :inlining_cost)
+        expected_fts = (Vector{Any}, Core.DebugInfo, Any, Vector{UInt32}, Vector{Symbol}, Vector{UInt8}, Any, Any, Any, Any, UInt64, UInt64, Any, UInt64, Bool, Bool, Bool, Bool, Bool, UInt8, UInt8, UInt16, UInt16)
 
-        code = if fns != expected_fns || fts != expected_fts
+        code = if fns != expected_fns
+            unexpected_fns = collect(setdiff(Set(fns), Set(expected_fns)))
+            missing_fns = collect(setdiff(Set(expected_fns), Set(fns)))
             :(function _CodeInfo(args...)
-                error("Unrecognized CodeInfo layout: Maybe version $VERSION is to new for this version of JuliaLowering?")
-            end)
+                  error("Unrecognized CodeInfo fields: Maybe version $VERSION is too new for this version of JuliaLowering?"
+                         * isempty(unexpected_fns) ? "" : "\nUnexpected fields found: $($unexpected_fns)"
+                         * isempty(missing_fns)    ? "" : "\nMissing fields:          $($missing_fns)")
+              end)
+        elseif fts != expected_fts
+            :(function _CodeInfo(args...)
+                  error("Unrecognized CodeInfo field types: Maybe version $VERSION is too new for this version of JuliaLowering?")
+              end)
         else
             :(function _CodeInfo($(fns...))
                 $(Expr(:new, :(Core.CodeInfo), conversions...))
@@ -142,6 +164,8 @@ function to_code_info(ex, mod, funcname, slots)
 
     debuginfo = finish_ir_debug_info!(current_codelocs_stack)
 
+    has_image_globalref = any(codeinfo_has_image_globalref, stmts)
+
     # TODO: Set ssaflags based on call site annotations:
     # - @inbounds annotations
     # - call site @inline / @noinline
@@ -172,6 +196,7 @@ function to_code_info(ex, mod, funcname, slots)
     max_world           = typemax(Csize_t)
     isva                = false
     inlining_cost       = 0xffff
+    rettype             = Any
 
     _CodeInfo(
         stmts,
@@ -181,14 +206,16 @@ function to_code_info(ex, mod, funcname, slots)
         slotnames,
         slotflags,
         slottypes,
+        rettype,
         parent,
-        method_for_inference_limit_heuristics,
         edges,
         min_world,
         max_world,
+        method_for_inference_limit_heuristics,
         nargs,
         propagate_inbounds,
         has_fcall,
+        has_image_globalref,
         nospecializeinfer,
         isva,
         inlining,

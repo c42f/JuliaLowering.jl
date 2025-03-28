@@ -46,4 +46,12 @@ cf_float = JuliaLowering.include_string(test_mod, """
 """)
 @test @ccall($cf_float(2::Float64, 3::Float64)::Float64) == 32.0
 
+@testset "CodeInfo: has_image_globalref" begin
+    elower(s) = JuliaLowering.to_lowered_expr(
+        test_mod, JuliaLowering.lower(
+            test_mod, parsestmt(JuliaLowering.SyntaxTree, s)))
+    @test elower("function foo end").args[1].has_image_globalref === false
+    @test elower("Base.push!([], 1)").args[1].has_image_globalref === true
+end
+
 end
