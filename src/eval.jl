@@ -238,12 +238,7 @@ function to_lowered_expr(mod, ex, ssa_offset=0)
     elseif k == K"top"
         GlobalRef(Base, Symbol(ex.name_val))
     elseif k == K"globalref"
-        if mod === ex.mod
-            # Implicitly refers to name in parent module.
-            Symbol(ex.name_val)
-        else
-            GlobalRef(ex.mod, Symbol(ex.name_val))
-        end
+        GlobalRef(ex.mod, Symbol(ex.name_val))
     elseif k == K"Identifier"
         # Implicitly refers to name in parent module
         # TODO: Should we even have plain identifiers at this point or should
