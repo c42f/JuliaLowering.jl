@@ -3825,6 +3825,24 @@ function _constructor_min_initalized(ex::SyntaxTree)
     end
 end
 
+# Let S be a struct we're defining in module M.  Below is a hack to allow its
+# field types to refer to S as M.S.  See #56497.
+function insert_struct_shim(ctx, fieldtypes, name)
+    function replace_type(ex)
+        if kind(ex) == K"." &&
+            numchildren(ex) == 2 &&
+            kind(ex[2]) == K"Symbol" &&
+            ex[2].name_val == name.name_val
+            @ast ctx ex [K"call" "struct_name_shim"::K"core" ex[1] ex[2] ctx.mod::K"Value" name]
+        elseif numchildren(ex) > 0
+            @ast ctx ex [ex.kind map(replace_type, children(ex))...]
+        else
+            ex
+        end
+    end
+    map(replace_type, fieldtypes)
+end
+
 function expand_struct_def(ctx, ex, docs)
     @chk numchildren(ex) == 2
     type_sig = ex[1]
@@ -3952,16 +3970,17 @@ function expand_struct_def(ctx, ex, docs)
                                 ]
                             end
                         ]
-                        # Otherwise do an assignment to trigger an error
-                        [K"const" global_struct_name struct_name]
                     ]
-                    [K"const" global_struct_name struct_name]
                 ]
                 [K"call"(type_body)
                     "_typebody!"::K"core"
                     struct_name
-                    [K"call" "svec"::K"core" field_types...]
+                    [K"call" "svec"::K"core" insert_struct_shim(ctx, field_types, struct_name)...]
                 ]
+                [K"constdecl"
+                    global_struct_name
+                    newtype_var
+                 ]
                 # Default constructors
                 if isempty(inner_defs)
                     default_inner_constructors(ctx, ex, global_struct_name,
