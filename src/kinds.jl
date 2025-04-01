@@ -94,7 +94,7 @@ function _register_kinds()
             "_opaque_closure"
             # The enclosed statements must be executed at top level
             "toplevel_butfirst"
-            "const_if_global"
+            "assign_const_if_global"
             "moved_local"
             "label"
             "trycatchelse"
@@ -119,8 +119,9 @@ function _register_kinds()
             "slot"
             # Static parameter to a `CodeInfo` code object ("type parameters" to methods)
             "static_parameter"
-            # Reference to a global variable within a module
+            # References/declares a global variable within a module
             "globalref"
+            "globaldecl"
             # Unconditional goto
             "goto"
             # Conditional goto

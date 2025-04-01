@@ -44,6 +44,10 @@ function _find_scope_vars!(ctx, assignments, locals, destructured_args, globals,
         end
     elseif k == K"global"
         _insert_if_not_present!(globals, NameKey(ex[1]), ex)
+    elseif k == K"assign_const_if_global"
+        # like v = val, except that if `v` turns out global(either implicitly or
+        # by explicit `global`), it gains an implicit `const`
+        _insert_if_not_present!(assignments, NameKey(ex[1]), ex)
     elseif k == K"="
         v = decl_var(ex[1])
         if !(kind(v) in KSet"BindingId globalref Placeholder")
@@ -561,10 +565,13 @@ function _resolve_scopes(ctx, ex::SyntaxTree)
             end
         end
         resolved
-    elseif k == K"const_if_global"
+    elseif k == K"assign_const_if_global"
         id = _resolve_scopes(ctx, ex[1])
-        if lookup_binding(ctx, id).kind == :global
-            @ast ctx ex [K"const" id]
+        bk = lookup_binding(ctx, id).kind
+        if bk == :local && numchildren(ex) != 1
+            @ast ctx ex _resolve_scopes(ctx, [K"=" children(ex)...])
+        elseif bk != :local # TODO: should this be == :global?
+            @ast ctx ex _resolve_scopes(ctx, [K"const" children(ex)...])
         else
             makeleaf(ctx, ex, K"TOMBSTONE")
         end
@@ -649,7 +656,7 @@ function analyze_variables!(ctx, ex)
     elseif k == K"local" || k == K"global"
         # Presence of BindingId within local/global is ignored.
         return
-    elseif k == K"="
+    elseif k == K"=" || k == K"const"
         lhs = ex[1]
         if kind(lhs) != K"Placeholder"
             update_binding!(ctx, lhs, add_assigned=1)
