@@ -337,6 +337,13 @@ function _convert_closures(ctx::ClosureConversionCtx, ex)
         elseif binfo.is_always_defined || is_self_captured(ctx, var)
             # Captured but unboxed vars are always defined
             @ast ctx ex true::K"Bool"
+        elseif binfo.kind == :global
+            # Normal isdefined won't work for globals (#56985)
+            @ast ctx ex [K"call"
+                "isdefinedglobal"::K"core"
+                ctx.mod::K"Value"
+                binfo.name::K"Symbol"
+                false::K"Bool"]
         else
             ex
         end

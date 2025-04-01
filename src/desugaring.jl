@@ -3398,7 +3398,11 @@ function expand_abstract_or_primitive_type(ctx, ex)
         [K"global" name]
         [K"if"
             [K"&&"
-                [K"isdefined" name]
+                [K"call"
+                   "isdefinedglobal"::K"core"
+                   ctx.mod::K"Value"
+                   name=>K"Symbol"
+                   false::K"Bool"]
                 [K"call" "_equiv_typedef"::K"core" name newtype_var]
             ]
             nothing_(ctx, ex)
@@ -3927,7 +3931,10 @@ function expand_struct_def(ctx, ex, docs)
                 [K"=" struct_name newtype_var]
                 [K"call"(supertype) "_setsuper!"::K"core" newtype_var supertype]
                 [K"if"
-                    [K"isdefined" global_struct_name]
+                    [K"call" "isdefinedglobal"::K"core"
+                       ctx.mod::K"Value"
+                       struct_name=>K"Symbol"
+                       false::K"Bool"]
                     [K"if"
                         [K"call" "_equiv_typedef"::K"core" global_struct_name newtype_var]
                         [K"block"
