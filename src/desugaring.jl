@@ -1165,16 +1165,21 @@ end
 # Expand assignments
 
 # Expand UnionAll definitions, eg `X{T} = Y{T,T}`
-function expand_unionall_def(ctx, srcref, lhs, rhs)
+function expand_unionall_def(ctx, srcref, lhs, rhs, is_const=true)
     if numchildren(lhs) <= 1
         throw(LoweringError(lhs, "empty type parameter list in type alias"))
     end
     name = lhs[1]
-    @ast ctx srcref [K"block"
-        [K"const_if_global" name]
-        unionall_type := expand_forms_2(ctx, [K"where" rhs lhs[2:end]...])
-        expand_forms_2(ctx, [K"=" name unionall_type])
-    ]
+    rr = ssavar(ctx, srcref)
+    expand_forms_2(
+        ctx,
+        @ast ctx srcref [
+            K"block"
+            [K"=" rr [K"where" rhs lhs[2:end]...]]
+            [is_const ? K"constdecl" : K"assign_const_if_global" name rr]
+            rr
+        ]
+    )
 end
 
 # Expand general assignment syntax, including
@@ -1184,13 +1189,13 @@ end
 #   * Assignments to array elements
 #   * Destructuring
 #   * Typed variable declarations
-function expand_assignment(ctx, ex)
+function expand_assignment(ctx, ex, is_const=false)
     @chk numchildren(ex) == 2
     lhs = ex[1]
     rhs = ex[2]
     kl = kind(lhs)
     if kl == K"curly"
-        expand_unionall_def(ctx, ex, lhs, rhs)
+        expand_unionall_def(ctx, ex, lhs, rhs, is_const)
     elseif kind(rhs) == K"="
         # Expand chains of assignments
         # a = b = c  ==>  b=c; a=c
@@ -1207,7 +1212,9 @@ function expand_assignment(ctx, ex)
             tmp_rhs = ssavar(ctx, rhs, "rhs")
             rr = tmp_rhs
         end
-        for i in 1:length(stmts)
+        # In const a = b = c, only a is const
+        stmts[1] = @ast ctx ex [(is_const ? K"constdecl" : K"=") stmts[1] rr]
+        for i in 2:length(stmts)
             stmts[i] = @ast ctx ex [K"=" stmts[i] rr]
         end
         if !isnothing(tmp_rhs)
@@ -1220,9 +1227,20 @@ function expand_assignment(ctx, ex)
             ]
         )
     elseif is_identifier_like(lhs)
-        sink_assignment(ctx, ex, lhs, expand_forms_2(ctx, rhs))
+        if is_const
+            rr = ssavar(ctx, rhs)
+            @ast ctx ex [
+                K"block"
+                sink_assignment(ctx, ex, rr, expand_forms_2(ctx, rhs))
+                [K"constdecl" lhs rr]
+                [K"removable" rr]
+            ]
+        else
+            sink_assignment(ctx, ex, lhs, expand_forms_2(ctx, rhs))
+        end
     elseif kl == K"."
         # a.b = rhs  ==>  setproperty!(a, :b, rhs)
+        @chk !is_const (ex, "cannot declare `.` form const")
         @chk numchildren(lhs) == 2
         a = lhs[1]
         b = lhs[2]
@@ -1250,16 +1268,24 @@ function expand_assignment(ctx, ex)
         end
     elseif kl == K"ref"
         # a[i1, i2] = rhs
+        @chk !is_const (ex, "cannot declare ref form const")
         expand_forms_2(ctx, expand_setindex(ctx, ex))
     elseif kl == K"::" && numchildren(lhs) == 2
         x = lhs[1]
         T = lhs[2]
-        res = if is_identifier_like(x)
+        res = if is_const
+            expand_forms_2(ctx, @ast ctx ex [
+                K"const"
+                [K"="
+                  lhs[1]
+                  convert_for_type_decl(ctx, ex, rhs, T, true)
+                 ]])
+        elseif is_identifier_like(x)
             # Identifer in lhs[1] is a variable type declaration, eg
             # x::T = rhs
             @ast ctx ex [K"block"
                 [K"decl" lhs[1] lhs[2]]
-                [K"=" lhs[1] rhs]
+                is_const ? [K"const" [K"=" lhs[1] rhs]] : [K"=" lhs[1] rhs]
             ]
         else
             # Otherwise just a type assertion, eg
@@ -1271,6 +1297,7 @@ function expand_assignment(ctx, ex)
             # needs to be detected somewhere but won't be detected here. Maybe
             # it shows that remove_argument_side_effects() is not the ideal
             # solution here?
+            # TODO: handle underscore?
             @ast ctx ex [K"block"
                 stmts...
                 [K"::" l1 lhs[2]]
@@ -2097,9 +2124,8 @@ function strip_decls!(ctx, stmts, declkind, declkind2, declmeta, ex)
     end
 end
 
-# local x, (y=2), z ==> local x; local y; y = 2; local z
-# const x = 1       ==> const x; x = 1
-# global x::T = 1   ==> (block (global x) (decl x T) (x = 1))
+# local x, (y=2), z ==> local x; local z; y = 2
+# Note there are differences from lisp (evaluation order?)
 function expand_decls(ctx, ex)
     declkind = kind(ex)
     declmeta = get(ex, :meta, nothing)
@@ -2127,6 +2153,58 @@ function expand_decls(ctx, ex)
         end
     end
     makenode(ctx, ex, K"block", stmts)
+end
+
+# Return all the names that will be bound by the assignment LHS, including
+# curlies and calls.
+function lhs_bound_names(ex)
+    k = kind(ex)
+    if k == K"Placeholder"
+        []
+    elseif is_identifier_like(ex)
+        [ex]
+    elseif k in KSet"call curly where ::"
+        lhs_bound_names(ex[1])
+    elseif k in KSet"tuple parameters"
+        vcat(map(lhs_bound_names, children(ex))...)
+    else
+        []
+    end
+end
+
+function expand_const_decl(ctx, ex)
+    function check_assignment(asgn)
+        @chk (kind(asgn) == K"=") (ex, "expected assignment after `const`")
+    end
+
+    k = kind(ex[1])
+    if numchildren(ex) == 2
+        @ast ctx ex [
+            K"constdecl"
+            ex[1]
+            expand_forms_2(ctx, ex[2])
+        ]
+    elseif k == K"global"
+        asgn = ex[1][1]
+        check_assignment(asgn)
+        globals = map(lhs_bound_names(asgn[1])) do x
+            @ast ctx ex [K"global" x]
+        end
+        @ast ctx ex [
+            K"block"
+            globals...
+            expand_assignment(ctx, ex[1], true)
+        ]
+    elseif k == K"="
+        if numchildren(ex[1]) >= 1 && kind(ex[1][1]) == K"tuple"
+            throw(LoweringError(ex[1][1], "unsupported `const` tuple"))
+        end
+        expand_assignment(ctx, ex[1], true)
+    elseif k == K"local"
+        throw(LoweringError(ex, "unsupported `const local` declaration"))
+    else
+        throw(LoweringError(ex, "expected assignment after `const`"))
+    end
 end
 
 #-------------------------------------------------------------------------------
@@ -3318,14 +3396,13 @@ function expand_abstract_or_primitive_type(ctx, ex)
         ]
         [K"assert" "toplevel_only"::K"Symbol" [K"inert" ex] ]
         [K"global" name]
-        [K"const" name]
         [K"if"
             [K"&&"
                 [K"isdefined" name]
                 [K"call" "_equiv_typedef"::K"core" name newtype_var]
             ]
             nothing_(ctx, ex)
-            [K"=" name newtype_var]
+            [K"constdecl" name newtype_var]
         ]
         nothing_(ctx, ex)
     ]
@@ -3827,9 +3904,10 @@ function expand_struct_def(ctx, ex, docs)
     @ast ctx ex [K"block"
         [K"assert" "toplevel_only"::K"Symbol" [K"inert" ex] ]
         [K"scope_block"(scope_type=:hard)
+            # Needed for later constdecl to work, though plain global form may be removed soon.
+            [K"global" global_struct_name]
             [K"block"
                 [K"global" global_struct_name]
-                [K"const" global_struct_name]
                 [K"local" struct_name]
                 [K"always_defined" struct_name]
                 typevar_stmts...
@@ -3868,9 +3946,9 @@ function expand_struct_def(ctx, ex, docs)
                             end
                         ]
                         # Otherwise do an assignment to trigger an error
-                        [K"=" global_struct_name struct_name]
+                        [K"const" global_struct_name struct_name]
                     ]
-                    [K"=" global_struct_name struct_name]
+                    [K"const" global_struct_name struct_name]
                 ]
                 [K"call"(type_body)
                     "_typebody!"::K"core"
@@ -4271,7 +4349,9 @@ function expand_forms_2(ctx::DesugaringContext, ex::SyntaxTree, docs=nothing)
         ]
     elseif k == K"let"
         expand_forms_2(ctx, expand_let(ctx, ex))
-    elseif k == K"local" || k == K"global" || k == K"const"
+    elseif k == K"const"
+        expand_const_decl(ctx, ex)
+    elseif k == K"local" || k == K"global"
         if numchildren(ex) == 1 && kind(ex[1]) == K"Identifier"
             # Don't recurse when already simplified - `local x`, etc
             ex

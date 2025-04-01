@@ -334,18 +334,35 @@ function emit_break(ctx, ex)
     emit_jump(ctx, ex, target)
 end
 
-function emit_assignment(ctx, srcref, lhs, rhs)
+# `op` may also be K"constdecl"
+function emit_assignment_or_setglobal(ctx, srcref, lhs, rhs, op=K"=")
+    # (const (globalref _ _) _) does not use setglobal!
+    binfo = lookup_binding(ctx, lhs.var_id)
+    if binfo.kind == :global && op == K"="
+        emit(ctx, @ast ctx srcref [
+            K"call"
+            "setglobal!"::K"top"
+            binfo.mod::K"Value"
+            binfo.name::K"Symbol"
+            rhs
+        ])
+    else
+        emit(ctx, srcref, op, lhs, rhs)
+    end
+end
+
+function emit_assignment(ctx, srcref, lhs, rhs, op=K"=")
     if !isnothing(rhs)
         if is_valid_ir_rvalue(ctx, lhs, rhs)
-            emit(ctx, srcref, K"=", lhs, rhs)
+            emit_assignment_or_setglobal(ctx, srcref, lhs, rhs, op)
         else
             r = emit_assign_tmp(ctx, rhs)
-            emit(ctx, srcref, K"=", lhs, r)
+            emit_assignment_or_setglobal(ctx, srcref, lhs, r, op)
         end
     else
         # in unreachable code (such as after return); still emit the assignment
         # so that the structure of those uses is preserved
-        emit(ctx, @ast ctx srcref [K"=" lhs "nothing"::K"core"])
+        emit_assignment_or_setglobal(ctx, srcref, lhs, @ast ctx srcref "nothing"::K"core", op)
         nothing
     end
 end
@@ -640,7 +657,7 @@ function compile(ctx::LinearIRContext, ex, needs_value, in_tail_pos)
             emit(ctx, callex)
             nothing
         end
-    elseif k == K"="
+    elseif k == K"=" || k == K"constdecl"
         lhs = ex[1]
         if kind(lhs) == K"Placeholder"
             compile(ctx, ex[2], needs_value, in_tail_pos)
@@ -649,14 +666,14 @@ function compile(ctx::LinearIRContext, ex, needs_value, in_tail_pos)
             # TODO look up arg-map for renaming if lhs was reassigned
             if needs_value && !isnothing(rhs)
                 r = emit_assign_tmp(ctx, rhs)
-                emit(ctx, ex, K"=", lhs, r)
+                emit_assignment_or_setglobal(ctx, ex, lhs, r, k)
                 if in_tail_pos
                     emit_return(ctx, ex, r)
                 else
                     r
                 end
             else
-                emit_assignment(ctx, ex, lhs, rhs)
+                emit_assignment(ctx, ex, lhs, rhs, k)
             end
         end
     elseif k == K"block" || k == K"scope_block"
@@ -811,7 +828,7 @@ function compile(ctx::LinearIRContext, ex, needs_value, in_tail_pos)
         end
     elseif k == K"gc_preserve_begin"
         makenode(ctx, ex, k, compile_args(ctx, children(ex)))
-    elseif k == K"gc_preserve_end" || k == K"global" || k == K"const"
+    elseif k == K"gc_preserve_end" || k == K"global"
         if needs_value
             throw(LoweringError(ex, "misplaced kind $k in value position"))
         end
@@ -861,6 +878,17 @@ function compile(ctx::LinearIRContext, ex, needs_value, in_tail_pos)
         if !is_duplicate
             # TODO: also exclude deleted vars
             emit(ctx, ex)
+        end
+    elseif k == K"globaldecl"
+        if needs_value
+            throw(LoweringError(ex, "misplaced global declaration"))
+        end
+        if numchildren(ex) == 1 || is_identifier_like(ex[2])
+            emit(ctx, ex)
+        else
+            rr = ssavar(ctx, ex[2])
+            emit(ctx, @ast ctx ex [K"=" rr ex[2]])
+            emit(ctx, @ast ctx ex [K"globaldecl" ex[1] rr])
         end
     else
         throw(LoweringError(ex, "Invalid syntax; $(repr(k))"))
