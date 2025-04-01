@@ -344,11 +344,11 @@ function _convert_closures(ctx::ClosureConversionCtx, ex)
         @assert kind(ex[1]) == K"BindingId"
         binfo = lookup_binding(ctx, ex[1])
         if binfo.kind == :global
-            @ast ctx ex [K"call"
-                "set_binding_type!"::K"core"
-                binfo.mod::K"Value"
-                binfo.name::K"Symbol"
+            @ast ctx ex [
+                K"globaldecl"
+                ex[1]
                 _convert_closures(ctx, ex[2])
+                # TODO (null)?
             ]
         else
             makeleaf(ctx, ex, K"TOMBSTONE")
