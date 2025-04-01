@@ -3,7 +3,7 @@
 
 function is_valid_ir_argument(ctx, ex)
     k = kind(ex)
-    if is_simple_atom(ctx, ex) || k == K"inert" || k == K"top" || k == K"core"
+    if is_simple_atom(ctx, ex) || k in KSet"inert top core quote"
         true
     elseif k == K"BindingId"
         binfo = lookup_binding(ctx, ex)
@@ -11,16 +11,7 @@ function is_valid_ir_argument(ctx, ex)
         # TODO: Can we allow bk == :local || bk == :argument || bk == :static_parameter ???
         # Why does flisp seem to allow (slot) and (static_parameter), but these
         # aren't yet converted to by existing lowering??
-        if bk == :global
-            # Globals are nothrow when they are defined - we assume a previously
-            # defined global can never be set to undefined. (TODO: This could be
-            # broken when precompiling a module `B` in the presence of a badly
-            # behaved module `A`, which inconsistently defines globals during
-            # `A.__init__()`??)
-            is_defined_nothrow_global(binfo.mod, Symbol(binfo.name))
-        else
-            false
-        end
+        (bk == :slot || bk == :static_parameter)
     else
         false
     end
