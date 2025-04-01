@@ -3961,16 +3961,17 @@ function expand_struct_def(ctx, ex, docs)
                                 ]
                             end
                         ]
-                        # Otherwise do an assignment to trigger an error
-                        [K"const" global_struct_name struct_name]
                     ]
-                    [K"const" global_struct_name struct_name]
                 ]
                 [K"call"(type_body)
                     "_typebody!"::K"core"
                     struct_name
                     [K"call" "svec"::K"core" field_types...]
                 ]
+                [K"const"
+                    global_struct_name
+                    newtype_var
+                 ]
                 # Default constructors
                 if isempty(inner_defs)
                     default_inner_constructors(ctx, ex, global_struct_name,
