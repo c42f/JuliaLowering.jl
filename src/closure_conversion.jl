@@ -355,7 +355,6 @@ function _convert_closures(ctx::ClosureConversionCtx, ex)
                 K"globaldecl"
                 ex[1]
                 _convert_closures(ctx, ex[2])
-                # TODO (null)?
             ]
         else
             makeleaf(ctx, ex, K"TOMBSTONE")
