@@ -313,6 +313,7 @@ function to_lowered_expr(mod, ex, ssa_offset=0)
                k == K"constdecl" ? :const      :
                k == K"leave"     ? :leave      :
                k == K"isdefined" ? :isdefined  :
+               k == K"latestworld"       ? :latestworld       :
                k == K"globaldecl"        ? :globaldecl        :
                k == K"pop_exception"     ? :pop_exception     :
                k == K"captured_local"    ? :captured_local    :
