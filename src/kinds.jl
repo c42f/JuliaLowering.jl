@@ -111,6 +111,8 @@ function _register_kinds()
             # A local variable captured into a global method. Contains the
             # `index` of the associated `Box` in the rewrite list.
             "captured_local"
+            # Causes the linearization pass to conditionally emit a world age increment
+            "latestworld_if_toplevel"
         "END_LOWERING_KINDS"
 
         # The following kinds are emitted by lowering and used in Julia's untyped IR
@@ -147,6 +149,8 @@ function _register_kinds()
             "new_opaque_closure"
             # Wrapper for the lambda of around opaque closure methods
             "opaque_closure_method"
+            # World age increment
+            "latestworld"
         "END_IR_KINDS"
     ])
 end

@@ -819,11 +819,18 @@ function compile(ctx::LinearIRContext, ex, needs_value, in_tail_pos)
         end
     elseif k == K"gc_preserve_begin"
         makenode(ctx, ex, k, compile_args(ctx, children(ex)))
-    elseif k == K"gc_preserve_end" || k == K"global"
+    elseif k == K"gc_preserve_end"
         if needs_value
             throw(LoweringError(ex, "misplaced kind $k in value position"))
         end
         emit(ctx, ex)
+        nothing
+    elseif  k == K"global"
+        if needs_value
+            throw(LoweringError(ex, "misplaced kind $k in value position"))
+        end
+        emit(ctx, ex)
+        ctx.is_toplevel_thunk && emit(ctx, makenode(ctx, ex, K"latestworld"))
         nothing
     elseif k == K"meta"
         emit(ctx, ex)
@@ -881,6 +888,11 @@ function compile(ctx::LinearIRContext, ex, needs_value, in_tail_pos)
             emit(ctx, @ast ctx ex [K"=" rr ex[2]])
             emit(ctx, @ast ctx ex [K"globaldecl" ex[1] rr])
         end
+        ctx.is_toplevel_thunk && emit(ctx, makenode(ctx, ex, K"latestworld"))
+    elseif k == K"latestworld"
+        emit(ctx, ex)
+    elseif k == K"latestworld_if_toplevel"
+        ctx.is_toplevel_thunk && emit(ctx, makeleaf(ctx, ex, K"latestworld"))
     else
         throw(LoweringError(ex, "Invalid syntax; $(repr(k))"))
     end
