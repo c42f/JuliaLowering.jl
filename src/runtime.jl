@@ -130,7 +130,7 @@ function eval_closure_type(mod, closure_type_name, field_names, field_is_box)
                             length(field_names))
     Core._setsuper!(type, Core.Function)
     Base.eval(mod, :(const $closure_type_name = $type))
-    Core._typebody!(type, Core.svec(field_types...))
+    Core._typebody!(false, type, Core.svec(field_types...))
     type
 end
 
