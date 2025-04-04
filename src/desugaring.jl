@@ -3410,7 +3410,7 @@ function expand_abstract_or_primitive_type(ctx, ex)
                 ]
                 [K"=" name newtype_var]
                 [K"call" "_setsuper!"::K"core" newtype_var supertype]
-                [K"call" "_typebody!"::K"core" newtype_var]
+                [K"call" "_typebody!"::K"core" false::K"Bool" name]
             ]
         ]
         [K"assert" "toplevel_only"::K"Symbol" [K"inert" ex] ]
@@ -3994,7 +3994,9 @@ function expand_struct_def(ctx, ex, docs)
                 ]
                 [K"call"(type_body)
                     "_typebody!"::K"core"
-                    struct_name
+                    # TODO: if there is a previous compatible definition, re-use params. See #57253
+                    false::K"Bool"
+                    newtype_var
                     [K"call" "svec"::K"core" insert_struct_shim(ctx, field_types, struct_name)...]
                 ]
                 [K"constdecl"
