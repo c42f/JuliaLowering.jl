@@ -279,8 +279,6 @@ function to_lowered_expr(mod, ex, ssa_offset=0)
         Core.NewvarNode(to_lowered_expr(mod, ex[1], ssa_offset))
     elseif k == K"new_opaque_closure"
         args = map(e->to_lowered_expr(mod, e, ssa_offset), children(ex))
-        # TODO: put allow_partial back in once we update to the latest julia
-        splice!(args, 4) # allow_partial
         Expr(:new_opaque_closure, args...)
     elseif k == K"meta"
         args = Any[to_lowered_expr(mod, e, ssa_offset) for e in children(ex)]
