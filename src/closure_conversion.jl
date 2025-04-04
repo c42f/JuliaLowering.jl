@@ -147,6 +147,7 @@ function convert_global_assignment(ctx, ex, var, rhs0)
     end
     push!(stmts, @ast ctx ex [K"=" var rhs])
     @ast ctx ex [K"block"
+        [K"globaldecl" var]
         stmts...
         rhs1
     ]
