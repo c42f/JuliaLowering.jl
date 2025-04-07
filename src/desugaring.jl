@@ -2811,6 +2811,7 @@ function keyword_function_defs(ctx, srcref, callex_srcref, name_str, typevar_nam
 
     kw_func_method_defs = @ast ctx srcref [K"block"
         [K"function_decl" body_func_name]
+        [K"latestworld"]
         [K"scope_block"(scope_type=:hard)
             [K"method_defs"
                 body_func_name
