@@ -124,6 +124,9 @@ function _register_kinds()
             # References/declares a global variable within a module
             "globalref"
             "globaldecl"
+            # Two-argument constant declaration and assignment.
+            # Translated to :const in the IR for now (we use K"const" already in parsing).
+            "constdecl"
             # Unconditional goto
             "goto"
             # Conditional goto

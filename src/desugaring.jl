@@ -1187,7 +1187,7 @@ function expand_unionall_def(ctx, srcref, lhs, rhs, is_const=true)
         @ast ctx srcref [
             K"block"
             [K"=" rr [K"where" rhs lhs[2:end]...]]
-            [is_const ? K"const" : K"assign_const_if_global" name rr]
+            [is_const ? K"constdecl" : K"assign_const_if_global" name rr]
             [K"latestworld_if_toplevel"]
             rr
         ]
@@ -1246,7 +1246,7 @@ function expand_assignment(ctx, ex, is_const=false)
             @ast ctx ex [
                 K"block"
                 sink_assignment(ctx, ex, rr, expand_forms_2(ctx, rhs))
-                [K"const" lhs rr]
+                [K"constdecl" lhs rr]
                 [K"latestworld"]
                 [K"removable" rr]
             ]
@@ -1290,7 +1290,7 @@ function expand_assignment(ctx, ex, is_const=false)
         T = lhs[2]
         res = if is_const
             expand_forms_2(ctx, ex, @ast ctx ex [
-                K"const"
+                K"constdecl"
                 lhs[1]
                 convert_for_type_decl(ctx, ex, rhs, T, true)
             ])
@@ -3434,7 +3434,7 @@ function expand_abstract_or_primitive_type(ctx, ex)
                 [K"call" "_equiv_typedef"::K"core" name newtype_var]
             ]
             nothing_(ctx, ex)
-            [K"const" name newtype_var]
+            [K"constdecl" name newtype_var]
         ]
         [K"latestworld"]
         nothing_(ctx, ex)
@@ -3988,7 +3988,7 @@ function expand_struct_def(ctx, ex, docs)
                     newtype_var
                     [K"call" "svec"::K"core" field_types...]
                 ]
-                [K"const"
+                [K"constdecl"
                     global_struct_name
                     newtype_var
                  ]

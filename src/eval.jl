@@ -297,7 +297,7 @@ function to_lowered_expr(mod, ex, ssa_offset=0)
                k == K"splatnew"  ? :splatnew   :
                k == K"="         ? :(=)        :
                k == K"global"    ? :global     :
-               k == K"const"     ? :const      :
+               k == K"constdecl" ? :const      :
                k == K"leave"     ? :leave      :
                k == K"isdefined" ? :isdefined  :
                k == K"latestworld"       ? :latestworld       :

@@ -325,7 +325,7 @@ function emit_break(ctx, ex)
     emit_jump(ctx, ex, target)
 end
 
-# `op` may also be K"const"
+# `op` may also be K"constdecl"
 function emit_assignment_or_setglobal(ctx, srcref, lhs, rhs, op=K"=")
     # (const (globalref _ _) _) does not use setglobal!
     binfo = lookup_binding(ctx, lhs.var_id)
@@ -648,8 +648,8 @@ function compile(ctx::LinearIRContext, ex, needs_value, in_tail_pos)
             emit(ctx, callex)
             nothing
         end
-    elseif k == K"=" || k == K"const"
-        if k == K"const"
+    elseif k == K"=" || k == K"constdecl"
+        if k == K"constdecl"
             check_no_local_bindings(ctx, ex[1], "unsupported `const` declaration on local variable")
             # other errors (probably this one too) should be handled in previous passes
         end

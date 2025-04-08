@@ -571,7 +571,7 @@ function _resolve_scopes(ctx, ex::SyntaxTree)
         if bk == :local && numchildren(ex) != 1
             @ast ctx ex _resolve_scopes(ctx, [K"=" children(ex)...])
         elseif bk != :local # TODO: should this be == :global?
-            @ast ctx ex _resolve_scopes(ctx, [K"const" children(ex)...])
+            @ast ctx ex _resolve_scopes(ctx, [K"constdecl" children(ex)...])
         else
             makeleaf(ctx, ex, K"TOMBSTONE")
         end
@@ -656,7 +656,7 @@ function analyze_variables!(ctx, ex)
     elseif k == K"local" || k == K"global"
         # Presence of BindingId within local/global is ignored.
         return
-    elseif k == K"=" || k == K"const"
+    elseif k == K"="
         lhs = ex[1]
         if kind(lhs) != K"Placeholder"
             update_binding!(ctx, lhs, add_assigned=1)
@@ -684,7 +684,7 @@ function analyze_variables!(ctx, ex)
         if kind(ex[1]) != K"BindingId" || lookup_binding(ctx, ex[1]).kind !== :local
             analyze_variables!(ctx, ex[1])
         end
-    elseif k == K"const"
+    elseif k == K"constdecl"
         id = ex[1]
         if lookup_binding(ctx, id).kind == :local
             throw(LoweringError(ex, "unsupported `const` declaration on local variable"))
