@@ -2473,6 +2473,7 @@ function expand_function_generator(ctx, srcref, callex_srcref, func_name, func_n
     # Code generator definition
     gen_func_method_defs = @ast ctx srcref [K"block"
         [K"function_decl" gen_name]
+        [K"latestworld_if_toplevel"]
         [K"scope_block"(scope_type=:hard)
             [K"method_defs"
                 gen_name

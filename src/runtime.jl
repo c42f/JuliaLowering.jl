@@ -282,7 +282,7 @@ end
 # expression into a CodeInfo.
 #
 # `args` passed into stub by the Julia runtime are (parent_func, static_params..., arg_types...)
-function (g::GeneratedFunctionStub)(world::UInt, source::LineNumberNode, @nospecialize args...)
+function (g::GeneratedFunctionStub)(world::UInt, source::Method, @nospecialize args...)
     # Some of the lowering pipeline from lower() and the pass-specific setup is
     # re-implemented here because generated functions are very much (but not
     # entirely) like macro expansion.
@@ -334,7 +334,7 @@ function (g::GeneratedFunctionStub)(world::UInt, source::LineNumberNode, @nospec
     ctx2, ex2 = expand_forms_2(  ctx1, ex1)
 
     # Wrap expansion in a non-toplevel lambda and run scope resolution
-    ex2 = @ast ctx2 source [K"lambda"(is_toplevel_thunk=false)
+    ex2 = @ast ctx2 ex0 [K"lambda"(is_toplevel_thunk=false)
         [K"block"
             (string(n)::K"Identifier" for n in g.argnames)...
         ]
