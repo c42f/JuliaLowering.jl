@@ -209,9 +209,8 @@ function module_import(into_mod::Module, is_using::Bool,
 end
 
 function module_public(mod::Module, is_exported::Bool, identifiers...)
-    for ident in identifiers
-        @ccall jl_module_public(mod::Module, Symbol(ident)::Symbol, is_exported::Cint)::Cvoid
-    end
+    # symbol jl_module_public is no longer exported as of #57765
+    eval(mod, Expr((is_exported ? :export : :public), map(Symbol, identifiers)...))
 end
 
 #--------------------------------------------------
