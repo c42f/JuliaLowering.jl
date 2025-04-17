@@ -370,18 +370,7 @@ end
 #
 # (This should do what fl_defined_julia_global does for flisp lowering)
 function is_defined_and_owned_global(mod, name)
-    b = _get_module_binding(mod, name)
-    !isnothing(b) && isdefined(b, :owner) && b.owner === b
-end
-
-# Return true if `name` is defined in `mod`, the sense that accessing it is nothrow.
-# Has no side effects, unlike isdefined()
-#
-# (This should do what fl_nothrow_julia_global does for flisp lowering)
-function is_defined_nothrow_global(mod, name)
-    b = _get_module_binding(mod, name)
-    !isnothing(b) && isdefined(b, :owner) || return false
-    isdefined(b.owner, :value)
+    Base.binding_kind(mod, name) === Base.PARTITION_KIND_GLOBAL
 end
 
 # "Reserve" a binding: create the binding if it doesn't exist but do not assign
