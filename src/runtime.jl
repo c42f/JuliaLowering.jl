@@ -371,8 +371,7 @@ end
 #
 # (This should do what fl_defined_julia_global does for flisp lowering)
 function is_defined_and_owned_global(mod, name)
-    b = _get_module_binding(mod, name)
-    !isnothing(b) && isdefined(b, :owner) && b.owner === b
+    Base.binding_kind(mod, name) === Base.PARTITION_KIND_GLOBAL
 end
 
 # "Reserve" a binding: create the binding if it doesn't exist but do not assign
