@@ -103,7 +103,7 @@ end
 # constructed followed by destructuring. In particular, any side effects due to
 # evaluating the individual terms in the right hand side tuple must happen in
 # order.
-function tuple_to_assignments(ctx, ex)
+function tuple_to_assignments(ctx, ex, wrap)
     lhs = ex[1]
     rhs = ex[2]
 
@@ -182,12 +182,12 @@ function tuple_to_assignments(ctx, ex)
                 # (x, ys...) = (a,b,c)
                 # (x, ys...) = (a,bs...)
                 # (ys...)    = ()
-                push!(stmts, @ast ctx ex [K"=" lh[1] middle])
+                push!(stmts, wrap(@ast ctx ex [K"=" lh[1] middle]))
             else
                 # (x, ys..., z) = (a, b, c, d)
                 # (x, ys..., z) = (a, bs...)
                 # (xs..., y)    = (a, bs...)
-                push!(stmts, @ast ctx ex [K"=" [K"tuple" lhs[il:jl]...] middle])
+                push!(stmts, wrap(@ast ctx ex [K"=" [K"tuple" lhs[il:jl]...] middle]))
             end
             # Continue with the remainder of the list of non-splat terms
             il = jl
@@ -195,10 +195,10 @@ function tuple_to_assignments(ctx, ex)
         else
             rh = rhs_tmps[ir]
             if kind(rh) == K"..."
-                push!(stmts, @ast ctx ex [K"=" [K"tuple" lhs[il:end]...] rh[1]])
+                push!(stmts, wrap(@ast ctx ex [K"=" [K"tuple" lhs[il:end]...] rh[1]]))
                 break
             else
-                push!(stmts, @ast ctx ex [K"=" lh rh])
+                push!(stmts, wrap(@ast ctx ex [K"=" lh rh]))
             end
         end
     end
@@ -252,14 +252,14 @@ end
 
 # Lower `(lhss...) = rhs` in contexts where `rhs` must be a tuple at runtime
 # by assuming that `getfield(rhs, i)` works and is efficient.
-function lower_tuple_assignment(ctx, assignment_srcref, lhss, rhs)
+function lower_tuple_assignment(ctx, assignment_srcref, lhss, rhs, wrap=(x::SyntaxTree,i::Int)->x)
     stmts = SyntaxList(ctx)
     tmp = emit_assign_tmp(stmts, ctx, rhs, "rhs_tmp")
     for (i, lh) in enumerate(lhss)
-        push!(stmts, @ast ctx assignment_srcref [K"="
-            lh
-            [K"call" "getfield"::K"core" tmp i::K"Integer"]
-        ])
+        stmt = @ast ctx assignment_srcref [
+            K"=" lh [K"call" "getfield"::K"core" tmp i::K"Integer"]
+        ]
+        push!(stmts, wrap(stmt, i))
     end
     makenode(ctx, assignment_srcref, K"block", stmts)
 end
@@ -270,7 +270,10 @@ end
 # Destructuring in this context is done via the iteration interface, though
 # calls `Base.indexed_iterate()` to allow for a fast path in cases where the
 # right hand side is directly indexable.
-function _destructure(ctx, assignment_srcref, stmts, lhs, rhs)
+#
+# The `wrap` argument is a callback that will be called on all assignments to
+# symbols `lhss`, e.g. to insert a `const` declaration.
+function _destructure(ctx, assignment_srcref, stmts, lhs, rhs, wrap)
     n_lhs = numchildren(lhs)
     if n_lhs > 0
         iterstate = new_local_binding(ctx, rhs, "iterstate")
@@ -281,20 +284,24 @@ function _destructure(ctx, assignment_srcref, stmts, lhs, rhs)
     i = 0
     for lh in children(lhs)
         i += 1
+        local lh1
         if kind(lh) == K"..."
-            lh1 = if is_identifier_like(lh[1])
-                lh[1]
+            if is_identifier_like(lh[1])
+                wrap_subassign = wrap
+                lh1 = lh[1]
             else
-                lhs_tmp = ssavar(ctx, lh[1], "lhs_tmp")
-                push!(end_stmts, expand_forms_2(ctx, @ast ctx lh[1] [K"=" lh[1] lhs_tmp]))
-                lhs_tmp
+                wrap_subassign = identity
+                lh1 = ssavar(ctx, lh[1], "lh1")
+                push!(end_stmts, expand_forms_2(ctx, wrap(@ast ctx lh[1] [K"=" lh[1] lh1])))
             end
             if i == n_lhs
                 # Slurping as last lhs, eg, for `zs` in
                 #   (x, y, zs...) = rhs
                 if kind(lh1) != K"Placeholder"
-                    push!(stmts, expand_forms_2(ctx,
-                        @ast ctx assignment_srcref [K"="
+                    push!(stmts, expand_forms_2(
+                        ctx,
+                        wrap_subassign(
+                            @ast ctx assignment_srcref [K"="
                             lh1
                             [K"call"
                                 "rest"::K"top"
@@ -303,7 +310,7 @@ function _destructure(ctx, assignment_srcref, stmts, lhs, rhs)
                                     iterstate
                                 end
                             ]
-                        ]
+                        ])
                     ))
                 end
             else
@@ -318,15 +325,15 @@ function _destructure(ctx, assignment_srcref, stmts, lhs, rhs)
                         lower_tuple_assignment(ctx,
                             assignment_srcref,
                             (lh1, tail),
-                            @ast ctx assignment_srcref [K"call"
+                            (@ast ctx assignment_srcref [K"call"
                                 "split_rest"::K"top"
                                 rhs
                                 (n_lhs - i)::K"Integer"
                                 if i > 1
                                     iterstate
                                 end
-                            ]
-                        )
+                            ]),
+                        (x,i) -> i == 1 ? wrap_subassign(x) : x)
                     )
                 )
                 rhs = tail
@@ -336,28 +343,29 @@ function _destructure(ctx, assignment_srcref, stmts, lhs, rhs)
         else
             # Normal case, eg, for `y` in
             #   (x, y, z) = rhs
-            lh1 = if is_identifier_like(lh)
-                lh
+            if is_identifier_like(lh)
+                lh1 = lh
+                wrap_subassign = wrap
             # elseif is_eventually_call(lh) (TODO??)
             else
-                lhs_tmp = ssavar(ctx, lh, "lhs_tmp")
-                push!(end_stmts, expand_forms_2(ctx, @ast ctx lh [K"=" lh lhs_tmp]))
-                lhs_tmp
+                lh1 = ssavar(ctx, lh, "lh1")
+                wrap_subassign = identity
+                push!(end_stmts, expand_forms_2(ctx, wrap(@ast ctx lh [K"=" lh lh1])))
             end
             push!(stmts,
                 expand_forms_2(ctx,
                     lower_tuple_assignment(ctx,
                         assignment_srcref,
                         i == n_lhs ? (lh1,) : (lh1, iterstate),
-                        @ast ctx assignment_srcref [K"call"
+                        (@ast ctx assignment_srcref [K"call"
                             "indexed_iterate"::K"top"
                             rhs
                             i::K"Integer"
                             if i > 1
                                 iterstate
                             end
-                        ]
-                    )
+                        ]),
+                    (x,i) -> i == 1 ? wrap_subassign(x) : x)
                 )
             )
         end
@@ -369,7 +377,7 @@ function _destructure(ctx, assignment_srcref, stmts, lhs, rhs)
 end
 
 # Expands cases of property destructuring
-function expand_property_destruct(ctx, ex)
+function expand_property_destruct(ctx, ex, wrap=identity)
     @assert numchildren(ex) == 2
     lhs = ex[1]
     @assert kind(lhs) == K"tuple"
@@ -385,14 +393,17 @@ function expand_property_destruct(ctx, ex)
         propname = kind(prop) == K"Identifier"                           ? prop    :
                    kind(prop) == K"::" && kind(prop[1]) == K"Identifier" ? prop[1] :
                    throw(LoweringError(prop, "invalid assignment location"))
-        push!(stmts, expand_forms_2(ctx, @ast ctx rhs1 [K"="
-            prop
-            [K"call"
-                "getproperty"::K"top"
-                rhs1
-                propname=>K"Symbol"
-            ]
-        ]))
+        push!(stmts, expand_forms_2(
+            ctx,
+            wrap(@ast ctx rhs1 [
+                K"="
+                prop
+                [K"call"
+                 "getproperty"::K"top"
+                 rhs1
+                 propname=>K"Symbol"
+                 ]
+            ])))
     end
     push!(stmts, @ast ctx rhs1 [K"removable" rhs1])
     makenode(ctx, ex, K"block", stmts)
@@ -400,7 +411,7 @@ end
 
 # Expands all cases of general tuple destructuring, eg
 #   (x,y) = (a,b)
-function expand_tuple_destruct(ctx, ex)
+function expand_tuple_destruct(ctx, ex, wrap=identity)
     lhs = ex[1]
     @assert kind(lhs) == K"tuple"
     rhs = ex[2]
@@ -421,7 +432,7 @@ function expand_tuple_destruct(ctx, ex)
 
         if !any_assignment(children(rhs)) && !has_parameters(rhs) &&
                 _tuple_sides_match(children(lhs), children(rhs))
-            return expand_forms_2(ctx, tuple_to_assignments(ctx, ex))
+            return expand_forms_2(ctx, tuple_to_assignments(ctx, ex, wrap))
         end
     end
 
@@ -434,7 +445,7 @@ function expand_tuple_destruct(ctx, ex)
     else
         emit_assign_tmp(stmts, ctx, expand_forms_2(ctx, rhs))
     end
-    _destructure(ctx, ex, stmts, lhs, rhs1)
+    _destructure(ctx, ex, stmts, lhs, rhs1, wrap)
     push!(stmts, @ast ctx rhs1 [K"removable" rhs1])
     makenode(ctx, ex, K"block", stmts)
 end
@@ -1165,16 +1176,22 @@ end
 # Expand assignments
 
 # Expand UnionAll definitions, eg `X{T} = Y{T,T}`
-function expand_unionall_def(ctx, srcref, lhs, rhs)
+function expand_unionall_def(ctx, srcref, lhs, rhs, is_const=true)
     if numchildren(lhs) <= 1
         throw(LoweringError(lhs, "empty type parameter list in type alias"))
     end
     name = lhs[1]
-    @ast ctx srcref [K"block"
-        [K"const_if_global" name]
-        unionall_type := expand_forms_2(ctx, [K"where" rhs lhs[2:end]...])
-        expand_forms_2(ctx, [K"=" name unionall_type])
-    ]
+    rr = ssavar(ctx, srcref)
+    expand_forms_2(
+        ctx,
+        @ast ctx srcref [
+            K"block"
+            [K"=" rr [K"where" rhs lhs[2:end]...]]
+            [is_const ? K"constdecl" : K"assign_const_if_global" name rr]
+            [K"latestworld_if_toplevel"]
+            rr
+        ]
+    )
 end
 
 # Expand general assignment syntax, including
@@ -1184,13 +1201,16 @@ end
 #   * Assignments to array elements
 #   * Destructuring
 #   * Typed variable declarations
-function expand_assignment(ctx, ex)
+function expand_assignment(ctx, ex, is_const=false)
+    function maybe_wrap_const(ex)
+        @ast ctx ex (is_const ? [K"const" ex] : ex)
+    end
     @chk numchildren(ex) == 2
     lhs = ex[1]
     rhs = ex[2]
     kl = kind(lhs)
     if kl == K"curly"
-        expand_unionall_def(ctx, ex, lhs, rhs)
+        expand_unionall_def(ctx, ex, lhs, rhs, is_const)
     elseif kind(rhs) == K"="
         # Expand chains of assignments
         # a = b = c  ==>  b=c; a=c
@@ -1221,8 +1241,21 @@ function expand_assignment(ctx, ex)
         )
     elseif is_identifier_like(lhs)
         sink_assignment(ctx, ex, lhs, expand_forms_2(ctx, rhs))
+        if is_const
+            rr = ssavar(ctx, rhs)
+            @ast ctx ex [
+                K"block"
+                sink_assignment(ctx, ex, rr, expand_forms_2(ctx, rhs))
+                [K"constdecl" lhs rr]
+                [K"latestworld"]
+                [K"removable" rr]
+            ]
+        else
+            sink_assignment(ctx, ex, lhs, expand_forms_2(ctx, rhs))
+        end
     elseif kl == K"."
         # a.b = rhs  ==>  setproperty!(a, :b, rhs)
+        @chk !is_const (ex, "cannot declare `.` form const")
         @chk numchildren(lhs) == 2
         a = lhs[1]
         b = lhs[2]
@@ -1244,22 +1277,30 @@ function expand_assignment(ctx, ex)
         ]
     elseif kl == K"tuple"
         if has_parameters(lhs)
-            expand_property_destruct(ctx, ex)
+            expand_property_destruct(ctx, ex, maybe_wrap_const)
         else
             expand_tuple_destruct(ctx, ex)
         end
     elseif kl == K"ref"
         # a[i1, i2] = rhs
+        @chk !is_const (ex, "cannot declare ref form const")
         expand_forms_2(ctx, expand_setindex(ctx, ex))
     elseif kl == K"::" && numchildren(lhs) == 2
         x = lhs[1]
         T = lhs[2]
-        res = if is_identifier_like(x)
+        res = if is_const
+            expand_forms_2(ctx, ex, @ast ctx ex [
+                K"constdecl"
+                lhs[1]
+                convert_for_type_decl(ctx, ex, rhs, T, true)
+            ])
+        elseif is_identifier_like(x)
             # Identifer in lhs[1] is a variable type declaration, eg
             # x::T = rhs
-            @ast ctx ex [K"block"
+            @ast ctx ex [
+                K"block"
                 [K"decl" lhs[1] lhs[2]]
-                [K"=" lhs[1] rhs]
+                maybe_wrap_const([K"=" lhs[1] rhs])
             ]
         else
             # Otherwise just a type assertion, eg
@@ -1271,6 +1312,7 @@ function expand_assignment(ctx, ex)
             # needs to be detected somewhere but won't be detected here. Maybe
             # it shows that remove_argument_side_effects() is not the ideal
             # solution here?
+            # TODO: handle underscore
             @ast ctx ex [K"block"
                 stmts...
                 [K"::" l1 lhs[2]]
@@ -1822,6 +1864,17 @@ function expand_call(ctx, ex)
             expand_forms_2(ctx, farg)
             expand_forms_2(ctx, _wrap_unsplatted_args(ctx, ex, args))...
         ]
+    elseif kind(farg) == K"Identifier" && farg.name_val == "include"
+        # world age special case
+        r = ssavar(ctx, ex)
+        @ast ctx ex [K"block"
+            [K"=" r [K"call"
+                expand_forms_2(ctx, farg)
+                expand_forms_2(ctx, args)...
+            ]]
+            [K"latestworld_if_toplevel"]
+            r
+        ]
     else
         @ast ctx ex [K"call"
             expand_forms_2(ctx, farg)
@@ -2129,6 +2182,54 @@ function expand_decls(ctx, ex)
     makenode(ctx, ex, K"block", stmts)
 end
 
+# Return all the names that will be bound by the assignment LHS, including
+# curlies and calls.
+function lhs_bound_names(ex)
+    k = kind(ex)
+    if k == K"Placeholder"
+        []
+    elseif is_identifier_like(ex)
+        [ex]
+    elseif k in KSet"call curly where ::"
+        lhs_bound_names(ex[1])
+    elseif k in KSet"tuple parameters"
+        vcat(map(lhs_bound_names, children(ex))...)
+    else
+        []
+    end
+end
+
+function expand_const_decl(ctx, ex)
+    function check_assignment(asgn)
+        @chk (kind(asgn) == K"=") (ex, "expected assignment after \"const\"")
+    end
+
+    k = kind(ex[1])
+    if numchildren(ex) == 2
+        @ast ctx ex [
+            K"const"
+            ex[1]
+            expand_forms_2(ctx, ex[2])
+        ]
+    elseif k == K"global"
+        asgn = ex[1][1]
+        check_assignment(asgn)
+        globals = map(lhs_bound_names(asgn[1])) do x
+            @ast ctx ex [K"global" x]
+        end
+        @ast ctx ex [
+            K"block"
+            globals...
+            expand_assignment(ctx, ex[1], true)
+        ]
+    elseif k == K"="
+        check_assignment(ex[1])
+        expand_assignment(ctx, ex[1], true)
+    else
+        throw(LoweringError(ex, "expected assignment after \"const\""))
+    end
+end
+
 #-------------------------------------------------------------------------------
 # Expansion of function definitions
 
@@ -2243,6 +2344,7 @@ function method_def_expr(ctx, srcref, callex_srcref, method_table,
                 ret_var  # might be `nothing` and hence removed
             ]
         ]
+        [K"latestworld"]
         [K"removable" method_metadata]
     ]
 end
@@ -2371,10 +2473,12 @@ function expand_function_generator(ctx, srcref, callex_srcref, func_name, func_n
     # Code generator definition
     gen_func_method_defs = @ast ctx srcref [K"block"
         [K"function_decl" gen_name]
+        [K"latestworld_if_toplevel"]
         [K"scope_block"(scope_type=:hard)
             [K"method_defs"
                 gen_name
                 [K"block"
+                    [K"latestworld_if_toplevel"]
                     method_def_expr(ctx, srcref, callex_srcref, nothing, SyntaxList(ctx),
                                     gen_arg_names, gen_arg_types, gen_body, nothing)
                 ]
@@ -2708,6 +2812,7 @@ function keyword_function_defs(ctx, srcref, callex_srcref, name_str, typevar_nam
 
     kw_func_method_defs = @ast ctx srcref [K"block"
         [K"function_decl" body_func_name]
+        [K"latestworld"]
         [K"scope_block"(scope_type=:hard)
             [K"method_defs"
                 body_func_name
@@ -3013,6 +3118,7 @@ function expand_function_def(ctx, ex, docs, rewrite_call=identity, rewrite_body=
         end
         gen_func_method_defs
         kw_func_method_defs
+        [K"latestworld_if_toplevel"]
         [K"scope_block"(scope_type=:hard)
             [K"method_defs"
                 isnothing(bare_func_name) ? "nothing"::K"core" : bare_func_name
@@ -3313,20 +3419,24 @@ function expand_abstract_or_primitive_type(ctx, ex)
                 ]
                 [K"=" name newtype_var]
                 [K"call" "_setsuper!"::K"core" newtype_var supertype]
-                [K"call" "_typebody!"::K"core" newtype_var]
+                [K"call" "_typebody!"::K"core" false::K"Bool" name]
             ]
         ]
         [K"assert" "toplevel_only"::K"Symbol" [K"inert" ex] ]
         [K"global" name]
-        [K"const" name]
         [K"if"
             [K"&&"
-                [K"isdefined" name]
+                [K"call"
+                   "isdefinedglobal"::K"core"
+                   ctx.mod::K"Value"
+                   name=>K"Symbol"
+                   false::K"Bool"]
                 [K"call" "_equiv_typedef"::K"core" name newtype_var]
             ]
             nothing_(ctx, ex)
-            [K"=" name newtype_var]
+            [K"constdecl" name newtype_var]
         ]
+        [K"latestworld"]
         nothing_(ctx, ex)
     ]
 end
@@ -3744,6 +3854,24 @@ function _constructor_min_initalized(ex::SyntaxTree)
     end
 end
 
+# Let S be a struct we're defining in module M.  Below is a hack to allow its
+# field types to refer to S as M.S.  See #56497.
+function insert_struct_shim(ctx, fieldtypes, name)
+    function replace_type(ex)
+        if kind(ex) == K"." &&
+            numchildren(ex) == 2 &&
+            kind(ex[2]) == K"Symbol" &&
+            ex[2].name_val == name.name_val
+            @ast ctx ex [K"call" "struct_name_shim"::K"core" ex[1] ex[2] ctx.mod::K"Value" name]
+        elseif numchildren(ex) > 0
+            @ast ctx ex [ex.kind map(replace_type, children(ex))...]
+        else
+            ex
+        end
+    end
+    map(replace_type, fieldtypes)
+end
+
 function expand_struct_def(ctx, ex, docs)
     @chk numchildren(ex) == 2
     type_sig = ex[1]
@@ -3764,6 +3892,9 @@ function expand_struct_def(ctx, ex, docs)
     min_initialized = minimum((_constructor_min_initalized(e) for e in inner_defs),
                               init=length(field_names))
     newtype_var = ssavar(ctx, ex, "struct_type")
+    hasprev = ssavar(ctx, ex, "hasprev")
+    prev = ssavar(ctx, ex, "prev")
+    newdef = ssavar(ctx, ex, "newdef")
     layer = new_scope_layer(ctx, struct_name)
     global_struct_name = adopt_scope(struct_name, layer)
     if !isempty(typevar_names)
@@ -3826,10 +3957,9 @@ function expand_struct_def(ctx, ex, docs)
     # See https://github.com/JuliaLang/julia/pull/36121
     @ast ctx ex [K"block"
         [K"assert" "toplevel_only"::K"Symbol" [K"inert" ex] ]
+        [K"global" global_struct_name]
         [K"scope_block"(scope_type=:hard)
             [K"block"
-                [K"global" global_struct_name]
-                [K"const" global_struct_name]
                 [K"local" struct_name]
                 [K"always_defined" struct_name]
                 typevar_stmts...
@@ -3848,35 +3978,39 @@ function expand_struct_def(ctx, ex, docs)
                 ]
                 [K"=" struct_name newtype_var]
                 [K"call"(supertype) "_setsuper!"::K"core" newtype_var supertype]
-                [K"if"
-                    [K"isdefined" global_struct_name]
-                    [K"if"
-                        [K"call" "_equiv_typedef"::K"core" global_struct_name newtype_var]
-                        [K"block"
-                            # If this is compatible with an old definition, use
-                            # the existing type object and throw away the new
-                            # type
-                            [K"=" struct_name global_struct_name]
-                            if !isempty(typevar_names)
-                                # And resassign the typevar_names - these may be
-                                # referenced in the definition of the field
-                                # types below
-                                [K"="
-                                    [K"tuple" typevar_names...]
-                                    prev_typevars
-                                ]
-                            end
-                        ]
-                        # Otherwise do an assignment to trigger an error
-                        [K"=" global_struct_name struct_name]
+                [K"=" hasprev
+                      [K"&&" [K"call" "isdefinedglobal"::K"core"
+                              ctx.mod::K"Value"
+                              struct_name=>K"Symbol"
+                              false::K"Bool"]
+                             [K"call" "_equiv_typedef"::K"core" global_struct_name newtype_var]
+                       ]]
+                [K"=" prev [K"if" hasprev global_struct_name false::K"Bool"]]
+                [K"if" hasprev
+                   [K"block"
+                    # if this is compatible with an old definition, use the old parameters, but the
+                    # new object. This will fail to capture recursive cases, but the call to typebody!
+                    # below is permitted to choose either type definition to put into the binding table
+                    if !isempty(typevar_names)
+                        # And resassign the typevar_names - these may be
+                        # referenced in the definition of the field
+                        # types below
+                        [K"=" [K"tuple" typevar_names...] prev_typevars]
+                    end
                     ]
-                    [K"=" global_struct_name struct_name]
                 ]
-                [K"call"(type_body)
-                    "_typebody!"::K"core"
-                    struct_name
-                    [K"call" "svec"::K"core" field_types...]
-                ]
+                [K"=" newdef
+                   [K"call"(type_body)
+                      "_typebody!"::K"core"
+                      prev
+                      newtype_var
+                      [K"call" "svec"::K"core" insert_struct_shim(ctx, field_types, struct_name)...]
+                   ]]
+                [K"constdecl"
+                    global_struct_name
+                    newdef
+                 ]
+                [K"latestworld"]
                 # Default constructors
                 if isempty(inner_defs)
                     default_inner_constructors(ctx, ex, global_struct_name,
@@ -4271,7 +4405,9 @@ function expand_forms_2(ctx::DesugaringContext, ex::SyntaxTree, docs=nothing)
         ]
     elseif k == K"let"
         expand_forms_2(ctx, expand_let(ctx, ex))
-    elseif k == K"local" || k == K"global" || k == K"const"
+    elseif k == K"const"
+        expand_const_decl(ctx, ex)
+    elseif k == K"local" || k == K"global"
         if numchildren(ex) == 1 && kind(ex[1]) == K"Identifier"
             # Don't recurse when already simplified - `local x`, etc
             ex
