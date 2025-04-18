@@ -3892,6 +3892,9 @@ function expand_struct_def(ctx, ex, docs)
     min_initialized = minimum((_constructor_min_initalized(e) for e in inner_defs),
                               init=length(field_names))
     newtype_var = ssavar(ctx, ex, "struct_type")
+    hasprev = ssavar(ctx, ex, "hasprev")
+    prev = ssavar(ctx, ex, "prev")
+    newdef = ssavar(ctx, ex, "newdef")
     layer = new_scope_layer(ctx, struct_name)
     global_struct_name = adopt_scope(struct_name, layer)
     if !isempty(typevar_names)
@@ -3954,9 +3957,9 @@ function expand_struct_def(ctx, ex, docs)
     # See https://github.com/JuliaLang/julia/pull/36121
     @ast ctx ex [K"block"
         [K"assert" "toplevel_only"::K"Symbol" [K"inert" ex] ]
+        [K"global" global_struct_name]
         [K"scope_block"(scope_type=:hard)
             [K"block"
-                [K"global" global_struct_name]
                 [K"local" struct_name]
                 [K"always_defined" struct_name]
                 typevar_stmts...
@@ -3975,40 +3978,37 @@ function expand_struct_def(ctx, ex, docs)
                 ]
                 [K"=" struct_name newtype_var]
                 [K"call"(supertype) "_setsuper!"::K"core" newtype_var supertype]
-                [K"if"
-                    [K"call" "isdefinedglobal"::K"core"
-                       ctx.mod::K"Value"
-                       struct_name=>K"Symbol"
-                       false::K"Bool"]
-                    [K"if"
-                        [K"call" "_equiv_typedef"::K"core" global_struct_name newtype_var]
-                        [K"block"
-                            # If this is compatible with an old definition, use
-                            # the existing type object and throw away the new
-                            # type
-                            [K"=" struct_name global_struct_name]
-                            if !isempty(typevar_names)
-                                # And resassign the typevar_names - these may be
-                                # referenced in the definition of the field
-                                # types below
-                                [K"="
-                                    [K"tuple" typevar_names...]
-                                    prev_typevars
-                                ]
-                            end
-                        ]
+                [K"=" hasprev
+                      [K"&&" [K"call" "isdefinedglobal"::K"core"
+                              ctx.mod::K"Value"
+                              struct_name=>K"Symbol"
+                              false::K"Bool"]
+                             [K"call" "_equiv_typedef"::K"core" global_struct_name newtype_var]
+                       ]]
+                [K"=" prev [K"if" hasprev global_struct_name false::K"Bool"]]
+                [K"if" hasprev
+                   [K"block"
+                    # if this is compatible with an old definition, use the old parameters, but the
+                    # new object. This will fail to capture recursive cases, but the call to typebody!
+                    # below is permitted to choose either type definition to put into the binding table
+                    if !isempty(typevar_names)
+                        # And resassign the typevar_names - these may be
+                        # referenced in the definition of the field
+                        # types below
+                        [K"=" [K"tuple" typevar_names...] prev_typevars]
+                    end
                     ]
                 ]
-                [K"call"(type_body)
-                    "_typebody!"::K"core"
-                    # TODO: if there is a previous compatible definition, re-use params. See #57253
-                    false::K"Bool"
-                    newtype_var
-                    [K"call" "svec"::K"core" insert_struct_shim(ctx, field_types, struct_name)...]
-                ]
+                [K"=" newdef
+                   [K"call"(type_body)
+                      "_typebody!"::K"core"
+                      prev
+                      newtype_var
+                      [K"call" "svec"::K"core" insert_struct_shim(ctx, field_types, struct_name)...]
+                   ]]
                 [K"constdecl"
                     global_struct_name
-                    newtype_var
+                    newdef
                  ]
                 [K"latestworld"]
                 # Default constructors
