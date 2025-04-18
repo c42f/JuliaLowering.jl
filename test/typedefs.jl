@@ -251,7 +251,7 @@ end
 """)
 @test fieldtypes(test_mod.M36104.T36104) == (Vector{test_mod.M36104.T36104},)
 @test_throws ErrorException("expected") JuliaLowering.include_string(test_mod, """struct X36104; x::error("expected"); end""")
-@test isdefined(test_mod, :X36104)
+@test !isdefined(test_mod, :X36104)
 JuliaLowering.include_string(test_mod, "struct X36104; x::Int; end")
 @test fieldtypes(test_mod.X36104) == (Int,)
 JuliaLowering.include_string(test_mod, "primitive type P36104 8 end")
