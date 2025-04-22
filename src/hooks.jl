@@ -2,8 +2,8 @@ using JuliaSyntax
 using JuliaLowering
 
 # Becomes `Core._lower()` upon activating JuliaLowering.  Returns an svec with
-# the lowered expr or linenode as its first element, and whatever we want after
-# it, until the API stabilizes
+# the lowered code (usually expr) as its first element, and whatever we want
+# after it, until the API stabilizes
 function core_lowerer_hook(code, mod::Module, file="none", line=0, world=typemax(Csize_t), warn=false)
     if Base.isexpr(code, :syntaxtree)
         # Getting toplevel.c to check for types it doesn't know about is hard.
@@ -18,7 +18,8 @@ function core_lowerer_hook(code, mod::Module, file="none", line=0, world=typemax
                  Falling back to flisp...""",
                code=code, file=file, line=line, mod=mod)
         return Base.fl_lower(code, mod, file, line, world, warn)
-    elseif code isa LineNumberNode
+    elseif !(code isa SyntaxTree)
+        # LineNumberNode, Symbol, probably others...
         return Core.svec(code)
     end
     try
