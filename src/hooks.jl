@@ -41,6 +41,11 @@ end
 # TODO: This is code copied from JuliaSyntax, adapted to produce
 # `Expr(:syntaxtree, st::SyntaxTree)`.
 function core_parse_for_lowering_hook(code, filename::String, lineno::Int, offset::Int, options::Symbol)
+    if Core._lower != core_lowerer_hook
+        # If lowering can't handle SyntaxTree, return Expr.
+        # (assumes no Core._lower function other than our core_lowerer_hook can handle SyntaxTree)
+        return JuliaSyntax.core_parser_hook(code, filename, lineno, offset, options)
+    end
     try
         # TODO: Check that we do all this input wrangling without copying the
         # code buffer
