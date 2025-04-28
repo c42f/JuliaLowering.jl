@@ -6,21 +6,14 @@ one or several syntax trees.
 
 TODO: Global attributes!
 """
-struct SyntaxGraph{Attrs}
+struct SyntaxGraph
     edge_ranges::Vector{UnitRange{Int}}
     edges::Vector{NodeId}
-    attributes::Attrs
+    attributes::Dict{Symbol, Any}
 end
 
-SyntaxGraph() = SyntaxGraph{Dict{Symbol,Any}}(Vector{UnitRange{Int}}(),
-                                              Vector{NodeId}(), Dict{Symbol,Any}())
-
-# "Freeze" attribute names and types, encoding them in the type of the returned
-# SyntaxGraph.
-function freeze_attrs(graph::SyntaxGraph)
-    frozen_attrs = (; pairs(graph.attributes)...)
-    SyntaxGraph(graph.edge_ranges, graph.edges, frozen_attrs)
-end
+SyntaxGraph() = SyntaxGraph(Vector{UnitRange{Int}}(),
+                            Vector{NodeId}(), Dict{Symbol,Any}())
 
 function _show_attrs(io, attributes::Dict)
     show(io, MIME("text/plain"), attributes)
@@ -56,7 +49,6 @@ end
 function ensure_attributes(graph::SyntaxGraph; kws...)
     g = SyntaxGraph(graph.edge_ranges, graph.edges, Dict(pairs(graph.attributes)...))
     ensure_attributes!(g; kws...)
-    freeze_attrs(g)
 end
 
 function delete_attributes(graph::SyntaxGraph, attr_names...)
@@ -64,7 +56,7 @@ function delete_attributes(graph::SyntaxGraph, attr_names...)
     for name in attr_names
         delete!(attributes, name)
     end
-    SyntaxGraph(graph.edge_ranges, graph.edges, (; pairs(attributes)...))
+    SyntaxGraph(graph.edge_ranges, graph.edges, attributes)
 end
 
 function newnode!(graph::SyntaxGraph)
@@ -103,12 +95,8 @@ function child(graph::SyntaxGraph, id::NodeId, i::Integer)
     graph.edges[graph.edge_ranges[id][i]]
 end
 
-function getattr(graph::SyntaxGraph{<:Dict}, name::Symbol)
+function getattr(graph::SyntaxGraph, name::Symbol)
     getfield(graph, :attributes)[name]
-end
-
-function getattr(graph::SyntaxGraph{<:NamedTuple}, name::Symbol)
-    getfield(getfield(graph, :attributes), name)
 end
 
 function getattr(graph::SyntaxGraph, name::Symbol, default)
@@ -408,7 +396,7 @@ const SourceAttrType = Union{SourceRef,LineNumberNode,NodeId,Tuple}
 function SyntaxTree(graph::SyntaxGraph, node::SyntaxNode)
     ensure_attributes!(graph, kind=Kind, syntax_flags=UInt16, source=SourceAttrType,
                        value=Any, name_val=String)
-    id = _convert_nodes(freeze_attrs(graph), node)
+    id = _convert_nodes(graph, node)
     return SyntaxTree(graph, id)
 end
 
