@@ -103,7 +103,7 @@ end
 # constructed followed by destructuring. In particular, any side effects due to
 # evaluating the individual terms in the right hand side tuple must happen in
 # order.
-function tuple_to_assignments(ctx, ex, wrap)
+function tuple_to_assignments(ctx, ex)
     lhs = ex[1]
     rhs = ex[2]
 
@@ -182,12 +182,12 @@ function tuple_to_assignments(ctx, ex, wrap)
                 # (x, ys...) = (a,b,c)
                 # (x, ys...) = (a,bs...)
                 # (ys...)    = ()
-                push!(stmts, wrap(@ast ctx ex [K"=" lh[1] middle]))
+                push!(stmts, @ast ctx ex [K"=" lh[1] middle])
             else
                 # (x, ys..., z) = (a, b, c, d)
                 # (x, ys..., z) = (a, bs...)
                 # (xs..., y)    = (a, bs...)
-                push!(stmts, wrap(@ast ctx ex [K"=" [K"tuple" lhs[il:jl]...] middle]))
+                push!(stmts, @ast ctx ex [K"=" [K"tuple" lhs[il:jl]...] middle])
             end
             # Continue with the remainder of the list of non-splat terms
             il = jl
@@ -195,10 +195,10 @@ function tuple_to_assignments(ctx, ex, wrap)
         else
             rh = rhs_tmps[ir]
             if kind(rh) == K"..."
-                push!(stmts, wrap(@ast ctx ex [K"=" [K"tuple" lhs[il:end]...] rh[1]]))
+                push!(stmts, @ast ctx ex [K"=" [K"tuple" lhs[il:end]...] rh[1]])
                 break
             else
-                push!(stmts, wrap(@ast ctx ex [K"=" lh rh]))
+                push!(stmts, @ast ctx ex [K"=" lh rh])
             end
         end
     end
@@ -252,14 +252,14 @@ end
 
 # Lower `(lhss...) = rhs` in contexts where `rhs` must be a tuple at runtime
 # by assuming that `getfield(rhs, i)` works and is efficient.
-function lower_tuple_assignment(ctx, assignment_srcref, lhss, rhs, wrap=(x::SyntaxTree,i::Int)->x)
+function lower_tuple_assignment(ctx, assignment_srcref, lhss, rhs)
     stmts = SyntaxList(ctx)
     tmp = emit_assign_tmp(stmts, ctx, rhs, "rhs_tmp")
     for (i, lh) in enumerate(lhss)
-        stmt = @ast ctx assignment_srcref [
-            K"=" lh [K"call" "getfield"::K"core" tmp i::K"Integer"]
-        ]
-        push!(stmts, wrap(stmt, i))
+        push!(stmts, @ast ctx assignment_srcref [K"="
+            lh
+            [K"call" "getfield"::K"core" tmp i::K"Integer"]
+        ])
     end
     makenode(ctx, assignment_srcref, K"block", stmts)
 end
@@ -270,10 +270,7 @@ end
 # Destructuring in this context is done via the iteration interface, though
 # calls `Base.indexed_iterate()` to allow for a fast path in cases where the
 # right hand side is directly indexable.
-#
-# The `wrap` argument is a callback that will be called on all assignments to
-# symbols `lhss`, e.g. to insert a `const` declaration.
-function _destructure(ctx, assignment_srcref, stmts, lhs, rhs, wrap)
+function _destructure(ctx, assignment_srcref, stmts, lhs, rhs)
     n_lhs = numchildren(lhs)
     if n_lhs > 0
         iterstate = new_local_binding(ctx, rhs, "iterstate")
@@ -284,24 +281,20 @@ function _destructure(ctx, assignment_srcref, stmts, lhs, rhs, wrap)
     i = 0
     for lh in children(lhs)
         i += 1
-        local lh1
         if kind(lh) == K"..."
-            if is_identifier_like(lh[1])
-                wrap_subassign = wrap
-                lh1 = lh[1]
+            lh1 = if is_identifier_like(lh[1])
+                lh[1]
             else
-                wrap_subassign = identity
-                lh1 = ssavar(ctx, lh[1], "lh1")
-                push!(end_stmts, expand_forms_2(ctx, wrap(@ast ctx lh[1] [K"=" lh[1] lh1])))
+                lhs_tmp = ssavar(ctx, lh[1], "lhs_tmp")
+                push!(end_stmts, expand_forms_2(ctx, @ast ctx lh[1] [K"=" lh[1] lhs_tmp]))
+                lhs_tmp
             end
             if i == n_lhs
                 # Slurping as last lhs, eg, for `zs` in
                 #   (x, y, zs...) = rhs
                 if kind(lh1) != K"Placeholder"
-                    push!(stmts, expand_forms_2(
-                        ctx,
-                        wrap_subassign(
-                            @ast ctx assignment_srcref [K"="
+                    push!(stmts, expand_forms_2(ctx,
+                        @ast ctx assignment_srcref [K"="
                             lh1
                             [K"call"
                                 "rest"::K"top"
@@ -310,7 +303,7 @@ function _destructure(ctx, assignment_srcref, stmts, lhs, rhs, wrap)
                                     iterstate
                                 end
                             ]
-                        ])
+                        ]
                     ))
                 end
             else
@@ -325,15 +318,15 @@ function _destructure(ctx, assignment_srcref, stmts, lhs, rhs, wrap)
                         lower_tuple_assignment(ctx,
                             assignment_srcref,
                             (lh1, tail),
-                            (@ast ctx assignment_srcref [K"call"
+                            @ast ctx assignment_srcref [K"call"
                                 "split_rest"::K"top"
                                 rhs
                                 (n_lhs - i)::K"Integer"
                                 if i > 1
                                     iterstate
                                 end
-                            ]),
-                        (x,i) -> i == 1 ? wrap_subassign(x) : x)
+                            ]
+                        )
                     )
                 )
                 rhs = tail
@@ -343,29 +336,28 @@ function _destructure(ctx, assignment_srcref, stmts, lhs, rhs, wrap)
         else
             # Normal case, eg, for `y` in
             #   (x, y, z) = rhs
-            if is_identifier_like(lh)
-                lh1 = lh
-                wrap_subassign = wrap
+            lh1 = if is_identifier_like(lh)
+                lh
             # elseif is_eventually_call(lh) (TODO??)
             else
-                lh1 = ssavar(ctx, lh, "lh1")
-                wrap_subassign = identity
-                push!(end_stmts, expand_forms_2(ctx, wrap(@ast ctx lh [K"=" lh lh1])))
+                lhs_tmp = ssavar(ctx, lh, "lhs_tmp")
+                push!(end_stmts, expand_forms_2(ctx, @ast ctx lh [K"=" lh lhs_tmp]))
+                lhs_tmp
             end
             push!(stmts,
                 expand_forms_2(ctx,
                     lower_tuple_assignment(ctx,
                         assignment_srcref,
                         i == n_lhs ? (lh1,) : (lh1, iterstate),
-                        (@ast ctx assignment_srcref [K"call"
+                        @ast ctx assignment_srcref [K"call"
                             "indexed_iterate"::K"top"
                             rhs
                             i::K"Integer"
                             if i > 1
                                 iterstate
                             end
-                        ]),
-                    (x,i) -> i == 1 ? wrap_subassign(x) : x)
+                        ]
+                    )
                 )
             )
         end
@@ -377,7 +369,7 @@ function _destructure(ctx, assignment_srcref, stmts, lhs, rhs, wrap)
 end
 
 # Expands cases of property destructuring
-function expand_property_destruct(ctx, ex, wrap=identity)
+function expand_property_destruct(ctx, ex)
     @assert numchildren(ex) == 2
     lhs = ex[1]
     @assert kind(lhs) == K"tuple"
@@ -393,17 +385,14 @@ function expand_property_destruct(ctx, ex, wrap=identity)
         propname = kind(prop) == K"Identifier"                           ? prop    :
                    kind(prop) == K"::" && kind(prop[1]) == K"Identifier" ? prop[1] :
                    throw(LoweringError(prop, "invalid assignment location"))
-        push!(stmts, expand_forms_2(
-            ctx,
-            wrap(@ast ctx rhs1 [
-                K"="
-                prop
-                [K"call"
-                 "getproperty"::K"top"
-                 rhs1
-                 propname=>K"Symbol"
-                 ]
-            ])))
+        push!(stmts, expand_forms_2(ctx, @ast ctx rhs1 [K"="
+            prop
+            [K"call"
+                "getproperty"::K"top"
+                rhs1
+                propname=>K"Symbol"
+            ]
+        ]))
     end
     push!(stmts, @ast ctx rhs1 [K"removable" rhs1])
     makenode(ctx, ex, K"block", stmts)
@@ -411,7 +400,7 @@ end
 
 # Expands all cases of general tuple destructuring, eg
 #   (x,y) = (a,b)
-function expand_tuple_destruct(ctx, ex, wrap=identity)
+function expand_tuple_destruct(ctx, ex)
     lhs = ex[1]
     @assert kind(lhs) == K"tuple"
     rhs = ex[2]
@@ -432,7 +421,7 @@ function expand_tuple_destruct(ctx, ex, wrap=identity)
 
         if !any_assignment(children(rhs)) && !has_parameters(rhs) &&
                 _tuple_sides_match(children(lhs), children(rhs))
-            return expand_forms_2(ctx, tuple_to_assignments(ctx, ex, wrap))
+            return expand_forms_2(ctx, tuple_to_assignments(ctx, ex))
         end
     end
 
@@ -445,7 +434,7 @@ function expand_tuple_destruct(ctx, ex, wrap=identity)
     else
         emit_assign_tmp(stmts, ctx, expand_forms_2(ctx, rhs))
     end
-    _destructure(ctx, ex, stmts, lhs, rhs1, wrap)
+    _destructure(ctx, ex, stmts, lhs, rhs1)
     push!(stmts, @ast ctx rhs1 [K"removable" rhs1])
     makenode(ctx, ex, K"block", stmts)
 end
@@ -1277,7 +1266,7 @@ function expand_assignment(ctx, ex, is_const=false)
         ]
     elseif kl == K"tuple"
         if has_parameters(lhs)
-            expand_property_destruct(ctx, ex, maybe_wrap_const)
+            expand_property_destruct(ctx, ex)
         else
             expand_tuple_destruct(ctx, ex)
         end
@@ -1297,10 +1286,9 @@ function expand_assignment(ctx, ex, is_const=false)
         elseif is_identifier_like(x)
             # Identifer in lhs[1] is a variable type declaration, eg
             # x::T = rhs
-            @ast ctx ex [
-                K"block"
+            @ast ctx ex [K"block"
                 [K"decl" lhs[1] lhs[2]]
-                maybe_wrap_const([K"=" lhs[1] rhs])
+                is_const ? [K"const" [K"=" lhs[1] rhs]] : [K"=" lhs[1] rhs]
             ]
         else
             # Otherwise just a type assertion, eg
@@ -1312,7 +1300,7 @@ function expand_assignment(ctx, ex, is_const=false)
             # needs to be detected somewhere but won't be detected here. Maybe
             # it shows that remove_argument_side_effects() is not the ideal
             # solution here?
-            # TODO: handle underscore
+            # TODO: handle underscore?
             @ast ctx ex [K"block"
                 stmts...
                 [K"::" l1 lhs[2]]
