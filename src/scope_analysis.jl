@@ -48,7 +48,7 @@ function _find_scope_vars!(ctx, assignments, locals, destructured_args, globals,
         # like v = val, except that if `v` turns out global(either implicitly or
         # by explicit `global`), it gains an implicit `const`
         _insert_if_not_present!(assignments, NameKey(ex[1]), ex)
-    elseif k == K"="
+    elseif k == K"=" || k == K"constdecl"
         v = decl_var(ex[1])
         if !(kind(v) in KSet"BindingId globalref Placeholder")
             _insert_if_not_present!(assignments, NameKey(v), v)

@@ -1191,9 +1191,6 @@ end
 #   * Destructuring
 #   * Typed variable declarations
 function expand_assignment(ctx, ex, is_const=false)
-    function maybe_wrap_const(ex)
-        @ast ctx ex (is_const ? [K"const" ex] : ex)
-    end
     @chk numchildren(ex) == 2
     lhs = ex[1]
     rhs = ex[2]
@@ -1229,7 +1226,6 @@ function expand_assignment(ctx, ex, is_const=false)
             ]
         )
     elseif is_identifier_like(lhs)
-        sink_assignment(ctx, ex, lhs, expand_forms_2(ctx, rhs))
         if is_const
             rr = ssavar(ctx, rhs)
             @ast ctx ex [
@@ -2138,9 +2134,8 @@ function strip_decls!(ctx, stmts, declkind, declkind2, declmeta, ex)
     end
 end
 
-# local x, (y=2), z ==> local x; local y; y = 2; local z
-# const x = 1       ==> const x; x = 1
-# global x::T = 1   ==> (block (global x) (decl x T) (x = 1))
+# local x, (y=2), z ==> local x; local z; y = 2
+# Note there are differences from lisp (evaluation order?)
 function expand_decls(ctx, ex)
     declkind = kind(ex)
     declmeta = get(ex, :meta, nothing)
@@ -2189,7 +2184,7 @@ end
 
 function expand_const_decl(ctx, ex)
     function check_assignment(asgn)
-        @chk (kind(asgn) == K"=") (ex, "expected assignment after \"const\"")
+        @chk (kind(asgn) == K"=") (ex, "expected assignment after `const`")
     end
 
     k = kind(ex[1])
@@ -2213,8 +2208,10 @@ function expand_const_decl(ctx, ex)
     elseif k == K"="
         check_assignment(ex[1])
         expand_assignment(ctx, ex[1], true)
+    elseif k == K"local"
+        throw(LoweringError(ex, "unsupported `const local` declaration"))
     else
-        throw(LoweringError(ex, "expected assignment after \"const\""))
+        throw(LoweringError(ex, "expected assignment after `const`"))
     end
 end
 
@@ -3945,8 +3942,9 @@ function expand_struct_def(ctx, ex, docs)
     # See https://github.com/JuliaLang/julia/pull/36121
     @ast ctx ex [K"block"
         [K"assert" "toplevel_only"::K"Symbol" [K"inert" ex] ]
-        [K"global" global_struct_name]
         [K"scope_block"(scope_type=:hard)
+            # Needed for later constdecl to work, though plain global form may be removed soon.
+            [K"global" global_struct_name]
             [K"block"
                 [K"local" struct_name]
                 [K"always_defined" struct_name]

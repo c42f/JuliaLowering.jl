@@ -649,10 +649,6 @@ function compile(ctx::LinearIRContext, ex, needs_value, in_tail_pos)
             nothing
         end
     elseif k == K"=" || k == K"constdecl"
-        if k == K"constdecl"
-            check_no_local_bindings(ctx, ex[1], "unsupported `const` declaration on local variable")
-            # other errors (probably this one too) should be handled in previous passes
-        end
         lhs = ex[1]
         if kind(lhs) == K"Placeholder"
             compile(ctx, ex[2], needs_value, in_tail_pos)
