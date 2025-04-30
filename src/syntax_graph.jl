@@ -6,14 +6,21 @@ one or several syntax trees.
 
 TODO: Global attributes!
 """
-struct SyntaxGraph
+struct SyntaxGraph{Attrs}
     edge_ranges::Vector{UnitRange{Int}}
     edges::Vector{NodeId}
-    attributes::Dict{Symbol, Any}
+    attributes::Attrs
 end
 
-SyntaxGraph() = SyntaxGraph(Vector{UnitRange{Int}}(),
-                            Vector{NodeId}(), Dict{Symbol,Any}())
+SyntaxGraph() = SyntaxGraph{Dict{Symbol,Any}}(Vector{UnitRange{Int}}(),
+                                              Vector{NodeId}(), Dict{Symbol,Any}())
+
+# "Freeze" attribute names and types, encoding them in the type of the returned
+# SyntaxGraph.
+function freeze_attrs(graph::SyntaxGraph)
+    frozen_attrs = (; pairs(graph.attributes)...)
+    SyntaxGraph(graph.edge_ranges, graph.edges, frozen_attrs)
+end
 
 function _show_attrs(io, attributes::Dict)
     show(io, MIME("text/plain"), attributes)
@@ -95,8 +102,12 @@ function child(graph::SyntaxGraph, id::NodeId, i::Integer)
     graph.edges[graph.edge_ranges[id][i]]
 end
 
-function getattr(graph::SyntaxGraph, name::Symbol)
+function getattr(graph::SyntaxGraph{<:Dict}, name::Symbol)
     getfield(graph, :attributes)[name]
+end
+
+function getattr(graph::SyntaxGraph{<:NamedTuple}, name::Symbol)
+    getfield(getfield(graph, :attributes), name)
 end
 
 function getattr(graph::SyntaxGraph, name::Symbol, default)
