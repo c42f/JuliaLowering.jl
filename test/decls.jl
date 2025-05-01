@@ -49,4 +49,18 @@ end
 @test Core.get_binding_type(test_mod, :a_typed_global_2) === Int
 @test test_mod.a_typed_global_2 === 10
 
+# Const and tuple assignments
+@test JuliaLowering.include_string(test_mod, "(a0, a1, a2) = [1,2,3]") == [1,2,3]
+
+@test JuliaLowering.include_string(test_mod, "const abc::Int = 9") === 9
+
+# redeclaration of the same value used to be allowed
+@test_throws ErrorException JuliaLowering.include_string(test_mod, "abc = 9")
+@test_throws ErrorException JuliaLowering.include_string(test_mod, "abc = 10")
+# redeclaration with const should be OK
+@test JuliaLowering.include_string(test_mod, "const abc::Int = 0") === 0
+
+# Unsupported for now
+@test_throws LoweringError JuliaLowering.include_string(test_mod, "const a,b,c = 1,2,3")
+
 end

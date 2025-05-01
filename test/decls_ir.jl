@@ -30,12 +30,38 @@ const xx = 10
 # Typed const
 const xx::T = 10
 #---------------------
-1   (globaldecl TestMod.xx TestMod.T)
-2   (latestworld)
-3   (globaldecl TestMod.xx)
+1   TestMod.T
+2   (= slot₁/tmp 10)
+3   slot₁/tmp
+4   (call core.isa %₃ %₁)
+5   (gotoifnot %₄ label₇)
+6   (goto label₁₀)
+7   slot₁/tmp
+8   (call top.convert %₁ %₇)
+9   (= slot₁/tmp (call core.typeassert %₈ %₁))
+10  slot₁/tmp
+11  (constdecl TestMod.xx %₁₀)
+12  (latestworld)
+13  (return %₁₀)
+
+########################################
+# Error: Const tuple
+const xxx,xxxx,xxxxx = 10,20,30
+#---------------------
+LoweringError:
+const xxx,xxxx,xxxxx = 10,20,30
+#    └─────────────┘ ── unsupported `const` tuple
+
+########################################
+# Const in chain: only first is const
+const c0 = v0 = v1 = 123
+#---------------------
+1   123
+2   (constdecl TestMod.c0 %₁)
+3   (globaldecl TestMod.v0)
 4   (latestworld)
-5   (call core.get_binding_type TestMod :xx)
-6   (= slot₁/tmp 10)
+5   (call core.get_binding_type TestMod :v0)
+6   (= slot₁/tmp %₁)
 7   slot₁/tmp
 8   (call core.isa %₇ %₅)
 9   (gotoifnot %₈ label₁₁)
@@ -43,8 +69,20 @@ const xx::T = 10
 11  slot₁/tmp
 12  (= slot₁/tmp (call top.convert %₅ %₁₁))
 13  slot₁/tmp
-14  (call top.setglobal! TestMod :xx %₁₃)
-15  (return 10)
+14  (call top.setglobal! TestMod :v0 %₁₃)
+15  (globaldecl TestMod.v1)
+16  (latestworld)
+17  (call core.get_binding_type TestMod :v1)
+18  (= slot₂/tmp %₁)
+19  slot₂/tmp
+20  (call core.isa %₁₉ %₁₇)
+21  (gotoifnot %₂₀ label₂₃)
+22  (goto label₂₅)
+23  slot₂/tmp
+24  (= slot₂/tmp (call top.convert %₁₇ %₂₃))
+25  slot₂/tmp
+26  (call top.setglobal! TestMod :v1 %₂₅)
+27  (return %₁)
 
 ########################################
 # Global assignment

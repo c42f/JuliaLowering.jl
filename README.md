@@ -28,7 +28,7 @@ This work is intended to
 
 Note this is a work in progress; many types of syntax are not yet handled.
 
-1. You need a 1.13.0-DEV build of Julia: At least 1.13.0-DEV.408. Commit `ff0a9313de` is currently known to work. Note that JuliaLowering relies on Julia internals and may be broken on the latest Julia dev version from time to time.
+1. You need a 1.13.0-DEV build of Julia: At least 1.13.0-DEV.408. Commit `3864b18af6` is currently known to work. Note that JuliaLowering relies on Julia internals and may be broken on the latest Julia dev version from time to time.
 2. Check out the main branch of [JuliaSyntax](https://github.com/JuliaLang/JuliaSyntax.jl)
 3. Get the latest version of [JuliaSyntaxFormatter](https://github.com/c42f/JuliaSyntaxFormatter.jl)
 4. Run the demo `include("test/demo.jl")`

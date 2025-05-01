@@ -1213,7 +1213,9 @@ function expand_assignment(ctx, ex, is_const=false)
             tmp_rhs = ssavar(ctx, rhs, "rhs")
             rr = tmp_rhs
         end
-        for i in 1:length(stmts)
+        # In const a = b = c, only a is const
+        stmts[1] = @ast ctx ex [(is_const ? K"constdecl" : K"=") stmts[1] rr]
+        for i in 2:length(stmts)
             stmts[i] = @ast ctx ex [K"=" stmts[i] rr]
         end
         if !isnothing(tmp_rhs)
@@ -1274,11 +1276,12 @@ function expand_assignment(ctx, ex, is_const=false)
         x = lhs[1]
         T = lhs[2]
         res = if is_const
-            expand_forms_2(ctx, ex, @ast ctx ex [
-                K"constdecl"
-                lhs[1]
-                convert_for_type_decl(ctx, ex, rhs, T, true)
-            ])
+            expand_forms_2(ctx, @ast ctx ex [
+                K"const"
+                [K"="
+                  lhs[1]
+                  convert_for_type_decl(ctx, ex, rhs, T, true)
+                 ]])
         elseif is_identifier_like(x)
             # Identifer in lhs[1] is a variable type declaration, eg
             # x::T = rhs
@@ -2190,7 +2193,7 @@ function expand_const_decl(ctx, ex)
     k = kind(ex[1])
     if numchildren(ex) == 2
         @ast ctx ex [
-            K"const"
+            K"constdecl"
             ex[1]
             expand_forms_2(ctx, ex[2])
         ]
@@ -2206,7 +2209,9 @@ function expand_const_decl(ctx, ex)
             expand_assignment(ctx, ex[1], true)
         ]
     elseif k == K"="
-        check_assignment(ex[1])
+        if numchildren(ex[1]) >= 1 && kind(ex[1][1]) == K"tuple"
+            throw(LoweringError(ex[1][1], "unsupported `const` tuple"))
+        end
         expand_assignment(ctx, ex[1], true)
     elseif k == K"local"
         throw(LoweringError(ex, "unsupported `const local` declaration"))
