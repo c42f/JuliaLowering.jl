@@ -94,7 +94,7 @@ function _register_kinds()
             "_opaque_closure"
             # The enclosed statements must be executed at top level
             "toplevel_butfirst"
-            "const_if_global"
+            "assign_const_if_global"
             "moved_local"
             "label"
             "trycatchelse"
@@ -109,6 +109,8 @@ function _register_kinds()
             # A local variable captured into a global method. Contains the
             # `index` of the associated `Box` in the rewrite list.
             "captured_local"
+            # Causes the linearization pass to conditionally emit a world age increment
+            "latestworld_if_toplevel"
         "END_LOWERING_KINDS"
 
         # The following kinds are emitted by lowering and used in Julia's untyped IR
@@ -119,8 +121,12 @@ function _register_kinds()
             "slot"
             # Static parameter to a `CodeInfo` code object ("type parameters" to methods)
             "static_parameter"
-            # Reference to a global variable within a module
+            # References/declares a global variable within a module
             "globalref"
+            "globaldecl"
+            # Two-argument constant declaration and assignment.
+            # Translated to :const in the IR for now (we use K"const" already in parsing).
+            "constdecl"
             # Unconditional goto
             "goto"
             # Conditional goto
@@ -141,6 +147,8 @@ function _register_kinds()
             "new_opaque_closure"
             # Wrapper for the lambda of around opaque closure methods
             "opaque_closure_method"
+            # World age increment
+            "latestworld"
         "END_IR_KINDS"
     ])
 end

@@ -147,6 +147,7 @@ function convert_global_assignment(ctx, ex, var, rhs0)
     end
     push!(stmts, @ast ctx ex [K"=" var rhs])
     @ast ctx ex [K"block"
+        [K"globaldecl" var]
         stmts...
         rhs1
     ]
@@ -337,6 +338,13 @@ function _convert_closures(ctx::ClosureConversionCtx, ex)
         elseif binfo.is_always_defined || is_self_captured(ctx, var)
             # Captured but unboxed vars are always defined
             @ast ctx ex true::K"Bool"
+        elseif kind(var) == K"globalref"
+            # Normal isdefined won't work for globals (#56985)
+            @ast ctx ex [K"call"
+                "isdefinedglobal"::K"core"
+                ctx.mod::K"Value"
+                binfo.name::K"Symbol"
+                false::K"Bool"]
         else
             ex
         end
@@ -344,10 +352,9 @@ function _convert_closures(ctx::ClosureConversionCtx, ex)
         @assert kind(ex[1]) == K"BindingId"
         binfo = lookup_binding(ctx, ex[1])
         if binfo.kind == :global
-            @ast ctx ex [K"call"
-                "set_binding_type!"::K"core"
-                binfo.mod::K"Value"
-                binfo.name::K"Symbol"
+            @ast ctx ex [
+                K"globaldecl"
+                ex[1]
                 _convert_closures(ctx, ex[2])
             ]
         else
@@ -382,6 +389,7 @@ function _convert_closures(ctx::ClosureConversionCtx, ex)
                     type_for_closure(ctx, ex, name_str, field_syms, field_is_box)
                 if !ctx.is_toplevel_seq_point
                     push!(ctx.toplevel_stmts, closure_type_def)
+                    push!(ctx.toplevel_stmts, @ast ctx ex [K"latestworld_if_toplevel"])
                     closure_type_def = nothing
                 end
                 closure_info = ClosureInfo(closure_type_, field_syms, field_inds)
@@ -406,6 +414,7 @@ function _convert_closures(ctx::ClosureConversionCtx, ex)
                 end
                 @ast ctx ex [K"block"
                     closure_type_def
+                    [K"latestworld_if_toplevel"]
                     closure_type := if isempty(type_params)
                         closure_type_
                     else
