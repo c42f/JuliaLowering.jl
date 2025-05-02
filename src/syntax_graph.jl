@@ -6,7 +6,7 @@ one or several syntax trees.
 
 TODO: Global attributes!
 """
-struct SyntaxGraph{Attrs}
+mutable struct SyntaxGraph{Attrs}
     edge_ranges::Vector{UnitRange{Int}}
     edges::Vector{NodeId}
     attributes::Attrs
@@ -56,6 +56,7 @@ end
 function ensure_attributes(graph::SyntaxGraph; kws...)
     g = SyntaxGraph(graph.edge_ranges, graph.edges, Dict(pairs(graph.attributes)...))
     ensure_attributes!(g; kws...)
+    freeze_attrs(g)
 end
 
 function delete_attributes(graph::SyntaxGraph, attr_names...)
@@ -63,7 +64,7 @@ function delete_attributes(graph::SyntaxGraph, attr_names...)
     for name in attr_names
         delete!(attributes, name)
     end
-    SyntaxGraph(graph.edge_ranges, graph.edges, attributes)
+    SyntaxGraph(graph.edge_ranges, graph.edges, (; pairs(attributes)...))
 end
 
 function newnode!(graph::SyntaxGraph)
@@ -407,7 +408,7 @@ const SourceAttrType = Union{SourceRef,LineNumberNode,NodeId,Tuple}
 function SyntaxTree(graph::SyntaxGraph, node::SyntaxNode)
     ensure_attributes!(graph, kind=Kind, syntax_flags=UInt16, source=SourceAttrType,
                        value=Any, name_val=String)
-    id = _convert_nodes(graph, node)
+    id = _convert_nodes(freeze_attrs(graph), node)
     return SyntaxTree(graph, id)
 end
 
@@ -631,7 +632,7 @@ end
 
 #-------------------------------------------------------------------------------
 # Lightweight vector of nodes ids with associated pointer to graph stored separately.
-struct SyntaxList{GraphType, NodeIdVecType} <: AbstractVector{SyntaxTree}
+mutable struct SyntaxList{GraphType, NodeIdVecType} <: AbstractVector{SyntaxTree}
     graph::GraphType
     ids::NodeIdVecType
 end
