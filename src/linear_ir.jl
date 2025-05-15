@@ -333,7 +333,7 @@ function emit_assignment_or_setglobal(ctx, srcref, lhs, rhs, op=K"=")
         emit(ctx, @ast ctx srcref [
             K"call"
             "setglobal!"::K"top"
-            string(nameof(binfo.mod))::K"Identifier"
+            binfo.mod::K"Value"
             binfo.name::K"Symbol"
             rhs
         ])

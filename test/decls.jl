@@ -63,4 +63,16 @@ end
 # Unsupported for now
 @test_throws LoweringError JuliaLowering.include_string(test_mod, "const a,b,c = 1,2,3")
 
+# Globals in local scope
+@test JuliaLowering.include_string(test_mod, """
+function f()
+    let
+        global x
+        x = 1
+    end
+end
+f()
+x
+""") === 1
+
 end
