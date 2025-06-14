@@ -30,10 +30,9 @@ function _apply_nospecialize(ctx, ex)
 end
 
 function Base.var"@nospecialize"(__context__::MacroContext, ex, exs...)
+    # TODO support multi-arg version properly
     _apply_nospecialize(__context__, ex)
-    Base.var"@nospecialize"(__context__, exs...)
 end
-Base.var"@nospecialize"(__context__::MacroContext) = nothing # TODO implement this property
 
 function Base.var"@atomic"(__context__::MacroContext, ex)
     @chk kind(ex) == K"Identifier" || kind(ex) == K"::" (ex, "Expected identifier or declaration")
