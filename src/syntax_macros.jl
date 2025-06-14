@@ -2,14 +2,14 @@
 # extensions":
 #
 # * They emit syntactic forms with special `Kind`s and semantics known to
-#   lowering 
+#   lowering
 # * There is no other Julia surface syntax for these `Kind`s.
 
 # In order to implement these here without getting into bootstrapping problems,
 # we just write them as plain old macro-named functions and add the required
 # __context__ argument ourselves.
 #
-# TODO: @inline, @noinline, @inbounds, @simd, @ccall, @isdefined, @assume_effects
+# TODO: @inline, @noinline, @inbounds, @simd, @ccall, @assume_effects
 #
 # TODO: Eventually move these to proper `macro` definitions and use
 # `JuliaLowering.include()` or something. Then we'll be in the fun little world
@@ -29,9 +29,11 @@ function _apply_nospecialize(ctx, ex)
     end
 end
 
-function Base.var"@nospecialize"(__context__::MacroContext, ex)
+function Base.var"@nospecialize"(__context__::MacroContext, ex, exs...)
     _apply_nospecialize(__context__, ex)
+    Base.var"@nospecialize"(__context__, exs...)
 end
+Base.var"@nospecialize"(__context__::MacroContext) = nothing # TODO implement this property
 
 function Base.var"@atomic"(__context__::MacroContext, ex)
     @chk kind(ex) == K"Identifier" || kind(ex) == K"::" (ex, "Expected identifier or declaration")
@@ -220,4 +222,3 @@ function var"@inert"(__context__::MacroContext, ex)
     @chk kind(ex) == K"quote"
     @ast __context__ __context__.macrocall [K"inert" ex]
 end
-
