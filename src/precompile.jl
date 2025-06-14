@@ -12,7 +12,7 @@ if Base.get_bool_env("JULIA_LOWERING_PRECOMPILE", true)
         struct Foo
             x::Int
             Foo(x::Int) = new(x)
-            Foo() = new()
+            # Foo() = new()
         end
         """
     ]
