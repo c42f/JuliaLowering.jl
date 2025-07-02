@@ -39,17 +39,19 @@ function _show_provtree(io::IO, prov, indent)
     printstyled(io, "@ $fn:$line\n", color=:light_black)
 end
 
-function showprov(io::IO, exs::AbstractVector)
+function showprov(io::IO, exs::AbstractVector; note=nothing, highlight_kwargs...)
     for (i,ex) in enumerate(Iterators.reverse(exs))
         sr = sourceref(ex)
         if i > 1
             print(io, "\n\n")
         end
         k = kind(ex)
-        note = i > 1 && k == K"macrocall"  ? "in macro expansion" :
-               i > 1 && k == K"$"          ? "interpolated here"  :
-               "in source"
-        highlight(io, sr, note=note)
+        if isnothing(note)
+            note = i > 1 && k == K"macrocall"  ? "in macro expansion" :
+                   i > 1 && k == K"$"          ? "interpolated here"  :
+                   "in source"
+        end
+        highlight(io, sr; note=note, highlight_kwargs...)
 
         line, _ = source_location(sr)
         locstr = "$(filename(sr)):$line"
@@ -57,11 +59,11 @@ function showprov(io::IO, exs::AbstractVector)
     end
 end
 
-function showprov(io::IO, ex::SyntaxTree; tree=false)
+function showprov(io::IO, ex::SyntaxTree; tree::Bool=false, showprov_kwargs...)
     if tree
         _show_provtree(io, ex, "")
     else
-        showprov(io, flattened_provenance(ex))
+        showprov(io, flattened_provenance(ex); showprov_kwargs...)
     end
 end
 
@@ -165,4 +167,3 @@ function _print_ir(io::IO, ex, indent)
         end
     end
 end
-
