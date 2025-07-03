@@ -1,6 +1,6 @@
 const JS = JuliaSyntax
 
-function _insert_tree_node(graph::SyntaxGraph, k::JuliaSyntax.Kind,
+function _insert_tree_node(graph::SyntaxGraph, k::JS.Kind,
                            src::SourceAttrType, flags::UInt16=0x0000)
     id = newnode!(graph)
     sethead!(graph, id, k)
@@ -29,7 +29,7 @@ function expr_to_syntaxtree(@nospecialize(e), lnn::Union{LineNumberNode, Nothing
         # Provenance sinkhole for all nodes until we hit a linenode
         dummy_src = SourceRef(
             SourceFile("No source for expression $e"),
-            1, JuliaSyntax.GreenNode(K"None", 0))
+            1, JS.GreenNode(K"None", 0))
         _insert_tree_node(graph, K"None", dummy_src)
     else
         lnn
@@ -115,8 +115,8 @@ end
 
 # Get kind by string if exists.  TODO relies on internals
 function find_kind(s::String)
-    out = get(JuliaSyntax._kind_str_to_int, s, nothing)
-    return isnothing(out) ? nothing : JuliaSyntax.Kind(out)
+    out = get(JS._kind_str_to_int, s, nothing)
+    return isnothing(out) ? nothing : JS.Kind(out)
 end
 
 function is_dotted_operator(s::AbstractString)
@@ -167,7 +167,7 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
         return (st_id, src)
     elseif !(e isa Expr)
         if !(e isa Union{Number, Bool, Char, GlobalRef, Nothing})
-            @info "what is this" e typeof(e)
+            @info "unknown leaf type in expr, guessing value:" e typeof(e)
         end
         # TODO: st_k of Float. others?
         st_k = e isa Integer ? K"Integer" : find_kind(string(typeof(e)))
@@ -219,7 +219,7 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
         elseif a1 isa Expr && a1.head === :(.) && a1.args[2] isa QuoteNode
             child_exprs[1] = Expr(:(.), a1.args[1], Expr(:MacroName, a1.args[2].value))
         elseif a1 isa GlobalRef
-            # syntax-introduced macrocalls
+            # TODO syntax-introduced macrocalls
             if a1.name === Symbol("@cmd")
                 # expr_children = []
             elseif a1.name === Symbol("@doc")
@@ -313,7 +313,7 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
     elseif e.head === :(=)
         if e.args[1] isa Expr && e.args[1].head === :call
             st_k = K"function"
-            st_flags |= JuliaSyntax.SHORT_FORM_FUNCTION_FLAG
+            st_flags |= JS.SHORT_FORM_FUNCTION_FLAG
             child_exprs[2] = maybe_strip_block(child_exprs[2])
         end
     elseif e.head === :module
@@ -351,7 +351,6 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
         st_id = _insert_tree_node(graph, K"MacroName", src, st_flags)
         mac_name = string(e.args[1])
         setattr!(graph, st_id, name_val=mac_name == "@__dot__" ? "@." : mac_name)
-        @info mac_name[2:end] Base.is_valid_identifier(mac_name[2:end])
         if !Base.is_valid_identifier(mac_name[2:end])
             return _insert_var_str(st_id, graph, src)
         end
