@@ -83,13 +83,13 @@ function collect_expr_parameters(e::Expr, pos::Int)
     params = expr_parameters(e, pos)
     isnothing(params) && return e.args
     args = Any[e.args[1:pos-1]..., e.args[pos+1:end]...]
-    return _flatten_params(params, args)
+    return _flatten_params!(args, params)
 end
-function _flatten_params(p::Expr, out::Vector{Any})
+function _flatten_params!(out::Vector{Any}, p::Expr)
     p1 = expr_parameters(p, 1)
     if !isnothing(p1)
         push!(out, Expr(:parameters, p.args[2:end]...))
-        _flatten_params(p1, out)
+        _flatten_params!(out, p1)
     else
         push!(out, p::Any)
     end
@@ -252,7 +252,7 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
         end
     elseif e.head === :for
         @assert nargs === 2
-        child_exprs = [_to_iterspec([e.args[1]]), e.args[2]]
+        child_exprs = Expr[_to_iterspec(Any[e.args[1]]), e.args[2]]
     elseif e.head === :where
         @assert nargs >= 2
         if !(e.args[2] isa Expr && e.args[2].head === :braces)
