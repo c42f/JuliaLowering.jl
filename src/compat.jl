@@ -17,7 +17,7 @@ the last seen LineNumberNode in the pre-order expr traversal).
 Last-resort option so that, for example, we can lower the output of old
 Expr-producing macros.  Always prefer re-parsing source text over using this.
 
-Does not support lowered exprs.
+Supports parsed and/or macro-expanded exprs, but not lowered exprs
 """
 function expr_to_syntaxtree(@nospecialize(e), lnn::Union{LineNumberNode, Nothing}=nothing)
     graph = SyntaxGraph()
@@ -154,11 +154,11 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
         return (st_id, src)
     elseif e isa LineNumberNode
         return (nothing, e)
-    elseif e isa QuoteNode
-        st_id = _insert_tree_node(graph, K"quote", src)
-        quote_child, _ = _insert_convert_expr(e.value, graph, src)
-        setchildren!(graph, st_id, NodeId[quote_child])
-        return (st_id, src)
+    # elseif e isa QuoteNode
+    #     st_id = _insert_tree_node(graph, K"quote", src)
+    #     quote_child, _ = _insert_convert_expr(e.value, graph, src)
+    #     setchildren!(graph, st_id, NodeId[quote_child])
+    #     return (st_id, src)
     elseif e isa String
         st_id = _insert_tree_node(graph, K"string", src)
         id_inner = _insert_tree_node(graph, K"String", src)
@@ -211,9 +211,11 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
             end
         end
     elseif e.head === :macrocall
-        @assert nargs >= 1
+        @assert nargs >= 2
         a1 = e.args[1]
-        child_exprs = collect_expr_parameters(e, 2)
+        child_exprs = collect_expr_parameters(e, 3)
+        # macrocall has a linenode "argument" here. should we set src?
+        deleteat!(child_exprs, 2)
         if a1 isa Symbol
             child_exprs[1] = Expr(:MacroName, a1)
         elseif a1 isa Expr && a1.head === :(.) && a1.args[2] isa QuoteNode
@@ -227,12 +229,20 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
             elseif a1.name === Symbol("@int128_str")
             elseif a1.name === Symbol("@big_str")
             end
+        elseif a1 isa Function
         else
-            dump(e)
-            error("Unknown macrocall form $e")
+            error("Unknown macrocall form $(sprint(dump, e))")
         end
 
         # TODO node->expr handles do blocks here?
+    elseif e.head === :escape || e.head === Symbol("hygienic-scope")
+        @assert nargs >= 1
+        # Existing behaviour appears to just ignore any extra args
+        return _insert_convert_expr(e.args[1], graph, src)
+    elseif e.head === :meta
+        @assert nargs <= 2
+        @assert e.args[1] isa Symbol
+        child_exprs[1] = Expr(:sym_not_identifier, e.args[1])
     elseif e.head === Symbol("'")
         @assert nargs === 1
         st_k = K"call"
@@ -359,13 +369,18 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
         st_id = _insert_tree_node(graph, K"Placeholder", src, st_flags)
         setattr!(graph, st_id, name_val="")
         return (st_id, src)
+    elseif e.head === :sym_not_identifier
+        estr = String(e.args[1])
+        st_k = K"Symbol"
+        st_id = _insert_tree_node(graph, st_k, src)
+        setattr!(graph, st_id, name_val=estr)
+        return (st_id, src)
     elseif e.head === :do_lambda
         st_k = K"do"
     end
 
     if st_k === K"None"
-        dump(e)
-        error("no kind for $(e.head)")
+        error("no kind for expr head `$(e.head)`\n$(sprint(dump, e))")
     end
 
     st_flags |= JS.NON_TERMINAL_FLAG
