@@ -143,11 +143,13 @@ a pair (my_node_id, last_srcloc).  Should not mutate `e`.
 number node to be associated with `e`.
 """
 function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceAttrType)
-    if e isa Symbol
-        estr = String(e)
-        st_k = K"Identifier"
-        st_id = _insert_tree_node(graph, st_k, src)
-        setattr!(graph, st_id, name_val=estr)
+    if isnothing(e)
+        st_id = _insert_tree_node(graph, K"core", src)
+        setattr!(graph, st_id, name_val="nothing")
+        return (st_id, src)
+    elseif e isa Symbol
+        st_id = _insert_tree_node(graph, K"Identifier", src)
+        setattr!(graph, st_id, name_val=String(e))
         if !Base.isoperator(e) && !Base.is_valid_identifier(e)
             return _insert_var_str(st_id, graph, src)
         end
@@ -155,7 +157,7 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
     elseif e isa LineNumberNode
         return (nothing, e)
     # elseif e isa QuoteNode
-    #     st_id = _insert_tree_node(graph, K"quote", src)
+    #     st_id = _insert_tree_node(graph, K"inert", src)
     #     quote_child, _ = _insert_convert_expr(e.value, graph, src)
     #     setchildren!(graph, st_id, NodeId[quote_child])
     #     return (st_id, src)
@@ -353,6 +355,8 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
                        (e)->(e.head = :importpath))
     elseif e.head === :kw
         st_k = K"="
+    elseif e.head === Symbol("latestworld-if-toplevel")
+        st_k = K"latestworld_if_toplevel"
     end
 
     # Temporary heads introduced by converting the parent expr
