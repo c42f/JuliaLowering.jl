@@ -19,12 +19,17 @@ Expr-producing macros.  Always prefer re-parsing source text over using this.
 
 Supports parsed and/or macro-expanded exprs, but not lowered exprs
 """
-function expr_to_syntaxtree(@nospecialize(e), lnn::Union{LineNumberNode, Nothing}=nothing)
-    graph = SyntaxGraph()
-    ensure_attributes!(graph,
-                       kind=Kind, syntax_flags=UInt16,
-                       source=SourceAttrType, var_id=Int, value=Any,
-                       name_val=String, is_toplevel_thunk=Bool)
+function expr_to_syntaxtree(@nospecialize(e),
+                            mctx::Union{MacroExpansionContext, Nothing}=nothing,
+                            lnn::Union{LineNumberNode, Nothing}=nothing)
+    graph = if isnothing(mctx)
+        ensure_attributes!(SyntaxGraph(),
+                           kind=Kind, syntax_flags=UInt16,
+                           source=SourceAttrType, var_id=Int, value=Any,
+                           name_val=String, is_toplevel_thunk=Bool)
+    else
+        mctx.graph
+    end
     toplevel_src = if isnothing(lnn)
         # Provenance sinkhole for all nodes until we hit a linenode
         dummy_src = SourceRef(
