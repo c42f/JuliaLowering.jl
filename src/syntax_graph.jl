@@ -246,13 +246,17 @@ function attrnames(ex::SyntaxTree)
     [name for (name, value) in pairs(attrs) if haskey(value, ex._id)]
 end
 
-function setattr(ex::SyntaxTree; extra_attrs...)
+function copy_node(ex::SyntaxTree)
     graph = syntax_graph(ex)
     id = newnode!(graph)
     if !is_leaf(ex)
         setchildren!(graph, id, _node_ids(graph, children(ex)...))
     end
-    ex2 = SyntaxTree(graph, id)
+    SyntaxTree(graph, id)
+end
+
+function setattr(ex::SyntaxTree; extra_attrs...)
+    ex2 = copy_node(ex)
     copy_attrs!(ex2, ex, true)
     setattr!(ex2; extra_attrs...)
     ex2

@@ -191,7 +191,7 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
     maybe_kind = find_kind(string(e.head))
     st_k = isnothing(maybe_kind) ? K"None" : maybe_kind
     st_flags = 0x0000
-    child_exprs = copy(e.args)
+    child_exprs::Vector{Any} = copy(e.args)
 
     # The following are special cases where the kind, flags, or children are
     # different from what we guessed above.
@@ -247,9 +247,21 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
         # Existing behaviour appears to just ignore any extra args
         return _insert_convert_expr(e.args[1], graph, src)
     elseif e.head === :meta
-        @assert nargs <= 2
         @assert e.args[1] isa Symbol
-        child_exprs[1] = Expr(:sym_not_identifier, e.args[1])
+        if e.args[1] === :nospecialize
+            if nargs > 2
+                st_k = K"block"
+                # Kick the can down the road
+                child_exprs = map(c->Expr(:meta, :nospecialize, c), child_exprs[2:end])
+            else
+                st_id, src = _insert_convert_expr(e.args[2], graph, src)
+                setmeta!(SyntaxTree(graph, st_id); nospecialize=true)
+                return st_id, src
+            end
+        else
+            @assert nargs === 1
+            child_exprs[1] = Expr(:sym_not_identifier, e.args[1])
+        end
     elseif e.head === Symbol("'")
         @assert nargs === 1
         st_k = K"call"
@@ -394,6 +406,13 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
 
     st_flags |= JS.NON_TERMINAL_FLAG
     st_id = _insert_tree_node(graph, st_k, src, st_flags)
+    st_child_ids, last_src = _insert_expr_children(child_exprs, graph, src)
+    setchildren!(graph, st_id, st_child_ids)
+    return st_id, last_src
+end
+
+function _insert_expr_children(child_exprs::Vector{Any}, graph::SyntaxGraph,
+                               src::SourceAttrType)
     st_child_ids = NodeId[]
     last_src = src
     for c in child_exprs
@@ -401,7 +420,5 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
         isnothing(c_id) || push!(st_child_ids, c_id)
         last_src = something(c_src, src)
     end
-
-    setchildren!(graph, st_id, st_child_ids)
-    return (st_id, last_src)
+    return st_child_ids, last_src
 end
