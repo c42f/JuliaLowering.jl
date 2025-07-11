@@ -242,27 +242,6 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
         end
 
         # TODO node->expr handles do blocks here?
-    elseif e.head === :escape || e.head === Symbol("hygienic-scope")
-        @assert nargs >= 1
-        # Existing behaviour appears to just ignore any extra args
-        return _insert_convert_expr(e.args[1], graph, src)
-    elseif e.head === :meta
-        # Messy and undocumented.  Sometimes we want a K"meta".
-        @assert e.args[1] isa Symbol
-        if e.args[1] === :nospecialize
-            if nargs > 2
-                st_k = K"block"
-                # Kick the can down the road (should only be simple atoms?)
-                child_exprs = map(c->Expr(:meta, :nospecialize, c), child_exprs[2:end])
-            else
-                st_id, src = _insert_convert_expr(e.args[2], graph, src)
-                setmeta!(SyntaxTree(graph, st_id); nospecialize=true)
-                return st_id, src
-            end
-        else
-            @assert nargs === 1
-            child_exprs[1] = Expr(:sym_not_identifier, e.args[1])
-        end
     elseif e.head === Symbol("'")
         @assert nargs === 1
         st_k = K"call"
@@ -373,14 +352,43 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
                        (e)->(e.head = :importpath))
     elseif e.head === :kw
         st_k = K"="
-    elseif e.head === Symbol("latestworld-if-toplevel")
+    end
+
+    # The following heads are not emitted from parsing, but old macros could
+    # produce these and they would historically be accepted by flisp lowering.
+    if e.head === Symbol("latestworld-if-toplevel")
         st_k = K"latestworld_if_toplevel"
+    elseif e.head === :escape || e.head === Symbol("hygienic-scope")
+        @assert nargs >= 1
+        # Existing behaviour appears to just ignore any extra args
+        return _insert_convert_expr(e.args[1], graph, src)
+    elseif e.head === :meta
+        # Messy and undocumented.  Sometimes we want a K"meta".
+        @assert e.args[1] isa Symbol
+        if e.args[1] === :nospecialize
+            if nargs > 2
+                st_k = K"block"
+                # Kick the can down the road (should only be simple atoms?)
+                child_exprs = map(c->Expr(:meta, :nospecialize, c), child_exprs[2:end])
+            else
+                st_id, src = _insert_convert_expr(e.args[2], graph, src)
+                setmeta!(SyntaxTree(graph, st_id); nospecialize=true)
+                return st_id, src
+            end
+        else
+            @assert nargs === 1
+            child_exprs[1] = Expr(:sym_not_identifier, e.args[1])
+        end
     elseif e.head === :symbolicgoto || e.head === :symboliclabel
         @assert nargs === 1
         st_k = e.head === :symbolicgoto ? K"symbolic_label" : K"symbolic_goto"
         st_id = _insert_tree_node(graph, st_k, src)
         setattr!(graph, st_id, name_val=string(e.args[1]))
         return (st_id, src)
+    elseif e.head === :inline || e.head === :noinline
+        @assert nargs === 1 && e.args[1] isa Bool
+        # TODO: JuliaLowering doesn't accept this (non-:meta) form yet
+        return (nothing, src)
     end
 
     # Temporary heads introduced by converting the parent expr
