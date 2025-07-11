@@ -252,12 +252,13 @@ function copy_node(ex::SyntaxTree)
     if !is_leaf(ex)
         setchildren!(graph, id, _node_ids(graph, children(ex)...))
     end
-    SyntaxTree(graph, id)
+    ex2 = SyntaxTree(graph, id)
+    copy_attrs!(ex2, ex, true)
+    ex2
 end
 
 function setattr(ex::SyntaxTree; extra_attrs...)
     ex2 = copy_node(ex)
-    copy_attrs!(ex2, ex, true)
     setattr!(ex2; extra_attrs...)
     ex2
 end
