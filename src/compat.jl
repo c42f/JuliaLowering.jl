@@ -294,8 +294,18 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
             push!(child_exprs,
                   Expr(:finally, e.args[4] === false ? nothing : e.args[4]))
         end
-    elseif e.head === :generator # TODO flatten
-        child_exprs = [e.args[1], _to_iterspec(e.args[2:end])]
+    elseif e.head === :flatten || e.head === :generator
+        st_k = K"generator"
+        child_exprs = Any[]
+        next = e
+        while next.head === :flatten
+            @assert next.args[1].head === :generator
+            push!(child_exprs, _to_iterspec(next.args[1].args[2:end]))
+            next = next.args[1].args[1]
+        end
+        @assert next.head === :generator
+        push!(child_exprs, _to_iterspec(next.args[2:end]))
+        pushfirst!(child_exprs, next.args[1])
     elseif e.head === :ncat || e.head === :nrow
         st_flags |= JS.set_numeric_flags(e.args[1])
         child_exprs = child_exprs[2:end]
