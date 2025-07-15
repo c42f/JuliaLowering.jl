@@ -40,7 +40,7 @@ macro ast_(tree)
     quote
         graph = _ast_test_graph()
         srcref = _source_node(graph, $(QuoteNode(__source__)))
-        @ast graph srcref $tree
+        @ast graph srcref $(esc(tree))
     end
 end
 
@@ -48,14 +48,15 @@ function ~(ex1, ex2)
     if kind(ex1) != kind(ex2) || is_leaf(ex1) != is_leaf(ex2)
         return false
     end
-    if is_leaf(ex1)
+    if !is_leaf(ex1)
         if numchildren(ex1) != numchildren(ex2)
             return false
         end
         return all(c1 ~ c2 for (c1,c2) in zip(children(ex1), children(ex2)))
     else
         return get(ex1, :value,    nothing) == get(ex2, :value,    nothing) &&
-               get(ex1, :name_val, nothing) == get(ex2, :name_val, nothing)
+               get(ex1, :name_val, nothing) == get(ex2, :name_val, nothing) &&
+               typeof(ex1) == typeof(ex2)
     end
 end
 

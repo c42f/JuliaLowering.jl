@@ -153,12 +153,14 @@ function makeleaf(ctx, srcref, k::Kind, value; kws...)
     elseif k == K"TOMBSTONE" || k == K"SourceLocation"
         makeleaf(graph, srcref, k; kws...)
     else
-        val = k == K"Integer" ? convert(Int,     value) :
+        val = k == K"Integer" ? convert(Signed,  value) :
               k == K"Float"   ? convert(Float64, value) :
+              k == K"Float32" ? convert(Float32, value) :
               k == K"String"  ? convert(String,  value) :
               k == K"Char"    ? convert(Char,    value) :
               k == K"Value"   ? value                   :
               k == K"Bool"    ? value                   :
+              (k == K"HexInt" || k == K"OctInt" || k == K"BinInt") ? convert(Unsigned, value) :
               error("Unexpected leaf kind `$k`")
         makeleaf(graph, srcref, k; value=val, kws...)
     end
@@ -200,58 +202,65 @@ end
 
 #-------------------------------------------------------------------------------
 # @ast macro
-function _match_srcref(ex)
+function _esc(ex, esc_level)
+    for i = 1:esc_level
+        ex = esc(ex)
+    end
+    ex
+end
+
+function _match_srcref(ex, esc_level)
     if Meta.isexpr(ex, :macrocall) && ex.args[1] == Symbol("@HERE")
         QuoteNode(ex.args[2])
     else
-        esc(ex)
+        _esc(ex, esc_level)
     end
 end
 
-function _match_kind(f::Function, srcref, ex)
+function _match_kind(f::Function, srcref, ex, esc_level)
     kws = []
     if Meta.isexpr(ex, :call)
-        kind = esc(ex.args[1])
+        kind = _esc(ex.args[1], esc_level)
         args = ex.args[2:end]
         if Meta.isexpr(args[1], :parameters)
             kws = map(esc, args[1].args)
             popfirst!(args)
         end
         while length(args) >= 1 && Meta.isexpr(args[end], :kw)
-            pushfirst!(kws, esc(pop!(args)))
+            pushfirst!(kws, _esc(pop!(args), esc_level))
         end
         if length(args) == 1
             srcref_tmp = gensym("srcref")
             return quote
-                $srcref_tmp = $(_match_srcref(args[1]))
+                $srcref_tmp = $(_match_srcref(args[1], esc_level))
                 $(f(kind, srcref_tmp, kws))
             end
         elseif length(args) > 1
             error("Unexpected: extra srcref argument in `$ex`?")
         end
     else
-        kind = esc(ex)
+        kind = _esc(ex, esc_level)
     end
     f(kind, srcref, kws)
 end
 
-function _expand_ast_tree(ctx, srcref, tree)
+function _expand_ast_tree(ctx, srcref, tree, esc_level)
     if Meta.isexpr(tree, :(::))
         # Leaf node
         if length(tree.args) == 2
-            val = esc(tree.args[1])
+            val = _esc(tree.args[1], esc_level)
             kindspec = tree.args[2]
         else
             val = nothing
             kindspec = tree.args[1]
         end
-        _match_kind(srcref, kindspec) do kind, srcref, kws
+        _match_kind(srcref, kindspec, esc_level) do kind, srcref, kws
             :(makeleaf($ctx, $srcref, $kind, $(val), $(kws...)))
         end
     elseif Meta.isexpr(tree, :call) && tree.args[1] === :(=>)
         # Leaf node with copied attributes
-        kind = esc(tree.args[3])
-        srcref = esc(tree.args[2])
+        kind = _esc(tree.args[3], esc_level)
+        srcref = _esc(tree.args[2], esc_level)
         :(mapleaf($ctx, $srcref, $kind))
     elseif Meta.isexpr(tree, (:vcat, :hcat, :vect))
         # Interior node
@@ -267,7 +276,7 @@ function _expand_ast_tree(ctx, srcref, tree)
         end)
         child_stmts = children_ex.args[2].args
         for a in flatargs[2:end]
-            child = _expand_ast_tree(ctx, srcref, a)
+            child = _expand_ast_tree(ctx, srcref, a, esc_level)
             if Meta.isexpr(child, :(...))
                 push!(child_stmts, :(_append_nodeids!(graph, child_ids, $(child.args[1]))))
             else
@@ -275,23 +284,23 @@ function _expand_ast_tree(ctx, srcref, tree)
             end
         end
         push!(child_stmts, :(child_ids))
-        _match_kind(srcref, flatargs[1]) do kind, srcref, kws
+        _match_kind(srcref, flatargs[1], esc_level) do kind, srcref, kws
             :(_makenode($ctx, $srcref, $kind, $children_ex; $(kws...)))
         end
     elseif Meta.isexpr(tree, :(:=))
         lhs = tree.args[1]
-        rhs = _expand_ast_tree(ctx, srcref, tree.args[2])
+        rhs = _expand_ast_tree(ctx, srcref, tree.args[2], esc_level)
         ssadef = gensym("ssadef")
         quote
-            ($(esc(lhs)), $ssadef) = assign_tmp($ctx, $rhs, $(string(lhs)))
+            ($(_esc(lhs, esc_level)), $ssadef) = assign_tmp($ctx, $rhs, $(string(lhs)))
             $ssadef
         end
     elseif Meta.isexpr(tree, :macrocall)
-        esc(tree)
+        _esc(tree, esc_level)
     elseif tree isa Expr
-        Expr(tree.head, map(a->_expand_ast_tree(ctx, srcref, a), tree.args)...)
+        Expr(tree.head, map(a->_expand_ast_tree(ctx, srcref, a, esc_level), tree.args)...)
     else
-        esc(tree)
+        _esc(tree, esc_level)
     end
 end
 
@@ -348,10 +357,14 @@ to indicate that the "primary" location of the source is the location where
 ```
 """
 macro ast(ctx, srcref, tree)
+    outer_esc = Meta.isexpr(tree, :escape)
+    if outer_esc
+        tree = tree.args[1]
+    end
     quote
         ctx = $(esc(ctx))
-        srcref = $(_match_srcref(srcref))
-        $(_expand_ast_tree(:ctx, :srcref, tree))
+        srcref = $(_match_srcref(srcref, 1))
+        $(_expand_ast_tree(:ctx, :srcref, tree, outer_esc ? 2 : 1))
     end
 end
 
