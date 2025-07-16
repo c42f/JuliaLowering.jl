@@ -20,15 +20,15 @@ Expr-producing macros.  Always prefer re-parsing source text over using this.
 Supports parsed and/or macro-expanded exprs, but not lowered exprs
 """
 function expr_to_syntaxtree(@nospecialize(e),
-                            mctx::Union{MacroExpansionContext, Nothing}=nothing,
-                            lnn::Union{LineNumberNode, Nothing}=nothing)
-    graph = if isnothing(mctx)
+                            lnn::Union{LineNumberNode, Nothing}=nothing,
+                            ctx=nothing)
+    graph = if isnothing(ctx)
         ensure_attributes!(SyntaxGraph(),
                            kind=Kind, syntax_flags=UInt16,
                            source=SourceAttrType, var_id=Int, value=Any,
                            name_val=String, is_toplevel_thunk=Bool)
     else
-        mctx.graph
+        syntax_graph(ctx)
     end
     toplevel_src = if isnothing(lnn)
         # Provenance sinkhole for all nodes until we hit a linenode
@@ -154,7 +154,7 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
         return (st_id, src)
     elseif e isa Symbol
         st_id = _insert_tree_node(graph, K"Identifier", src)
-        setattr!(graph, st_id, name_val=String(e))
+        setattr!(graph, st_id; name_val=String(e))
         if !Base.isoperator(e) && !Base.is_valid_identifier(e)
             return _insert_var_str(st_id, graph, src)
         end
@@ -368,10 +368,8 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
     # produce these and they would historically be accepted by flisp lowering.
     if e.head === Symbol("latestworld-if-toplevel")
         st_k = K"latestworld_if_toplevel"
-    elseif e.head === :escape || e.head === Symbol("hygienic-scope")
-        @assert nargs >= 1
-        # Existing behaviour appears to just ignore any extra args
-        return _insert_convert_expr(e.args[1], graph, src)
+    elseif e.head === Symbol("hygienic-scope")
+        st_k = K"hygienic_scope"
     elseif e.head === :meta
         # Messy and undocumented.  Sometimes we want a K"meta".
         @assert e.args[1] isa Symbol
