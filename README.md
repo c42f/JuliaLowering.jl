@@ -288,6 +288,57 @@ discussed in Adams' paper:
 
 TODO: Write more here...
 
+
+### Compatibility with `Expr` macros
+
+Suppose a manually escaped old-style macro `@oldstyle` is implemented as
+
+```julia
+macro oldstyle(a, b)
+    quote
+        x = "x in @oldstyle"
+        @newstyle $(esc(a)) $(esc(b)) x
+    end
+end
+```
+
+along with two correctly escaped new-style macros:
+
+```julia
+macro call_oldstyle_macro(y)
+    quote
+        x = "x in call_oldstyle_macro"
+        @oldstyle $y x
+    end
+end
+
+macro newstyle(x, y, z)
+    quote
+        x = "x in @newstyle"
+        ($x, $y, $z, x)
+    end
+end
+```
+
+Then want some code like the following to "just work" with respect to hygiene
+
+```julia
+let
+    x = "x in outer ctx"
+    @call_oldstyle_macro x
+end
+```
+
+When calling `@oldstyle`, we must convert `SyntaxTree` into `Expr`, but we need
+to preserve the scope layer of the `x` from the outer context as it is passed
+into `@oldstyle` as a macro argument. To do this, we use `Expr(:scope_layer,
+:x, outer_layer_id)`. (In the old system, this would be `Expr(:escape, :x)`
+instead, presuming that `@call_oldstyle_macro` was implemented using `esc()`.)
+
+When receiving output from old style macro invocations, we preserve the escape
+handling of the existing system for any symbols which aren't tagged with a
+scope layer.
+
 ## Pass 2: Syntax desugaring
 
 This pass recursively converts many special surface syntax forms to a smaller
