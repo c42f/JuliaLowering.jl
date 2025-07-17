@@ -397,6 +397,13 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
         @assert nargs === 1 && e.args[1] isa Bool
         # TODO: JuliaLowering doesn't accept this (non-:meta) form yet
         return (nothing, src)
+    elseif e.head === :core
+        @assert nargs === 1
+        @assert e.args[1] isa Symbol
+        coreref_name = string(e.args[1])
+        st_id = _insert_tree_node(graph, K"core", src)
+        setattr!(graph, st_id; name_val=coreref_name)
+        return st_id, src
     end
 
     # Temporary heads introduced by converting the parent expr
