@@ -301,10 +301,7 @@ function expand_forms_1(ctx::MacroExpansionContext, ex::SyntaxTree)
                 k = K"dotcall"
                 farg = farg[1]
             end
-            # Preserve call type flags (mostly ignored in the next pass as
-            # we've already reordered arguments.)
-            callflags = JuliaSyntax.call_type_flags(ex)
-            @ast ctx ex [k(syntax_flags=(callflags == 0 ? nothing : callflags))
+            @ast ctx ex [k
                 expand_forms_1(ctx, farg)
                 (expand_forms_1(ctx, a) for a in args)...
             ]

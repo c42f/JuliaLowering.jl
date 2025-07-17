@@ -1568,7 +1568,7 @@ function expand_named_tuple(ctx, ex, kws;
             end
             name = to_symbol(ctx, kw[2])
             value = kw
-        elseif k == K"call" && is_infix_op_call(kw) && numchildren(kw) == 3 &&
+        elseif k == K"call" && numchildren(kw) == 3 &&
                 is_same_identifier_like(kw[1], "=>")
             # a=>b   ==>  $a=b
             appended_nt = _named_tuple_expr(ctx, kw, (kw[2],), (kw[3],))
