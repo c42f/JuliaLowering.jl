@@ -95,6 +95,18 @@ let
     a
 end
 """) == [1, 2]
+@test JuliaLowering.include_string(test_mod, """
+let
+    a = []
+    for i in 1:2
+       for j in 3:4
+           push!(a, (i, j))
+           j == 6 && break
+       end
+    end
+    a
+end
+""") == [(1, 3), (1, 4), (2, 3), (2, 4)]
 
 # continue
 @test JuliaLowering.include_string(test_mod, """

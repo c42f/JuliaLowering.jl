@@ -414,7 +414,7 @@ function expand_tuple_destruct(ctx, ex)
     end
 
     if kind(rhs) == K"tuple"
-        num_splat = sum(kind(rh) == K"..." for rh in children(rhs))
+        num_splat = sum(kind(rh) == K"..." for rh in children(rhs); init=0)
         if num_splat == 0 && (numchildren(lhs) - num_slurp) > numchildren(rhs)
             throw(LoweringError(ex, "More variables on left hand side than right hand in tuple assignment"))
         end
@@ -1402,7 +1402,7 @@ function expand_condition(ctx, ex)
     if isblock
         # Special handling so that the rules for `&&` and `||` can be applied
         # to the last statement of a block
-        @ast ctx ex [K"block" ex[1:end-1]... test]
+        @ast ctx ex [K"block" map(e->expand_forms_2(ctx,e), ex[1:end-1])... test]
     else
         test
     end
@@ -3094,13 +3094,13 @@ function expand_arrow_arglist(ctx, arglist, arrowname)
         if k == K"block"
             @chk numchildren(arglist) == 2
             arglist = @ast ctx arglist [K"tuple"
-                ex[1]
-                [K"parameters" ex[2]]
+                arglist[1]
+                [K"parameters" arglist[2]]
             ]
         elseif k != K"tuple"
             # `x::Int -> body`
             arglist = @ast ctx arglist [K"tuple"
-                ex[1]
+                arglist[1]
             ]
         end
         @ast ctx arglist [K"call"
@@ -3665,7 +3665,7 @@ function _rewrite_ctor_new_calls(ctx, ex, struct_name, global_struct_name, ctor_
     full_struct_type = if kind(ex[1]) == K"curly"
         # new{A,B}(...)
         new_type_params = ex[1][2:end]
-        n_type_splat = sum(kind(t) == K"..." for t in new_type_params)
+        n_type_splat = sum(kind(t) == K"..." for t in new_type_params; init=0)
         n_type_nonsplat = length(new_type_params) - n_type_splat
         if n_type_splat == 0 && n_type_nonsplat < length(struct_typevars)
             throw(LoweringError(ex[1], "too few type parameters specified in `new{...}`"))
@@ -3685,7 +3685,7 @@ function _rewrite_ctor_new_calls(ctx, ex, struct_name, global_struct_name, ctor_
         end
     end
     new_args = ex[2:end]
-    n_splat = sum(kind(t) == K"..." for t in new_args)
+    n_splat = sum(kind(t) == K"..." for t in new_args; init=0)
     n_nonsplat = length(new_args) - n_splat
     n_fields = length(field_types)
     function throw_n_fields_error(desc)
