@@ -409,6 +409,9 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
         st_id = _insert_tree_node(graph, K"core", src)
         setattr!(graph, st_id; name_val=coreref_name)
         return st_id, src
+    elseif e.head === :islocal || e.head === :isglobal
+        st_k = K"extension"
+        child_exprs = [Expr(:sym_not_identifier, e.head), e.args[1]]
     end
 
     # Temporary heads introduced by converting the parent expr
