@@ -86,7 +86,7 @@ e.g. orderings of (a,b,c;d;e;f):
 """
 function collect_expr_parameters(e::Expr, pos::Int)
     params = expr_parameters(e, pos)
-    isnothing(params) && return e.args
+    isnothing(params) && return copy(e.args)
     args = Any[e.args[1:pos-1]..., e.args[pos+1:end]...]
     return _flatten_params!(args, params)
 end
@@ -140,6 +140,11 @@ function _insert_var_str(child::NodeId, graph::SyntaxGraph, src::SourceAttrType)
     return (var_id, src)
 end
 
+function is_call_expr(e)
+    return e isa Expr && (e.head === :call ||
+        e.head in (:where, :(::)) && is_call_expr(e.args[1]))
+end
+
 """
 Insert `e` converted to a syntaxtree into graph and recurse on children.  Return
 a pair (my_node_id, last_srcloc).  Should not mutate `e`.
@@ -174,7 +179,7 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
         return (st_id, src)
     elseif !(e isa Expr)
         if !(e isa Union{Number, Bool, Char, GlobalRef, Nothing})
-            @info "unknown leaf type in expr, guessing value:" e typeof(e)
+            # @info "unknown leaf type in expr, guessing value:" e typeof(e)
         end
         # TODO: st_k of Float. others?
         st_k = e isa Integer ? K"Integer" : find_kind(string(typeof(e)))
@@ -314,7 +319,7 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
         deleteat!(child_exprs, 2)
     elseif e.head === :(->)
         @assert nargs === 2
-        if e.args[1] isa Symbol
+        if !(e.args[1] isa Expr && e.args[1].head === :tuple)
             child_exprs[1] = Expr(:tuple, e.args[1])
         end
         child_exprs[2] = maybe_strip_block(e.args[2])
@@ -330,7 +335,7 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
             end
         end
     elseif e.head === :(=)
-        if e.args[1] isa Expr && e.args[1].head === :call
+        if is_call_expr(e.args[1])
             st_k = K"function"
             st_flags |= JS.SHORT_FORM_FUNCTION_FLAG
             child_exprs[2] = maybe_strip_block(child_exprs[2])
@@ -349,7 +354,7 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
         st_k = K"call"
         child_exprs = [e.args[1].args..., Expr(:do_lambda, e.args[2].args...)]
     elseif e.head === :let
-        if nargs >= 1 && e.args[1] isa Expr && e.args[1].head !== :block
+        if nargs >= 1 && !(e.args[1] isa Expr && e.args[1].head === :block)
             child_exprs[1] = Expr(:block, e.args[1])
         end
     elseif e.head === :struct
