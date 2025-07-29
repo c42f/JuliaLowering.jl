@@ -47,12 +47,12 @@ function showprov(io::IO, exs::AbstractVector;
             print(io, "\n\n")
         end
         k = kind(ex)
-        if isnothing(note) # use provided `note` otherwise
-            note = i > 1 && k == K"macrocall"  ? "in macro expansion" :
-                   i > 1 && k == K"$"          ? "interpolated here"  :
-                   "in source"
+        if isnothing(note)
+            fallback_note = i > 1 && k == K"macrocall"  ? "in macro expansion" :
+                            i > 1 && k == K"$"          ? "interpolated here"  :
+                            "in source"
         end
-        highlight(io, sr; note=note, highlight_kwargs...)
+        highlight(io, sr; note=something(note, fallback_note), highlight_kwargs...)
 
         if include_location
             line, _ = source_location(sr)
