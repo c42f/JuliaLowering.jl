@@ -814,8 +814,7 @@ function expand_generator(ctx, ex)
         outervars_by_key = Dict{NameKey,typeof(ex)}()
         for iterspecs in ex[2:end-1]
             for iterspec in children(iterspecs)
-                lhs = iterspec[1]
-                foreach_lhs_var(lhs) do var
+                for var in lhs_bound_names(iterspec[1])
                     @assert kind(var) == K"Identifier" # Todo: K"BindingId"?
                     outervars_by_key[NameKey(var)] = var
                 end
@@ -1170,15 +1169,13 @@ function expand_unionall_def(ctx, srcref, lhs, rhs, is_const=true)
         throw(LoweringError(lhs, "empty type parameter list in type alias"))
     end
     name = lhs[1]
-    rr = ssavar(ctx, srcref)
     expand_forms_2(
         ctx,
-        @ast ctx srcref [
-            K"block"
-            [K"=" rr [K"where" rhs lhs[2:end]...]]
-            [is_const ? K"constdecl" : K"assign_const_if_global" name rr]
+        @ast ctx srcref [K"block"
+            rr := [K"where" rhs lhs[2:end]...]
+            [is_const ? K"constdecl" : K"assign_or_constdecl_if_global" name rr]
             [K"latestworld_if_toplevel"]
-            rr
+            [K"removable" rr]
         ]
     )
 end
@@ -1229,10 +1226,8 @@ function expand_assignment(ctx, ex, is_const=false)
         )
     elseif is_identifier_like(lhs)
         if is_const
-            rr = ssavar(ctx, rhs)
-            @ast ctx ex [
-                K"block"
-                sink_assignment(ctx, ex, rr, expand_forms_2(ctx, rhs))
+            @ast ctx ex [K"block"
+                rr := expand_forms_2(ctx, rhs)
                 [K"constdecl" lhs rr]
                 [K"latestworld"]
                 [K"removable" rr]
@@ -1276,11 +1271,10 @@ function expand_assignment(ctx, ex, is_const=false)
         x = lhs[1]
         T = lhs[2]
         res = if is_const
-            expand_forms_2(ctx, @ast ctx ex [
-                K"const"
+            expand_forms_2(ctx, @ast ctx ex [K"const"
                 [K"="
-                  lhs[1]
-                  convert_for_type_decl(ctx, ex, rhs, T, true)
+                     lhs[1]
+                     convert_for_type_decl(ctx, ex, rhs, T, true)
                  ]])
         elseif is_identifier_like(x)
             # Identifer in lhs[1] is a variable type declaration, eg
@@ -1467,7 +1461,7 @@ function expand_let(ctx, ex)
                 ]
             elseif kind(lhs) == K"tuple"
                 lhs_locals = SyntaxList(ctx)
-                foreach_lhs_var(lhs) do var
+                for var in lhs_bound_names(lhs)
                     push!(lhs_locals, @ast ctx var [K"local" var])
                     push!(lhs_locals, @ast ctx var [K"always_defined" var])
                 end
@@ -1904,23 +1898,6 @@ end
 #-------------------------------------------------------------------------------
 # Expand for loops
 
-# Extract the variable names assigned to from a "fancy assignment left hand
-# side" such as nested tuple destructuring.
-function foreach_lhs_var(f::Function, ex)
-    k = kind(ex)
-    if k == K"Identifier" || k == K"BindingId"
-        f(ex)
-    elseif k == K"::" && numchildren(ex) == 2
-        foreach_lhs_var(f, ex[1])
-    elseif k == K"tuple" || k == K"parameters"
-        for e in children(ex)
-            foreach_lhs_var(f, e)
-        end
-    end
-    # k == K"Placeholder" ignored, along with everything else - we assume
-    # validation is done elsewhere.
-end
-
 function expand_for(ctx, ex)
     iterspecs = ex[1]
 
@@ -1936,7 +1913,7 @@ function expand_for(ctx, ex)
         @chk kind(iterspec) == K"in"
         lhs = iterspec[1]
         if kind(lhs) != K"outer"
-            foreach_lhs_var(lhs) do var
+            for var in lhs_bound_names(lhs)
                 push!(copied_vars, @ast ctx var [K"=" var var])
             end
         end
@@ -1953,7 +1930,7 @@ function expand_for(ctx, ex)
         if outer
             lhs = lhs[1]
         end
-        foreach_lhs_var(lhs) do var
+        for var in lhs_bound_names(lhs)
             if outer
                 push!(lhs_outer_defs, @ast ctx var var)
             else
@@ -2108,16 +2085,13 @@ end
 #   (x::T, (y::U, z))
 #   strip out stmts = (local x) (decl x T) (local x) (decl y U) (local z)
 #   and return (x, (y, z))
-function strip_decls!(ctx, stmts, declkind, declkind2, declmeta, ex)
+function strip_decls!(ctx, stmts, declkind, declmeta, ex)
     k = kind(ex)
     if k == K"Identifier"
         if !isnothing(declmeta)
             push!(stmts, makenode(ctx, ex, declkind, ex; meta=declmeta))
         else
             push!(stmts, makenode(ctx, ex, declkind, ex))
-        end
-        if !isnothing(declkind2)
-            push!(stmts, makenode(ctx, ex, declkind2, ex))
         end
         ex
     elseif k == K"Placeholder"
@@ -2127,40 +2101,34 @@ function strip_decls!(ctx, stmts, declkind, declkind2, declmeta, ex)
         name = ex[1]
         @chk kind(name) == K"Identifier"
         push!(stmts, makenode(ctx, ex, K"decl", name, ex[2]))
-        strip_decls!(ctx, stmts, declkind, declkind2, declmeta, ex[1])
+        strip_decls!(ctx, stmts, declkind, declmeta, ex[1])
     elseif k == K"tuple" || k == K"parameters"
         cs = SyntaxList(ctx)
         for e in children(ex)
-            push!(cs, strip_decls!(ctx, stmts, declkind, declkind2, declmeta, e))
+            push!(cs, strip_decls!(ctx, stmts, declkind, declmeta, e))
         end
         makenode(ctx, ex, k, cs)
+    else
+        throw(LoweringError(ex, "invalid kind $k in $declkind declaration"))
     end
 end
 
+# Separate decls and assignments (which require re-expansion)
 # local x, (y=2), z ==> local x; local z; y = 2
-# Note there are differences from lisp (evaluation order?)
-function expand_decls(ctx, ex)
+function expand_decls(ctx, ex, is_const=false)
     declkind = kind(ex)
+    @assert declkind in KSet"local global"
     declmeta = get(ex, :meta, nothing)
-    if numchildren(ex) == 1 && kind(ex[1]) ∈ KSet"const global local"
-        declkind2 = kind(ex[1])
-        bindings = children(ex[1])
-    else
-        declkind2 = nothing
-        bindings = children(ex)
-    end
+    bindings = children(ex)
     stmts = SyntaxList(ctx)
     for binding in bindings
         kb = kind(binding)
         if is_prec_assignment(kb)
             @chk numchildren(binding) == 2
-            lhs = strip_decls!(ctx, stmts, declkind, declkind2, declmeta, binding[1])
-            push!(stmts, @ast ctx binding [kb lhs binding[2]])
-        elseif is_sym_decl(binding)
-            if declkind == K"const" || declkind2 == K"const"
-                throw(LoweringError(ex, "expected assignment after `const`"))
-            end
-            strip_decls!(ctx, stmts, declkind, declkind2, declmeta, binding)
+            lhs = strip_decls!(ctx, stmts, declkind, declmeta, binding[1])
+            push!(stmts, expand_assignment(ctx, @ast ctx binding [kb lhs binding[2]]))
+        elseif is_sym_decl(binding) && !is_const
+            strip_decls!(ctx, stmts, declkind, declmeta, binding)
         else
             throw(LoweringError(ex, "invalid syntax in variable declaration"))
         end
@@ -2168,49 +2136,37 @@ function expand_decls(ctx, ex)
     makenode(ctx, ex, K"block", stmts)
 end
 
-# Return all the names that will be bound by the assignment LHS, including
-# curlies and calls.
-function lhs_bound_names(ex)
+# Extract the variable names assigned to from a "fancy assignment left hand
+# side" such as nested tuple destructuring, curlies, and calls.
+function lhs_bound_names(ex, out=SyntaxList(ex))
     k = kind(ex)
     if k == K"Placeholder"
-        []
+        # Ignored
     elseif is_identifier_like(ex)
-        [ex]
-    elseif k in KSet"call curly where ::"
-        lhs_bound_names(ex[1])
+        push!(out, ex)
+    elseif (k === K"::" && numchildren(ex) === 2) || k in KSet"call curly where"
+        lhs_bound_names(ex[1], out)
     elseif k in KSet"tuple parameters"
-        vcat(map(lhs_bound_names, children(ex))...)
-    else
-        []
+        map(c->lhs_bound_names(c, out), children(ex))
     end
+    return out
 end
 
 function expand_const_decl(ctx, ex)
-    function check_assignment(asgn)
-        @chk (kind(asgn) == K"=") (ex, "expected assignment after `const`")
-    end
-
     k = kind(ex[1])
-    if numchildren(ex) == 2
-        @ast ctx ex [
-            K"constdecl"
-            ex[1]
-            expand_forms_2(ctx, ex[2])
-        ]
-    elseif k == K"global"
+    if k == K"global"
         asgn = ex[1][1]
-        check_assignment(asgn)
+        @chk (kind(asgn) == K"=") (ex, "expected assignment after `const`")
         globals = map(lhs_bound_names(asgn[1])) do x
             @ast ctx ex [K"global" x]
         end
-        @ast ctx ex [
-            K"block"
+        @ast ctx ex [K"block"
             globals...
-            expand_assignment(ctx, ex[1], true)
+            expand_assignment(ctx, asgn, true)
         ]
     elseif k == K"="
         if numchildren(ex[1]) >= 1 && kind(ex[1][1]) == K"tuple"
-            throw(LoweringError(ex[1][1], "unsupported `const` tuple"))
+            TODO(ex[1][1], "`const` tuple assignment desugaring")
         end
         expand_assignment(ctx, ex[1], true)
     elseif k == K"local"
@@ -4403,8 +4359,11 @@ function expand_forms_2(ctx::DesugaringContext, ex::SyntaxTree, docs=nothing)
         if numchildren(ex) == 1 && kind(ex[1]) == K"Identifier"
             # Don't recurse when already simplified - `local x`, etc
             ex
+        elseif k == K"global" && kind(ex[1]) == K"const"
+            # Normalize `global const` to `const global`
+            expand_const_decl(ctx, @ast ctx ex [K"const" [K"global" ex[1][1]]])
         else
-            expand_forms_2(ctx, expand_decls(ctx, ex))
+            expand_decls(ctx, ex)
         end
     elseif k == K"where"
         expand_forms_2(ctx, expand_wheres(ctx, ex))

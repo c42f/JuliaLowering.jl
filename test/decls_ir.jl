@@ -50,7 +50,7 @@ const xxx,xxxx,xxxxx = 10,20,30
 #---------------------
 LoweringError:
 const xxx,xxxx,xxxxx = 10,20,30
-#    └─────────────┘ ── unsupported `const` tuple
+#    └─────────────┘ ── Lowering TODO: `const` tuple assignment desugaring
 
 ########################################
 # Const in chain: only first is const
@@ -69,7 +69,7 @@ const c0 = v0 = v1 = 123
 11  slot₁/tmp
 12  (= slot₁/tmp (call top.convert %₅ %₁₁))
 13  slot₁/tmp
-14  (call top.setglobal! TestMod :v0 %₁₃)
+14  (call core.setglobal! TestMod :v0 %₁₃)
 15  (globaldecl TestMod.v1)
 16  (latestworld)
 17  (call core.get_binding_type TestMod :v1)
@@ -81,7 +81,7 @@ const c0 = v0 = v1 = 123
 23  slot₂/tmp
 24  (= slot₂/tmp (call top.convert %₁₇ %₂₃))
 25  slot₂/tmp
-26  (call top.setglobal! TestMod :v1 %₂₅)
+26  (call core.setglobal! TestMod :v1 %₂₅)
 27  (return %₁)
 
 ########################################
@@ -99,7 +99,7 @@ xx = 10
 9   slot₁/tmp
 10  (= slot₁/tmp (call top.convert %₃ %₉))
 11  slot₁/tmp
-12  (call top.setglobal! TestMod :xx %₁₁)
+12  (call core.setglobal! TestMod :xx %₁₁)
 13  (return 10)
 
 ########################################
@@ -121,7 +121,7 @@ global xx::T = 10
 13  slot₁/tmp
 14  (= slot₁/tmp (call top.convert %₇ %₁₃))
 15  slot₁/tmp
-16  (call top.setglobal! TestMod :xx %₁₅)
+16  (call core.setglobal! TestMod :xx %₁₅)
 17  (return 10)
 
 ########################################
