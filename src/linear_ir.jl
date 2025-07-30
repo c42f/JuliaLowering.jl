@@ -325,14 +325,14 @@ function emit_break(ctx, ex)
     emit_jump(ctx, ex, target)
 end
 
-# `op` may also be K"constdecl"
-function emit_assignment_or_setglobal(ctx, srcref, lhs, rhs, op=K"=")
-    # (const (globalref _ _) _) does not use setglobal!
+# `op` may be either K"=" (where global assignments are converted to setglobal!)
+# or K"constdecl".  flisp: emit-assignment-or-setglobal
+function emit_simple_assignment(ctx, srcref, lhs, rhs, op=K"=")
     binfo = lookup_binding(ctx, lhs.var_id)
     if binfo.kind == :global && op == K"="
         emit(ctx, @ast ctx srcref [
             K"call"
-            "setglobal!"::K"top"
+            "setglobal!"::K"core"
             binfo.mod::K"Value"
             binfo.name::K"Symbol"
             rhs
@@ -345,15 +345,15 @@ end
 function emit_assignment(ctx, srcref, lhs, rhs, op=K"=")
     if !isnothing(rhs)
         if is_valid_ir_rvalue(ctx, lhs, rhs)
-            emit_assignment_or_setglobal(ctx, srcref, lhs, rhs, op)
+            emit_simple_assignment(ctx, srcref, lhs, rhs, op)
         else
             r = emit_assign_tmp(ctx, rhs)
-            emit_assignment_or_setglobal(ctx, srcref, lhs, r, op)
+            emit_simple_assignment(ctx, srcref, lhs, r, op)
         end
     else
         # in unreachable code (such as after return); still emit the assignment
         # so that the structure of those uses is preserved
-        emit_assignment_or_setglobal(ctx, srcref, lhs, @ast ctx srcref "nothing"::K"core", op)
+        emit_simple_assignment(ctx, srcref, lhs, @ast ctx srcref "nothing"::K"core", op)
         nothing
     end
 end
@@ -657,10 +657,11 @@ function compile(ctx::LinearIRContext, ex, needs_value, in_tail_pos)
             # TODO look up arg-map for renaming if lhs was reassigned
             if needs_value && !isnothing(rhs)
                 r = emit_assign_tmp(ctx, rhs)
-                emit_assignment_or_setglobal(ctx, ex, lhs, r, k)
+                emit_simple_assignment(ctx, ex, lhs, r, k)
                 if in_tail_pos
                     emit_return(ctx, ex, r)
                 else
+                    @assert false "If this code is reachable, add a test case"
                     r
                 end
             else
@@ -825,9 +826,9 @@ function compile(ctx::LinearIRContext, ex, needs_value, in_tail_pos)
         end
         emit(ctx, ex)
         nothing
-    elseif  k == K"global"
+    elseif k == K"global"
         if needs_value
-            throw(LoweringError(ex, "misplaced kind $k in value position"))
+            throw(LoweringError(ex, "misplaced global declaration in value position"))
         end
         emit(ctx, ex)
         ctx.is_toplevel_thunk && emit(ctx, makenode(ctx, ex, K"latestworld"))
@@ -884,8 +885,7 @@ function compile(ctx::LinearIRContext, ex, needs_value, in_tail_pos)
         if numchildren(ex) == 1 || is_identifier_like(ex[2])
             emit(ctx, ex)
         else
-            rr = ssavar(ctx, ex[2])
-            emit(ctx, @ast ctx ex [K"=" rr ex[2]])
+            rr = emit_assign_tmp(ctx, ex[2])
             emit(ctx, @ast ctx ex [K"globaldecl" ex[1] rr])
         end
         ctx.is_toplevel_thunk && emit(ctx, makenode(ctx, ex, K"latestworld"))

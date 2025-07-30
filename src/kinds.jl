@@ -96,7 +96,7 @@ function _register_kinds()
             "_opaque_closure"
             # The enclosed statements must be executed at top level
             "toplevel_butfirst"
-            "assign_const_if_global"
+            "assign_or_constdecl_if_global"
             "moved_local"
             "label"
             "trycatchelse"
