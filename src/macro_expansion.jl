@@ -149,7 +149,7 @@ function expand_macro(ctx, ex)
             invokelatest(macfunc, macro_args...)
         else
             # try old-style macro
-            args = [Expr(x) for x in macro_args[2:end]]
+            args = (Expr(x) for x in macro_args[2:end])
             line, _ = source_location(macname)
             file = filename(macname)
             line_number_node = Base.LineNumberNode(line, file)
