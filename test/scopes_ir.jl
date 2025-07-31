@@ -276,7 +276,7 @@ LoweringError:
 let
     local x
     global x
-#   └──────┘ ── Variable `x` declared both local and global
+#          ╙ ── Variable `x` declared both local and global
 end
 
 ########################################
@@ -288,7 +288,7 @@ end
 LoweringError:
 function f(x)
     local x
-#   └─────┘ ── local variable name `x` conflicts with an argument
+#         ╙ ── local variable name `x` conflicts with an argument
 end
 
 ########################################
@@ -300,7 +300,7 @@ end
 LoweringError:
 function f(x)
     global x
-#   └──────┘ ── global variable name `x` conflicts with an argument
+#          ╙ ── global variable name `x` conflicts with an argument
 end
 
 ########################################
@@ -313,7 +313,7 @@ end
 LoweringError:
 function f((x,))
     global x
-#   └──────┘ ── Variable `x` declared both local and global
+#          ╙ ── Variable `x` declared both local and global
 end
 
 ########################################
@@ -325,7 +325,7 @@ end
 LoweringError:
 function f(::T) where T
     local T
-#   └─────┘ ── local variable name `T` conflicts with a static parameter
+#         ╙ ── local variable name `T` conflicts with a static parameter
 end
 
 ########################################
@@ -337,7 +337,7 @@ end
 LoweringError:
 function f(::T) where T
     global T
-#   └──────┘ ── global variable name `T` conflicts with a static parameter
+#          ╙ ── global variable name `T` conflicts with a static parameter
 end
 
 ########################################
@@ -352,7 +352,7 @@ LoweringError:
 function f(::T) where T
     let
         local T
-#       └─────┘ ── local variable name `T` conflicts with a static parameter
+#             ╙ ── local variable name `T` conflicts with a static parameter
     end
 end
 
@@ -368,7 +368,7 @@ LoweringError:
 function f(::T) where T
     let
         global T
-#       └──────┘ ── global variable name `T` conflicts with a static parameter
+#              ╙ ── global variable name `T` conflicts with a static parameter
     end
 end
 

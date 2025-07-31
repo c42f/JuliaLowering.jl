@@ -4359,10 +4359,7 @@ function expand_forms_2(ctx::DesugaringContext, ex::SyntaxTree, docs=nothing)
     elseif k == K"const"
         expand_const_decl(ctx, ex)
     elseif k == K"local" || k == K"global"
-        if numchildren(ex) == 1 && kind(ex[1]) == K"Identifier"
-            # Don't recurse when already simplified - `local x`, etc
-            ex
-        elseif k == K"global" && kind(ex[1]) == K"const"
+        if k == K"global" && kind(ex[1]) == K"const"
             # Normalize `global const` to `const global`
             expand_const_decl(ctx, @ast ctx ex [K"const" [K"global" ex[1][1]]])
         else
