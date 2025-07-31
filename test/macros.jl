@@ -142,4 +142,10 @@ end == [
     "2"
 ]
 
+# old-style generated macro, e.g. as lowered by pre-JuliaLowering lowering
+@eval test_mod var"@hi"(__source__::LineNumberNode, __module__::Module) = "hi"
+
+# check that we can macroexpand it properly even though we don't have the new method
+# that accepts a MacroExpansionContext
+@test JuliaLowering.include_string(test_mod, "@hi") == "hi"
 end

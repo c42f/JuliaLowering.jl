@@ -145,8 +145,16 @@ function expand_macro(ctx, ex)
     end
     macro_invocation_world = Base.get_world_counter()
     expanded = try
-        # TODO: Allow invoking old-style macros for compat
-        invokelatest(macfunc, macro_args...)
+        if applicable(macfunc, macro_args...)
+            invokelatest(macfunc, macro_args...)
+        else
+            # try old-style macro
+            args = [Expr(x) for x in macro_args[2:end]]
+            line, _ = source_location(macname)
+            file = filename(macname)
+            line_number_node = Base.LineNumberNode(line, file)
+            invokelatest(macfunc, line_number_node, ctx.current_layer.mod, args...)
+        end
     catch exc
         if exc isa MacroExpansionError
             # Add context to the error.
