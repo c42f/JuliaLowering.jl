@@ -17,13 +17,12 @@
     2   (call %₁ slot₂/x 1)
     3   (return %₂)
 11  (latestworld)
-12  (latestworld)
-13  TestMod.#->##0
-14  (new %₁₃)
-15  (latestworld)
-16  TestMod.xs
-17  (call top.Generator %₁₄ %₁₆)
-18  (return %₁₇)
+12  TestMod.#->##0
+13  (new %₁₂)
+14  (latestworld)
+15  TestMod.xs
+16  (call top.Generator %₁₃ %₁₅)
+17  (return %₁₆)
 
 ########################################
 # Product iteration
@@ -52,15 +51,14 @@
     10  (call %₇ %₈ %₉)
     11  (return %₁₀)
 11  (latestworld)
-12  (latestworld)
-13  TestMod.#->##1
-14  (new %₁₃)
-15  (latestworld)
-16  TestMod.xs
-17  TestMod.ys
-18  (call top.product %₁₆ %₁₇)
-19  (call top.Generator %₁₄ %₁₈)
-20  (return %₁₉)
+12  TestMod.#->##1
+13  (new %₁₂)
+14  (latestworld)
+15  TestMod.xs
+16  TestMod.ys
+17  (call top.product %₁₅ %₁₆)
+18  (call top.Generator %₁₃ %₁₇)
+19  (return %₁₈)
 
 ########################################
 # Use `identity` as the Generator function when possible eg in filters
@@ -88,14 +86,13 @@
     9   (call %₇ %₈)
     10  (return %₉)
 11  (latestworld)
-12  (latestworld)
-13  TestMod.#->##2
-14  (new %₁₃)
-15  (latestworld)
-16  TestMod.iter
-17  (call top.Filter %₁₄ %₁₆)
-18  (call top.Generator top.identity %₁₇)
-19  (return %₁₈)
+12  TestMod.#->##2
+13  (new %₁₂)
+14  (latestworld)
+15  TestMod.iter
+16  (call top.Filter %₁₃ %₁₅)
+17  (call top.Generator top.identity %₁₆)
+18  (return %₁₇)
 
 ########################################
 # Use of placeholders in iteration vars
@@ -114,13 +111,12 @@
     slots: [slot₁/#self#(!read) slot₂/_(!read)]
     1   (return 1)
 11  (latestworld)
-12  (latestworld)
-13  TestMod.#->##3
-14  (new %₁₃)
-15  (latestworld)
-16  TestMod.xs
-17  (call top.Generator %₁₄ %₁₆)
-18  (return %₁₇)
+12  TestMod.#->##3
+13  (new %₁₂)
+14  (latestworld)
+15  TestMod.xs
+16  (call top.Generator %₁₃ %₁₅)
+17  (return %₁₆)
 
 ########################################
 # Error: Use of placeholders in body
@@ -158,13 +154,12 @@ LoweringError:
     11  TestMod.body
     12  (return %₁₁)
 11  (latestworld)
-12  (latestworld)
-13  TestMod.#->##5
-14  (new %₁₃)
-15  (latestworld)
-16  TestMod.iter
-17  (call top.Generator %₁₄ %₁₆)
-18  (return %₁₇)
+12  TestMod.#->##5
+13  (new %₁₂)
+14  (latestworld)
+15  TestMod.iter
+16  (call top.Generator %₁₃ %₁₅)
+17  (return %₁₆)
 
 ########################################
 # return permitted in quoted syntax in generator
@@ -184,13 +179,12 @@ LoweringError:
     1   (call JuliaLowering.interpolate_ast (inert (return x)))
     2   (return %₁)
 11  (latestworld)
-12  (latestworld)
-13  TestMod.#->##6
-14  (new %₁₃)
-15  (latestworld)
-16  TestMod.iter
-17  (call top.Generator %₁₄ %₁₆)
-18  (return %₁₇)
+12  TestMod.#->##6
+13  (new %₁₂)
+14  (latestworld)
+15  TestMod.iter
+16  (call top.Generator %₁₃ %₁₅)
+17  (return %₁₆)
 
 ########################################
 # Error: `return` not permitted in generator body
@@ -238,15 +232,14 @@ LoweringError:
     5   (call top.Generator %₂ %₄)
     6   (return %₅)
 22  (latestworld)
-23  (latestworld)
-24  TestMod.#->##7
-25  (new %₂₄)
-26  (latestworld)
-27  TestMod.:
-28  (call %₂₇ 1 3)
-29  (call top.Generator %₂₅ %₂₈)
-30  (call top.Flatten %₂₉)
-31  (return %₃₀)
+23  TestMod.#->##7
+24  (new %₂₃)
+25  (latestworld)
+26  TestMod.:
+27  (call %₂₆ 1 3)
+28  (call top.Generator %₂₄ %₂₇)
+29  (call top.Flatten %₂₈)
+30  (return %₂₉)
 
 ########################################
 # Comprehension lowers to generator with collect

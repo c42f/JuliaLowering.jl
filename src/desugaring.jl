@@ -3814,7 +3814,7 @@ function insert_struct_shim(ctx, fieldtypes, name)
             ex[2].name_val == name.name_val
             @ast ctx ex [K"call" "struct_name_shim"::K"core" ex[1] ex[2] ctx.mod::K"Value" name]
         elseif numchildren(ex) > 0
-            @ast ctx ex [ex.kind map(replace_type, children(ex))...]
+            mapchildren(replace_type, ctx, ex)
         else
             ex
         end

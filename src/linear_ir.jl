@@ -378,6 +378,11 @@ function emit_label(ctx, srcref)
     l
 end
 
+function emit_latestworld(ctx, srcref)
+    (isempty(ctx.code) || kind(last(ctx.code)) != K"latestworld") &&
+        emit(ctx, makeleaf(ctx, srcref, K"latestworld"))
+end
+
 function compile_condition_term(ctx, ex)
     cond = compile(ctx, ex, true, false)
     if !is_valid_body_ir_argument(ctx, cond)
@@ -831,7 +836,7 @@ function compile(ctx::LinearIRContext, ex, needs_value, in_tail_pos)
             throw(LoweringError(ex, "misplaced global declaration in value position"))
         end
         emit(ctx, ex)
-        ctx.is_toplevel_thunk && emit(ctx, makenode(ctx, ex, K"latestworld"))
+        ctx.is_toplevel_thunk && emit_latestworld(ctx, ex)
         nothing
     elseif k == K"meta"
         emit(ctx, ex)
@@ -888,11 +893,11 @@ function compile(ctx::LinearIRContext, ex, needs_value, in_tail_pos)
             rr = emit_assign_tmp(ctx, ex[2])
             emit(ctx, @ast ctx ex [K"globaldecl" ex[1] rr])
         end
-        ctx.is_toplevel_thunk && emit(ctx, makenode(ctx, ex, K"latestworld"))
+        ctx.is_toplevel_thunk && emit_latestworld(ctx, ex)
     elseif k == K"latestworld"
-        emit(ctx, ex)
+        emit_latestworld(ctx, ex)
     elseif k == K"latestworld_if_toplevel"
-        ctx.is_toplevel_thunk && emit(ctx, makeleaf(ctx, ex, K"latestworld"))
+        ctx.is_toplevel_thunk && emit_latestworld(ctx, ex)
     else
         throw(LoweringError(ex, "Invalid syntax; $(repr(k))"))
     end

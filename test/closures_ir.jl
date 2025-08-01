@@ -449,13 +449,12 @@ end
     2   (call %₁ slot₂/y 2)
     3   (return %₂)
 16  (latestworld)
-17  (latestworld)
-18  TestMod.#do##0
-19  (new %₁₈)
-20  (latestworld)
-21  TestMod.x
-22  (call core.kwcall %₅ %₁ %₁₉ %₂₁)
-23  (return %₂₂)
+17  TestMod.#do##0
+18  (new %₁₇)
+19  (latestworld)
+20  TestMod.x
+21  (call core.kwcall %₅ %₁ %₁₈ %₂₀)
+22  (return %₂₁)
 
 ########################################
 # Error: Static parameter clashing with closure name
@@ -701,13 +700,12 @@ end
 42  (call JuliaLowering.replace_captured_locals! %₃₉ %₄₁)
 43  --- method core.nothing %₃₈ %₄₂
 44  (latestworld)
-45  (latestworld)
-46  TestMod.#f_kw_closure##0
-47  (call core.svec %₄₆)
-48  (call core.svec)
-49  SourceLocation::2:14
-50  (call core.svec %₄₇ %₄₈ %₄₉)
-51  --- method core.nothing %₅₀
+45  TestMod.#f_kw_closure##0
+46  (call core.svec %₄₅)
+47  (call core.svec)
+48  SourceLocation::2:14
+49  (call core.svec %₄₆ %₄₇ %₄₈)
+50  --- method core.nothing %₄₉
     slots: [slot₁/#self# slot₂/#f_kw_closure#0(!read)]
     1   (call core.getfield slot₁/#self# :#f_kw_closure#0)
     2   (call core.isdefined %₁ :contents)
@@ -719,9 +717,9 @@ end
     8   TestMod.x_default
     9   (call %₇ %₈ slot₁/#self#)
     10  (return %₉)
-52  (latestworld)
-53  slot₃/f_kw_closure
-54  (return %₅₃)
+51  (latestworld)
+52  slot₃/f_kw_closure
+53  (return %₅₂)
 
 ########################################
 # Closure capturing a typed local must also capture the type expression

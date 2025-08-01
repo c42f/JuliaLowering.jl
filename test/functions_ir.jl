@@ -1120,46 +1120,45 @@ end
     39  (call %₃₈ %₁₆ %₃₀ slot₃/#self# slot₄/a slot₅/b)
     40  (return %₃₉)
 47  (latestworld)
-48  (latestworld)
-49  TestMod.f_kw_simple
-50  (call core.Typeof %₄₉)
-51  (call core.svec %₅₀)
-52  (call core.svec)
-53  SourceLocation::1:10
-54  (call core.svec %₅₁ %₅₂ %₅₃)
-55  --- method core.nothing %₅₄
+48  TestMod.f_kw_simple
+49  (call core.Typeof %₄₈)
+50  (call core.svec %₄₉)
+51  (call core.svec)
+52  SourceLocation::1:10
+53  (call core.svec %₅₀ %₅₁ %₅₂)
+54  --- method core.nothing %₅₃
     slots: [slot₁/#self#(called)]
     1   (call slot₁/#self# 1 1.0)
     2   (return %₁)
-56  (latestworld)
-57  TestMod.f_kw_simple
-58  (call core.Typeof %₅₇)
-59  TestMod.Int
-60  (call core.svec %₅₈ %₅₉)
-61  (call core.svec)
-62  SourceLocation::1:10
-63  (call core.svec %₆₀ %₆₁ %₆₂)
-64  --- method core.nothing %₆₃
+55  (latestworld)
+56  TestMod.f_kw_simple
+57  (call core.Typeof %₅₆)
+58  TestMod.Int
+59  (call core.svec %₅₇ %₅₈)
+60  (call core.svec)
+61  SourceLocation::1:10
+62  (call core.svec %₅₉ %₆₀ %₆₁)
+63  --- method core.nothing %₆₂
     slots: [slot₁/#self#(called) slot₂/a]
     1   (call slot₁/#self# slot₂/a 1.0)
     2   (return %₁)
-65  (latestworld)
-66  TestMod.f_kw_simple
-67  (call core.Typeof %₆₆)
-68  TestMod.Int
-69  TestMod.Float64
-70  (call core.svec %₆₇ %₆₈ %₆₉)
-71  (call core.svec)
-72  SourceLocation::1:10
-73  (call core.svec %₇₀ %₇₁ %₇₂)
-74  --- method core.nothing %₇₃
+64  (latestworld)
+65  TestMod.f_kw_simple
+66  (call core.Typeof %₆₅)
+67  TestMod.Int
+68  TestMod.Float64
+69  (call core.svec %₆₆ %₆₇ %₆₈)
+70  (call core.svec)
+71  SourceLocation::1:10
+72  (call core.svec %₆₉ %₇₀ %₇₁)
+73  --- method core.nothing %₇₂
     slots: [slot₁/#self# slot₂/a slot₃/b]
     1   TestMod.#f_kw_simple#0
     2   (call %₁ 'a' true slot₁/#self# slot₂/a slot₃/b)
     3   (return %₂)
-75  (latestworld)
-76  TestMod.f_kw_simple
-77  (return %₇₆)
+74  (latestworld)
+75  TestMod.f_kw_simple
+76  (return %₇₅)
 
 ########################################
 # Keyword slurping - simple forwarding of all kws
@@ -1200,23 +1199,22 @@ end
     4   (call %₃ %₂ slot₃/#self#)
     5   (return %₄)
 23  (latestworld)
-24  (latestworld)
-25  TestMod.f_kw_slurp_simple
-26  (call core.Typeof %₂₅)
-27  (call core.svec %₂₆)
-28  (call core.svec)
-29  SourceLocation::1:10
-30  (call core.svec %₂₇ %₂₈ %₂₉)
-31  --- method core.nothing %₃₀
+24  TestMod.f_kw_slurp_simple
+25  (call core.Typeof %₂₄)
+26  (call core.svec %₂₅)
+27  (call core.svec)
+28  SourceLocation::1:10
+29  (call core.svec %₂₆ %₂₇ %₂₈)
+30  --- method core.nothing %₂₉
     slots: [slot₁/#self#]
     1   TestMod.#f_kw_slurp_simple#0
     2   (call core.NamedTuple)
     3   (call top.pairs %₂)
     4   (call %₁ %₃ slot₁/#self#)
     5   (return %₄)
-32  (latestworld)
-33  TestMod.f_kw_slurp_simple
-34  (return %₃₃)
+31  (latestworld)
+32  TestMod.f_kw_slurp_simple
+33  (return %₃₂)
 
 ########################################
 # Keyword slurping
@@ -1269,14 +1267,13 @@ end
     16  (call %₁₅ %₁₀ %₁₄ slot₃/#self#)
     17  (return %₁₆)
 23  (latestworld)
-24  (latestworld)
-25  TestMod.f_kw_slurp
-26  (call core.Typeof %₂₅)
-27  (call core.svec %₂₆)
-28  (call core.svec)
-29  SourceLocation::1:10
-30  (call core.svec %₂₇ %₂₈ %₂₉)
-31  --- method core.nothing %₃₀
+24  TestMod.f_kw_slurp
+25  (call core.Typeof %₂₄)
+26  (call core.svec %₂₅)
+27  (call core.svec)
+28  SourceLocation::1:10
+29  (call core.svec %₂₆ %₂₇ %₂₈)
+30  --- method core.nothing %₂₉
     slots: [slot₁/#self#]
     1   TestMod.#f_kw_slurp#0
     2   TestMod.x_default
@@ -1284,9 +1281,9 @@ end
     4   (call top.pairs %₃)
     5   (call %₁ %₂ %₄ slot₁/#self#)
     6   (return %₅)
-32  (latestworld)
-33  TestMod.f_kw_slurp
-34  (return %₃₃)
+31  (latestworld)
+32  TestMod.f_kw_slurp
+33  (return %₃₂)
 
 ########################################
 # Static parameters used in keywords, with and without the static parameter
@@ -1369,27 +1366,26 @@ end
     32  (call %₃₁ %₁₀ %₂₃ slot₃/#self# slot₄/x)
     33  (return %₃₂)
 33  (latestworld)
-34  (latestworld)
-35  (= slot₆/X (call core.TypeVar :X))
-36  (= slot₅/A (call core.TypeVar :A))
-37  TestMod.f_kw_sparams
-38  (call core.Typeof %₃₇)
-39  slot₆/X
-40  (call core.svec %₃₈ %₃₉)
-41  slot₆/X
-42  (call core.svec %₄₁)
-43  SourceLocation::1:10
-44  (call core.svec %₄₀ %₄₂ %₄₃)
-45  --- method core.nothing %₄₄
+34  (= slot₆/X (call core.TypeVar :X))
+35  (= slot₅/A (call core.TypeVar :A))
+36  TestMod.f_kw_sparams
+37  (call core.Typeof %₃₆)
+38  slot₆/X
+39  (call core.svec %₃₇ %₃₈)
+40  slot₆/X
+41  (call core.svec %₄₀)
+42  SourceLocation::1:10
+43  (call core.svec %₃₉ %₄₁ %₄₂)
+44  --- method core.nothing %₄₃
     slots: [slot₁/#self# slot₂/x]
     1   TestMod.#f_kw_sparams#0
     2   TestMod.a_def
     3   TestMod.b_def
     4   (call %₁ %₂ %₃ slot₁/#self# slot₂/x)
     5   (return %₄)
-46  (latestworld)
-47  TestMod.f_kw_sparams
-48  (return %₄₇)
+45  (latestworld)
+46  TestMod.f_kw_sparams
+47  (return %₄₆)
 
 ########################################
 # Error: Static parameter which is unused in keyword body arg types
@@ -1452,34 +1448,32 @@ end
 1   (method TestMod.f_only_generated)
 2   (method TestMod.#f_only_generated@generator#0)
 3   (latestworld)
-4   (latestworld)
-5   TestMod.#f_only_generated@generator#0
-6   (call core.Typeof %₅)
-7   (call core.svec %₆ JuliaLowering.MacroContext core.Any core.Any core.Any)
-8   (call core.svec)
-9   SourceLocation::1:21
-10  (call core.svec %₇ %₈ %₉)
-11  --- method core.nothing %₁₀
+4   TestMod.#f_only_generated@generator#0
+5   (call core.Typeof %₄)
+6   (call core.svec %₅ JuliaLowering.MacroContext core.Any core.Any core.Any)
+7   (call core.svec)
+8   SourceLocation::1:21
+9   (call core.svec %₆ %₇ %₈)
+10  --- method core.nothing %₉
     slots: [slot₁/#self#(!read) slot₂/__context__(!read) slot₃/#self#(!read) slot₄/x(nospecialize) slot₅/y(nospecialize)]
     1   TestMod.generator_code
     2   (call %₁ slot₄/x slot₅/y)
     3   (return %₂)
-12  (latestworld)
-13  (latestworld)
-14  TestMod.f_only_generated
-15  (call core.Typeof %₁₄)
-16  (call core.svec %₁₅ core.Any core.Any)
-17  (call core.svec)
-18  SourceLocation::1:21
-19  (call core.svec %₁₆ %₁₇ %₁₈)
-20  --- method core.nothing %₁₉
+11  (latestworld)
+12  TestMod.f_only_generated
+13  (call core.Typeof %₁₂)
+14  (call core.svec %₁₃ core.Any core.Any)
+15  (call core.svec)
+16  SourceLocation::1:21
+17  (call core.svec %₁₄ %₁₅ %₁₆)
+18  --- method core.nothing %₁₇
     slots: [slot₁/#self#(!read) slot₂/x(!read) slot₃/y(!read)]
     1   (meta :generated (new JuliaLowering.GeneratedFunctionStub TestMod.#f_only_generated@generator#0 SourceRef(SourceFile("@generated function f_only_generated(x, y)\n    generator_code(x,y)\nend", 0, nothing, 1, [1, 44, 68, 71]), 1, JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"macrocall", 0x0000), 0x00000046, JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}[JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"@", 0x0001), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"MacroName", 0x0000), 0x00000009, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Whitespace", 0x0001), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"function", 0x0000), 0x0000003b, JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}[JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"function", 0x0001), 0x00000008, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Whitespace", 0x0001), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"call", 0x0000), 0x00000016, JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}[JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Identifier", 0x0000), 0x00000010, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"(", 0x0001), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Identifier", 0x0000), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K",", 0x0001), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Whitespace", 0x0001), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Identifier", 0x0000), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K")", 0x0001), 0x00000001, nothing)]), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"block", 0x0000), 0x00000019, JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}[JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"NewlineWs", 0x0001), 0x00000005, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"call", 0x0000), 0x00000013, JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}[JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Identifier", 0x0000), 0x0000000e, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"(", 0x0001), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Identifier", 0x0000), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K",", 0x0001), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Identifier", 0x0000), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K")", 0x0001), 0x00000001, nothing)]), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"NewlineWs", 0x0001), 0x00000001, nothing)]), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"end", 0x0001), 0x00000003, nothing)])])) (call core.svec :#self# :x :y) (call core.svec)))
     2   (meta :generated_only)
     3   (return core.nothing)
-21  (latestworld)
-22  TestMod.f_only_generated
-23  (return %₂₂)
+19  (latestworld)
+20  TestMod.f_only_generated
+21  (return %₂₀)
 
 ########################################
 # Partially generated function with `if @generated`
@@ -1498,28 +1492,26 @@ end
 1   (method TestMod.f_partially_generated)
 2   (method TestMod.#f_partially_generated@generator#0)
 3   (latestworld)
-4   (latestworld)
-5   TestMod.#f_partially_generated@generator#0
-6   (call core.Typeof %₅)
-7   (call core.svec %₆ JuliaLowering.MacroContext core.Any core.Any core.Any)
-8   (call core.svec)
-9   SourceLocation::1:10
-10  (call core.svec %₇ %₈ %₉)
-11  --- method core.nothing %₁₀
+4   TestMod.#f_partially_generated@generator#0
+5   (call core.Typeof %₄)
+6   (call core.svec %₅ JuliaLowering.MacroContext core.Any core.Any core.Any)
+7   (call core.svec)
+8   SourceLocation::1:10
+9   (call core.svec %₆ %₇ %₈)
+10  --- method core.nothing %₉
     slots: [slot₁/#self#(!read) slot₂/__context__(!read) slot₃/#self#(!read) slot₄/x(nospecialize,!read) slot₅/y(nospecialize,!read)]
     1   (call JuliaLowering.interpolate_ast (inert (block (= maybe_gen_stuff (call some_gen_stuff x y)))))
     2   (call core.tuple %₁)
     3   (call JuliaLowering.interpolate_ast (inert (block (block (= nongen_stuff (call bothgen x y)) ($ (block (call JuliaLowering.interpolate_ast (inert (block (= maybe_gen_stuff (call some_gen_stuff x y))))))) (tuple-p nongen_stuff maybe_gen_stuff)))) %₂)
     4   (return %₃)
-12  (latestworld)
-13  (latestworld)
-14  TestMod.f_partially_generated
-15  (call core.Typeof %₁₄)
-16  (call core.svec %₁₅ core.Any core.Any)
-17  (call core.svec)
-18  SourceLocation::1:10
-19  (call core.svec %₁₆ %₁₇ %₁₈)
-20  --- method core.nothing %₁₉
+11  (latestworld)
+12  TestMod.f_partially_generated
+13  (call core.Typeof %₁₂)
+14  (call core.svec %₁₃ core.Any core.Any)
+15  (call core.svec)
+16  SourceLocation::1:10
+17  (call core.svec %₁₄ %₁₅ %₁₆)
+18  --- method core.nothing %₁₇
     slots: [slot₁/#self#(!read) slot₂/x slot₃/y slot₄/maybe_gen_stuff slot₅/nongen_stuff]
     1   (meta :generated (new JuliaLowering.GeneratedFunctionStub TestMod.#f_partially_generated@generator#0 SourceRef(SourceFile("function f_partially_generated(x, y)\n    nongen_stuff = bothgen(x, y)\n    if @generated\n        quote\n            maybe_gen_stuff = some_gen_stuff(x, y)\n        end\n    else\n        maybe_gen_stuff = some_nongen_stuff(x, y)\n    end\n    (nongen_stuff, maybe_gen_stuff)\nend", 0, nothing, 1, [1, 38, 71, 89, 103, 154, 166, 175, 225, 233, 269, 272]), 1, JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"function", 0x0000), 0x0000010f, JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}[JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"function", 0x0001), 0x00000008, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Whitespace", 0x0001), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"call", 0x0000), 0x0000001b, JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}[JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Identifier", 0x0000), 0x00000015, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"(", 0x0001), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Identifier", 0x0000), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K",", 0x0001), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Whitespace", 0x0001), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Identifier", 0x0000), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K")", 0x0001), 0x00000001, nothing)]), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"block", 0x0000), 0x000000e8, JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}[JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"NewlineWs", 0x0001), 0x00000005, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"=", 0x0000), 0x0000001c, JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}[JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Identifier", 0x0000), 0x0000000c, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Whitespace", 0x0001), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"=", 0x0001), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Whitespace", 0x0001), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"call", 0x0000), 0x0000000d, JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}[JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Identifier", 0x0000), 0x00000007, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"(", 0x0001), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Identifier", 0x0000), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K",", 0x0001), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Whitespace", 0x0001), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Identifier", 0x0000), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K")", 0x0001), 0x00000001, nothing)])]), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"NewlineWs", 0x0001), 0x00000005, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"if", 0x0000), 0x0000009d, JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}[JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"if", 0x0001), 0x00000002, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Whitespace", 0x0001), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"macrocall", 0x0000), 0x0000000a, JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}[JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"@", 0x0001), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"MacroName", 0x0000), 0x00000009, nothing)]), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"block", 0x0000), 0x00000052, JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}[JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"NewlineWs", 0x0001), 0x00000009, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"quote", 0x0000), 0x00000044, JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}[JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"block", 0x0000), 0x00000044, JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}[JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"quote", 0x0001), 0x00000005, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"NewlineWs", 0x0001), 0x0000000d, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"=", 0x0000), 0x00000026, JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}[JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Identifier", 0x0000), 0x0000000f, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Whitespace", 0x0001), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"=", 0x0001), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Whitespace", 0x0001), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"call", 0x0000), 0x00000014, JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}[JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Identifier", 0x0000), 0x0000000e, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"(", 0x0001), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Identifier", 0x0000), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K",", 0x0001), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Whitespace", 0x0001), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Identifier", 0x0000), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K")", 0x0001), 0x00000001, nothing)])]), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"NewlineWs", 0x0001), 0x00000009, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"end", 0x0001), 0x00000003, nothing)])]), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"NewlineWs", 0x0001), 0x00000005, nothing)]), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"else", 0x0001), 0x00000004, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"block", 0x0000), 0x00000037, JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}[JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"NewlineWs", 0x0001), 0x00000009, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"=", 0x0000), 0x00000029, JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}[JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Identifier", 0x0000), 0x0000000f, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Whitespace", 0x0001), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"=", 0x0001), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Whitespace", 0x0001), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"call", 0x0000), 0x00000017, JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}[JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Identifier", 0x0000), 0x00000011, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"(", 0x0001), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Identifier", 0x0000), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K",", 0x0001), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Whitespace", 0x0001), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Identifier", 0x0000), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K")", 0x0001), 0x00000001, nothing)])]), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"NewlineWs", 0x0001), 0x00000005, nothing)]), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"end", 0x0001), 0x00000003, nothing)]), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"NewlineWs", 0x0001), 0x00000005, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"tuple", 0x0020), 0x0000001f, JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}[JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"(", 0x0001), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Identifier", 0x0000), 0x0000000c, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K",", 0x0001), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Whitespace", 0x0001), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Identifier", 0x0000), 0x0000000f, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K")", 0x0001), 0x00000001, nothing)]), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"NewlineWs", 0x0001), 0x00000001, nothing)]), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"end", 0x0001), 0x00000003, nothing)])) (call core.svec :#self# :x :y) (call core.svec)))
     2   TestMod.bothgen
@@ -1530,7 +1522,7 @@ end
     7   slot₄/maybe_gen_stuff
     8   (call core.tuple %₆ %₇)
     9   (return %₈)
-21  (latestworld)
-22  TestMod.f_partially_generated
-23  (return %₂₂)
+19  (latestworld)
+20  TestMod.f_partially_generated
+21  (return %₂₀)
 
