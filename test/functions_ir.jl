@@ -4,7 +4,7 @@ function f
 end
 #---------------------
 1   (method TestMod.f)
-2   (latestworld)
+2   latestworld
 3   TestMod.f
 4   (return %₃)
 
@@ -15,7 +15,7 @@ function f(x, _, y)
 end
 #---------------------
 1   (method TestMod.f)
-2   (latestworld)
+2   latestworld
 3   TestMod.f
 4   (call core.Typeof %₃)
 5   (call core.svec %₄ core.Any core.Any core.Any)
@@ -27,7 +27,7 @@ end
     1   TestMod.+
     2   (call %₁ slot₂/x slot₄/y)
     3   (return %₂)
-10  (latestworld)
+10  latestworld
 11  TestMod.f
 12  (return %₁₁)
 
@@ -38,7 +38,7 @@ function f(::T, x)
 end
 #---------------------
 1   (method TestMod.f)
-2   (latestworld)
+2   latestworld
 3   TestMod.f
 4   (call core.Typeof %₃)
 5   TestMod.T
@@ -50,7 +50,7 @@ end
     slots: [slot₁/#self#(!read) slot₂/_(!read) slot₃/x]
     1   slot₃/x
     2   (return %₁)
-11  (latestworld)
+11  latestworld
 12  TestMod.f
 13  (return %₁₂)
 
@@ -61,7 +61,7 @@ function f(x, y::T)
 end
 #---------------------
 1   (method TestMod.f)
-2   (latestworld)
+2   latestworld
 3   TestMod.f
 4   (call core.Typeof %₃)
 5   TestMod.T
@@ -73,7 +73,7 @@ end
     slots: [slot₁/#self#(!read) slot₂/x(!read) slot₃/y(!read)]
     1   TestMod.body
     2   (return %₁)
-11  (latestworld)
+11  latestworld
 12  TestMod.f
 13  (return %₁₂)
 
@@ -84,7 +84,7 @@ function f(x, ys...)
 end
 #---------------------
 1   (method TestMod.f)
-2   (latestworld)
+2   latestworld
 3   TestMod.f
 4   (call core.Typeof %₃)
 5   (call core.apply_type core.Vararg core.Any)
@@ -96,7 +96,7 @@ end
     slots: [slot₁/#self#(!read) slot₂/x(!read) slot₃/ys(!read)]
     1   TestMod.body
     2   (return %₁)
-11  (latestworld)
+11  latestworld
 12  TestMod.f
 13  (return %₁₂)
 
@@ -107,7 +107,7 @@ function f(x, ys::T...)
 end
 #---------------------
 1   (method TestMod.f)
-2   (latestworld)
+2   latestworld
 3   TestMod.f
 4   (call core.Typeof %₃)
 5   TestMod.T
@@ -120,7 +120,7 @@ end
     slots: [slot₁/#self#(!read) slot₂/x(!read) slot₃/ys(!read)]
     1   TestMod.body
     2   (return %₁)
-12  (latestworld)
+12  latestworld
 13  TestMod.f
 14  (return %₁₃)
 
@@ -143,7 +143,7 @@ function f(::T, ::U, ::V) where T where {U,V}
 end
 #---------------------
 1   (method TestMod.f)
-2   (latestworld)
+2   latestworld
 3   (= slot₂/U (call core.TypeVar :U))
 4   (= slot₃/V (call core.TypeVar :V))
 5   (= slot₁/T (call core.TypeVar :T))
@@ -166,7 +166,7 @@ end
     3   static_parameter₂
     4   (call core.tuple %₁ %₂ %₃)
     5   (return %₄)
-19  (latestworld)
+19  latestworld
 20  TestMod.f
 21  (return %₂₀)
 
@@ -177,7 +177,7 @@ function f(::S{T}) where X <: T <: Y
 end
 #---------------------
 1   (method TestMod.f)
-2   (latestworld)
+2   latestworld
 3   TestMod.X
 4   TestMod.Y
 5   (= slot₁/T (call core.TypeVar :T %₃ %₄))
@@ -195,7 +195,7 @@ end
     slots: [slot₁/#self#(!read) slot₂/_(!read)]
     1   static_parameter₁
     2   (return %₁)
-17  (latestworld)
+17  latestworld
 18  TestMod.f
 19  (return %₁₈)
 
@@ -207,7 +207,7 @@ function f(x, y::S) where {T, S<:AbstractVector{T}}
 end
 #---------------------
 1   (method TestMod.f)
-2   (latestworld)
+2   latestworld
 3   (= slot₂/T (call core.TypeVar :T))
 4   TestMod.AbstractVector
 5   slot₂/T
@@ -228,7 +228,7 @@ end
     2   static_parameter₂
     3   (call core.tuple %₁ %₂)
     4   (return %₃)
-18  (latestworld)
+18  latestworld
 19  TestMod.f
 20  (return %₁₉)
 
@@ -254,7 +254,7 @@ function f(x)::Int
 end
 #---------------------
 1   (method TestMod.f)
-2   (latestworld)
+2   latestworld
 3   TestMod.f
 4   (call core.Typeof %₃)
 5   (call core.svec %₄ core.Any)
@@ -275,7 +275,7 @@ end
     10  (= slot₃/tmp (call core.typeassert %₉ %₁))
     11  slot₃/tmp
     12  (return %₁₁)
-10  (latestworld)
+10  latestworld
 11  TestMod.f
 12  (return %₁₁)
 
@@ -285,7 +285,7 @@ function (::T)(x)
     x
 end
 #---------------------
-1   (latestworld)
+1   latestworld
 2   TestMod.T
 3   (call core.svec %₂ core.Any)
 4   (call core.svec)
@@ -295,7 +295,7 @@ end
     slots: [slot₁/#self#(!read) slot₂/x]
     1   slot₂/x
     2   (return %₁)
-8   (latestworld)
+8   latestworld
 9   (return core.nothing)
 
 ########################################
@@ -304,7 +304,7 @@ function (y::T)(x)
     (y, x)
 end
 #---------------------
-1   (latestworld)
+1   latestworld
 2   TestMod.T
 3   (call core.svec %₂ core.Any)
 4   (call core.svec)
@@ -314,7 +314,7 @@ end
     slots: [slot₁/y slot₂/x]
     1   (call core.tuple slot₁/y slot₂/x)
     2   (return %₁)
-8   (latestworld)
+8   latestworld
 9   (return core.nothing)
 
 ########################################
@@ -323,7 +323,7 @@ function (x::X1{T})() where T
     T
 end
 #---------------------
-1   (latestworld)
+1   latestworld
 2   (= slot₁/T (call core.TypeVar :T))
 3   TestMod.X1
 4   slot₁/T
@@ -337,7 +337,7 @@ end
     slots: [slot₁/x(!read)]
     1   static_parameter₁
     2   (return %₁)
-12  (latestworld)
+12  latestworld
 13  (return core.nothing)
 
 ########################################
@@ -345,7 +345,7 @@ end
 function A.f()
 end
 #---------------------
-1   (latestworld)
+1   latestworld
 2   TestMod.A
 3   (call top.getproperty %₂ :f)
 4   (call core.Typeof %₃)
@@ -356,7 +356,7 @@ end
 9   --- method core.nothing %₈
     slots: [slot₁/#self#(!read)]
     1   (return core.nothing)
-10  (latestworld)
+10  latestworld
 11  (return core.nothing)
 
 ########################################
@@ -386,7 +386,7 @@ function f(x::T, y::S=1, z::U=2)
 end
 #---------------------
 1   (method TestMod.f)
-2   (latestworld)
+2   latestworld
 3   TestMod.f
 4   (call core.Typeof %₃)
 5   TestMod.T
@@ -398,7 +398,7 @@ end
     slots: [slot₁/#self#(called) slot₂/x]
     1   (call slot₁/#self# slot₂/x 1 2)
     2   (return %₁)
-11  (latestworld)
+11  latestworld
 12  TestMod.f
 13  (call core.Typeof %₁₂)
 14  TestMod.T
@@ -411,7 +411,7 @@ end
     slots: [slot₁/#self#(called) slot₂/x slot₃/y]
     1   (call slot₁/#self# slot₂/x slot₃/y 2)
     2   (return %₁)
-21  (latestworld)
+21  latestworld
 22  TestMod.f
 23  (call core.Typeof %₂₂)
 24  TestMod.T
@@ -425,7 +425,7 @@ end
     slots: [slot₁/#self#(!read) slot₂/x slot₃/y slot₄/z(!read)]
     1   (call core.tuple slot₂/x slot₃/y)
     2   (return %₁)
-32  (latestworld)
+32  latestworld
 33  TestMod.f
 34  (return %₃₃)
 
@@ -436,7 +436,7 @@ function f(x=1, y=x)
 end
 #---------------------
 1   (method TestMod.f)
-2   (latestworld)
+2   latestworld
 3   TestMod.f
 4   (call core.Typeof %₃)
 5   (call core.svec %₄)
@@ -447,7 +447,7 @@ end
     slots: [slot₁/#self#(called)]
     1   (call slot₁/#self# 1)
     2   (return %₁)
-10  (latestworld)
+10  latestworld
 11  TestMod.f
 12  (call core.Typeof %₁₁)
 13  (call core.svec %₁₂ core.Any)
@@ -458,7 +458,7 @@ end
     slots: [slot₁/#self#(called) slot₂/x]
     1   (call slot₁/#self# slot₂/x slot₂/x)
     2   (return %₁)
-18  (latestworld)
+18  latestworld
 19  TestMod.f
 20  (call core.Typeof %₁₉)
 21  (call core.svec %₂₀ core.Any core.Any)
@@ -469,7 +469,7 @@ end
     slots: [slot₁/#self#(!read) slot₂/x slot₃/y]
     1   (call core.tuple slot₂/x slot₃/y)
     2   (return %₁)
-26  (latestworld)
+26  latestworld
 27  TestMod.f
 28  (return %₂₇)
 
@@ -480,7 +480,7 @@ function f(::Int, y=1, z=2)
 end
 #---------------------
 1   (method TestMod.f)
-2   (latestworld)
+2   latestworld
 3   TestMod.f
 4   (call core.Typeof %₃)
 5   TestMod.Int
@@ -492,7 +492,7 @@ end
     slots: [slot₁/#self#(called) slot₂/_]
     1   (call slot₁/#self# slot₂/_ 1 2)
     2   (return %₁)
-11  (latestworld)
+11  latestworld
 12  TestMod.f
 13  (call core.Typeof %₁₂)
 14  TestMod.Int
@@ -504,7 +504,7 @@ end
     slots: [slot₁/#self#(called) slot₂/_ slot₃/y]
     1   (call slot₁/#self# slot₂/_ slot₃/y 2)
     2   (return %₁)
-20  (latestworld)
+20  latestworld
 21  TestMod.f
 22  (call core.Typeof %₂₁)
 23  TestMod.Int
@@ -516,7 +516,7 @@ end
     slots: [slot₁/#self#(!read) slot₂/_(!read) slot₃/y slot₄/z]
     1   (call core.tuple slot₃/y slot₄/z)
     2   (return %₁)
-29  (latestworld)
+29  latestworld
 30  TestMod.f
 31  (return %₃₀)
 
@@ -527,7 +527,7 @@ function f(_::Int, x=1)
 end
 #---------------------
 1   (method TestMod.f)
-2   (latestworld)
+2   latestworld
 3   TestMod.f
 4   (call core.Typeof %₃)
 5   TestMod.Int
@@ -539,7 +539,7 @@ end
     slots: [slot₁/#self#(called) slot₂/_]
     1   (call slot₁/#self# slot₂/_ 1)
     2   (return %₁)
-11  (latestworld)
+11  latestworld
 12  TestMod.f
 13  (call core.Typeof %₁₂)
 14  TestMod.Int
@@ -551,7 +551,7 @@ end
     slots: [slot₁/#self#(!read) slot₂/_(!read) slot₃/x]
     1   slot₃/x
     2   (return %₁)
-20  (latestworld)
+20  latestworld
 21  TestMod.f
 22  (return %₂₁)
 
@@ -562,7 +562,7 @@ function f(x::T, y::S=1, z::U=2) where {T,S<:T,U<:S}
 end
 #---------------------
 1   (method TestMod.f)
-2   (latestworld)
+2   latestworld
 3   (= slot₂/T (call core.TypeVar :T))
 4   slot₂/T
 5   (= slot₁/S (call core.TypeVar :S %₄))
@@ -580,7 +580,7 @@ end
     slots: [slot₁/#self#(called) slot₂/x]
     1   (call slot₁/#self# slot₂/x 1 2)
     2   (return %₁)
-17  (latestworld)
+17  latestworld
 18  TestMod.f
 19  (call core.Typeof %₁₈)
 20  slot₂/T
@@ -595,7 +595,7 @@ end
     slots: [slot₁/#self#(called) slot₂/x slot₃/y]
     1   (call slot₁/#self# slot₂/x slot₃/y 2)
     2   (return %₁)
-29  (latestworld)
+29  latestworld
 30  TestMod.f
 31  (call core.Typeof %₃₀)
 32  slot₂/T
@@ -612,7 +612,7 @@ end
     slots: [slot₁/#self#(!read) slot₂/x slot₃/y slot₄/z]
     1   (call core.tuple slot₂/x slot₃/y slot₄/z)
     2   (return %₁)
-43  (latestworld)
+43  latestworld
 44  TestMod.f
 45  (return %₄₄)
 
@@ -625,7 +625,7 @@ function f(x, y::S=[1], z::U=2) where {T, S<:AbstractVector{T}, U}
 end
 #---------------------
 1   (method TestMod.f)
-2   (latestworld)
+2   latestworld
 3   (= slot₂/T (call core.TypeVar :T))
 4   TestMod.AbstractVector
 5   slot₂/T
@@ -643,7 +643,7 @@ end
     1   (call top.vect 1)
     2   (call slot₁/#self# slot₂/x %₁ 2)
     3   (return %₂)
-16  (latestworld)
+16  latestworld
 17  TestMod.f
 18  (call core.Typeof %₁₇)
 19  slot₁/S
@@ -657,7 +657,7 @@ end
     slots: [slot₁/#self#(called) slot₂/x slot₃/y]
     1   (call slot₁/#self# slot₂/x slot₃/y 2)
     2   (return %₁)
-27  (latestworld)
+27  latestworld
 28  TestMod.f
 29  (call core.Typeof %₂₈)
 30  slot₁/S
@@ -676,7 +676,7 @@ end
     3   static_parameter₃
     4   (call core.tuple slot₂/x slot₃/y slot₄/z %₁ %₂ %₃)
     5   (return %₄)
-40  (latestworld)
+40  latestworld
 41  TestMod.f
 42  (return %₄₁)
 
@@ -687,7 +687,7 @@ function f(x=1, ys...)
 end
 #---------------------
 1   (method TestMod.f)
-2   (latestworld)
+2   latestworld
 3   TestMod.f
 4   (call core.Typeof %₃)
 5   (call core.svec %₄)
@@ -698,7 +698,7 @@ end
     slots: [slot₁/#self#(called)]
     1   (call slot₁/#self# 1)
     2   (return %₁)
-10  (latestworld)
+10  latestworld
 11  TestMod.f
 12  (call core.Typeof %₁₁)
 13  (call core.apply_type core.Vararg core.Any)
@@ -710,7 +710,7 @@ end
     slots: [slot₁/#self#(!read) slot₂/x(!read) slot₃/ys]
     1   slot₃/ys
     2   (return %₁)
-19  (latestworld)
+19  latestworld
 20  TestMod.f
 21  (return %₂₀)
 
@@ -733,7 +733,7 @@ function f(xs...=1)
 end
 #---------------------
 1   (method TestMod.f)
-2   (latestworld)
+2   latestworld
 3   TestMod.f
 4   (call core.Typeof %₃)
 5   (call core.svec %₄)
@@ -744,7 +744,7 @@ end
     slots: [slot₁/#self#(called)]
     1   (call slot₁/#self# 1)
     2   (return %₁)
-10  (latestworld)
+10  latestworld
 11  TestMod.f
 12  (call core.Typeof %₁₁)
 13  (call core.apply_type core.Vararg core.Any)
@@ -756,7 +756,7 @@ end
     slots: [slot₁/#self#(!read) slot₂/xs]
     1   slot₂/xs
     2   (return %₁)
-19  (latestworld)
+19  latestworld
 20  TestMod.f
 21  (return %₂₀)
 
@@ -767,7 +767,7 @@ function f(xs...=(1,2)...)
 end
 #---------------------
 1   (method TestMod.f)
-2   (latestworld)
+2   latestworld
 3   TestMod.f
 4   (call core.Typeof %₃)
 5   (call core.svec %₄)
@@ -779,7 +779,7 @@ end
     1   (call core.tuple 1 2)
     2   (call core._apply_iterate top.iterate slot₁/#self# %₁)
     3   (return %₂)
-10  (latestworld)
+10  latestworld
 11  TestMod.f
 12  (call core.Typeof %₁₁)
 13  (call core.apply_type core.Vararg core.Any)
@@ -791,7 +791,7 @@ end
     slots: [slot₁/#self#(!read) slot₂/xs]
     1   slot₂/xs
     2   (return %₁)
-19  (latestworld)
+19  latestworld
 20  TestMod.f
 21  (return %₂₀)
 
@@ -801,7 +801,7 @@ function f(x, (y,z), w)
 end
 #---------------------
 1   (method TestMod.f)
-2   (latestworld)
+2   latestworld
 3   TestMod.f
 4   (call core.Typeof %₃)
 5   (call core.svec %₄ core.Any core.Any core.Any)
@@ -817,7 +817,7 @@ end
     5   (call top.indexed_iterate slot₃/destructured_arg 2 %₄)
     6   (= slot₇/z (call core.getfield %₅ 1))
     7   (return core.nothing)
-10  (latestworld)
+10  latestworld
 11  TestMod.f
 12  (return %₁₁)
 
@@ -827,7 +827,7 @@ function f((x,)::T...=rhs)
 end
 #---------------------
 1   (method TestMod.f)
-2   (latestworld)
+2   latestworld
 3   TestMod.f
 4   (call core.Typeof %₃)
 5   (call core.svec %₄)
@@ -839,7 +839,7 @@ end
     1   TestMod.rhs
     2   (call slot₁/#self# %₁)
     3   (return %₂)
-10  (latestworld)
+10  latestworld
 11  TestMod.f
 12  (call core.Typeof %₁₁)
 13  TestMod.T
@@ -853,7 +853,7 @@ end
     1   (call top.indexed_iterate slot₂/destructured_arg 1)
     2   (= slot₃/x (call core.getfield %₁ 1))
     3   (return core.nothing)
-20  (latestworld)
+20  latestworld
 21  TestMod.f
 22  (return %₂₁)
 
@@ -863,7 +863,7 @@ function f(x=default_x)::T
 end
 #---------------------
 1   (method TestMod.f)
-2   (latestworld)
+2   latestworld
 3   TestMod.f
 4   (call core.Typeof %₃)
 5   (call core.svec %₄)
@@ -875,7 +875,7 @@ end
     1   TestMod.default_x
     2   (call slot₁/#self# %₁)
     3   (return %₂)
-10  (latestworld)
+10  latestworld
 11  TestMod.f
 12  (call core.Typeof %₁₁)
 13  (call core.svec %₁₂ core.Any)
@@ -895,7 +895,7 @@ end
     9   (= slot₃/tmp (call core.typeassert %₈ %₁))
     10  slot₃/tmp
     11  (return %₁₀)
-18  (latestworld)
+18  latestworld
 19  TestMod.f
 20  (return %₁₉)
 
@@ -905,7 +905,7 @@ function f((_,), (_,))
 end
 #---------------------
 1   (method TestMod.f)
-2   (latestworld)
+2   latestworld
 3   TestMod.f
 4   (call core.Typeof %₃)
 5   (call core.svec %₄ core.Any core.Any)
@@ -919,7 +919,7 @@ end
     3   (call top.indexed_iterate slot₃/destructured_arg 1)
     4   (call core.getfield %₃ 1)
     5   (return core.nothing)
-10  (latestworld)
+10  latestworld
 11  TestMod.f
 12  (return %₁₁)
 
@@ -930,7 +930,7 @@ function f(@nospecialize(x), g, y)
 end
 #---------------------
 1   (method TestMod.f)
-2   (latestworld)
+2   latestworld
 3   TestMod.f
 4   (call core.Typeof %₃)
 5   (call core.svec %₄ core.Any core.Any core.Any)
@@ -943,7 +943,7 @@ end
     2   (call slot₃/g)
     3   (call %₁ %₂ slot₄/y)
     4   (return %₃)
-10  (latestworld)
+10  latestworld
 11  TestMod.f
 12  (return %₁₁)
 
@@ -955,7 +955,7 @@ function f()
 end
 #---------------------
 1   (method TestMod.f)
-2   (latestworld)
+2   latestworld
 3   TestMod.f
 4   (call core.Typeof %₃)
 5   (call core.svec %₄)
@@ -967,7 +967,7 @@ end
     1   (return core.nothing)
     2   TestMod.after_return
     3   (return %₂)
-10  (latestworld)
+10  latestworld
 11  TestMod.f
 12  (return %₁₁)
 
@@ -980,7 +980,7 @@ function f()
 end
 #---------------------
 1   (method TestMod.f)
-2   (latestworld)
+2   latestworld
 3   TestMod.f
 4   (call core.Typeof %₃)
 5   (call core.svec %₄)
@@ -990,7 +990,7 @@ end
 9   --- method core.nothing %₈
     slots: [slot₁/#self#(!read)]
     1   (return core.nothing)
-10  (latestworld)
+10  latestworld
 11  TestMod.f
 12  (call JuliaLowering.bind_docs! %₁₁ "some docs\n" %₈)
 13  TestMod.f
@@ -1004,7 +1004,7 @@ some docs
 function (x::T)()
 end
 #---------------------
-1   (latestworld)
+1   latestworld
 2   TestMod.T
 3   (call core.svec %₂)
 4   (call core.svec)
@@ -1013,7 +1013,7 @@ end
 7   --- method core.nothing %₆
     slots: [slot₁/x(!read)]
     1   (return core.nothing)
-8   (latestworld)
+8   latestworld
 9   TestMod.T
 10  (call JuliaLowering.bind_docs! %₉ "some docs\n" %₆)
 11  (return core.nothing)
@@ -1034,7 +1034,7 @@ end
 #---------------------
 1   (method TestMod.f_kw_simple)
 2   (method TestMod.#f_kw_simple#0)
-3   (latestworld)
+3   latestworld
 4   TestMod.#f_kw_simple#0
 5   (call core.Typeof %₄)
 6   TestMod.Char
@@ -1052,7 +1052,7 @@ end
     1   (meta :nkw 2)
     2   (call core.tuple slot₅/a slot₆/b slot₂/x slot₃/y)
     3   (return %₂)
-17  (latestworld)
+17  latestworld
 18  (call core.typeof core.kwcall)
 19  TestMod.f_kw_simple
 20  (call core.Typeof %₁₉)
@@ -1064,7 +1064,7 @@ end
     slots: [slot₁/#self#(called) slot₂/kws slot₃/#self#]
     1   (call slot₁/#self# slot₂/kws slot₃/#self# 1 1.0)
     2   (return %₁)
-26  (latestworld)
+26  latestworld
 27  (call core.typeof core.kwcall)
 28  TestMod.f_kw_simple
 29  (call core.Typeof %₂₈)
@@ -1077,7 +1077,7 @@ end
     slots: [slot₁/#self#(called) slot₂/kws slot₃/#self# slot₄/a]
     1   (call slot₁/#self# slot₂/kws slot₃/#self# slot₄/a 1.0)
     2   (return %₁)
-36  (latestworld)
+36  latestworld
 37  (call core.typeof core.kwcall)
 38  TestMod.f_kw_simple
 39  (call core.Typeof %₃₈)
@@ -1129,7 +1129,7 @@ end
     38  TestMod.#f_kw_simple#0
     39  (call %₃₈ %₁₆ %₃₀ slot₃/#self# slot₄/a slot₅/b)
     40  (return %₃₉)
-47  (latestworld)
+47  latestworld
 48  TestMod.f_kw_simple
 49  (call core.Typeof %₄₈)
 50  (call core.svec %₄₉)
@@ -1140,7 +1140,7 @@ end
     slots: [slot₁/#self#(called)]
     1   (call slot₁/#self# 1 1.0)
     2   (return %₁)
-55  (latestworld)
+55  latestworld
 56  TestMod.f_kw_simple
 57  (call core.Typeof %₅₆)
 58  TestMod.Int
@@ -1152,7 +1152,7 @@ end
     slots: [slot₁/#self#(called) slot₂/a]
     1   (call slot₁/#self# slot₂/a 1.0)
     2   (return %₁)
-64  (latestworld)
+64  latestworld
 65  TestMod.f_kw_simple
 66  (call core.Typeof %₆₅)
 67  TestMod.Int
@@ -1166,7 +1166,7 @@ end
     1   TestMod.#f_kw_simple#0
     2   (call %₁ 'a' true slot₁/#self# slot₂/a slot₃/b)
     3   (return %₂)
-74  (latestworld)
+74  latestworld
 75  TestMod.f_kw_simple
 76  (return %₇₅)
 
@@ -1178,7 +1178,7 @@ end
 #---------------------
 1   (method TestMod.f_kw_slurp_simple)
 2   (method TestMod.#f_kw_slurp_simple#0)
-3   (latestworld)
+3   latestworld
 4   TestMod.#f_kw_slurp_simple#0
 5   (call core.Typeof %₄)
 6   (call top.pairs core.NamedTuple)
@@ -1193,7 +1193,7 @@ end
     1   (meta :nkw 1)
     2   slot₂/all_kws
     3   (return %₂)
-14  (latestworld)
+14  latestworld
 15  (call core.typeof core.kwcall)
 16  TestMod.f_kw_slurp_simple
 17  (call core.Typeof %₁₆)
@@ -1208,7 +1208,7 @@ end
     3   TestMod.#f_kw_slurp_simple#0
     4   (call %₃ %₂ slot₃/#self#)
     5   (return %₄)
-23  (latestworld)
+23  latestworld
 24  TestMod.f_kw_slurp_simple
 25  (call core.Typeof %₂₄)
 26  (call core.svec %₂₅)
@@ -1222,7 +1222,7 @@ end
     3   (call top.pairs %₂)
     4   (call %₁ %₃ slot₁/#self#)
     5   (return %₄)
-31  (latestworld)
+31  latestworld
 32  TestMod.f_kw_slurp_simple
 33  (return %₃₂)
 
@@ -1234,7 +1234,7 @@ end
 #---------------------
 1   (method TestMod.f_kw_slurp)
 2   (method TestMod.#f_kw_slurp#0)
-3   (latestworld)
+3   latestworld
 4   TestMod.#f_kw_slurp#0
 5   (call core.Typeof %₄)
 6   (call top.pairs core.NamedTuple)
@@ -1249,7 +1249,7 @@ end
     1   (meta :nkw 2)
     2   TestMod.all_kws
     3   (return %₂)
-14  (latestworld)
+14  latestworld
 15  (call core.typeof core.kwcall)
 16  TestMod.f_kw_slurp
 17  (call core.Typeof %₁₆)
@@ -1276,7 +1276,7 @@ end
     15  TestMod.#f_kw_slurp#0
     16  (call %₁₅ %₁₀ %₁₄ slot₃/#self#)
     17  (return %₁₆)
-23  (latestworld)
+23  latestworld
 24  TestMod.f_kw_slurp
 25  (call core.Typeof %₂₄)
 26  (call core.svec %₂₅)
@@ -1291,7 +1291,7 @@ end
     4   (call top.pairs %₃)
     5   (call %₁ %₂ %₄ slot₁/#self#)
     6   (return %₅)
-31  (latestworld)
+31  latestworld
 32  TestMod.f_kw_slurp
 33  (return %₃₂)
 
@@ -1307,7 +1307,7 @@ end
 #---------------------
 1   (method TestMod.f_kw_sparams)
 2   (method TestMod.#f_kw_sparams#0)
-3   (latestworld)
+3   latestworld
 4   (= slot₂/X (call core.TypeVar :X))
 5   (= slot₁/A (call core.TypeVar :A))
 6   TestMod.#f_kw_sparams#0
@@ -1330,7 +1330,7 @@ end
     3   static_parameter₂
     4   (call core.tuple %₂ %₃)
     5   (return %₄)
-20  (latestworld)
+20  latestworld
 21  (= slot₄/X (call core.TypeVar :X))
 22  (= slot₃/A (call core.TypeVar :A))
 23  (call core.typeof core.kwcall)
@@ -1379,7 +1379,7 @@ end
     33  TestMod.#f_kw_sparams#0
     34  (call %₃₃ %₁₀ %₂₅ slot₃/#self# slot₄/x)
     35  (return %₃₄)
-33  (latestworld)
+33  latestworld
 34  (= slot₆/X (call core.TypeVar :X))
 35  (= slot₅/A (call core.TypeVar :A))
 36  TestMod.f_kw_sparams
@@ -1397,7 +1397,7 @@ end
     3   TestMod.b_def
     4   (call %₁ %₂ %₃ slot₁/#self# slot₂/x)
     5   (return %₄)
-45  (latestworld)
+45  latestworld
 46  TestMod.f_kw_sparams
 47  (return %₄₆)
 
@@ -1461,7 +1461,7 @@ end
 #---------------------
 1   (method TestMod.f_only_generated)
 2   (method TestMod.#f_only_generated@generator#0)
-3   (latestworld)
+3   latestworld
 4   TestMod.#f_only_generated@generator#0
 5   (call core.Typeof %₄)
 6   (call core.svec %₅ JuliaLowering.MacroContext core.Any core.Any core.Any)
@@ -1473,7 +1473,7 @@ end
     1   TestMod.generator_code
     2   (call %₁ slot₄/x slot₅/y)
     3   (return %₂)
-11  (latestworld)
+11  latestworld
 12  TestMod.f_only_generated
 13  (call core.Typeof %₁₂)
 14  (call core.svec %₁₃ core.Any core.Any)
@@ -1485,7 +1485,7 @@ end
     1   (meta :generated (new JuliaLowering.GeneratedFunctionStub TestMod.#f_only_generated@generator#0 SourceRef(SourceFile("@generated function f_only_generated(x, y)\n    generator_code(x,y)\nend", 0, nothing, 1, [1, 44, 68, 71]), 1, JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"macrocall", 0x0000), 0x00000046, JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}[JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"@", 0x0001), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"MacroName", 0x0000), 0x00000009, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Whitespace", 0x0001), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"function", 0x0000), 0x0000003b, JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}[JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"function", 0x0001), 0x00000008, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Whitespace", 0x0001), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"call", 0x0000), 0x00000016, JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}[JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Identifier", 0x0000), 0x00000010, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"(", 0x0001), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Identifier", 0x0000), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K",", 0x0001), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Whitespace", 0x0001), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Identifier", 0x0000), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K")", 0x0001), 0x00000001, nothing)]), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"block", 0x0000), 0x00000019, JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}[JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"NewlineWs", 0x0001), 0x00000005, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"call", 0x0000), 0x00000013, JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}[JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Identifier", 0x0000), 0x0000000e, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"(", 0x0001), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Identifier", 0x0000), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K",", 0x0001), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"Identifier", 0x0000), 0x00000001, nothing), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K")", 0x0001), 0x00000001, nothing)]), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"NewlineWs", 0x0001), 0x00000001, nothing)]), JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}(JuliaSyntax.SyntaxHead(K"end", 0x0001), 0x00000003, nothing)])])) (call core.svec :#self# :x :y) (call core.svec)))
     2   (meta :generated_only)
     3   (return core.nothing)
-19  (latestworld)
+19  latestworld
 20  TestMod.f_only_generated
 21  (return %₂₀)
 
@@ -1505,7 +1505,7 @@ end
 #---------------------
 1   (method TestMod.f_partially_generated)
 2   (method TestMod.#f_partially_generated@generator#0)
-3   (latestworld)
+3   latestworld
 4   TestMod.#f_partially_generated@generator#0
 5   (call core.Typeof %₄)
 6   (call core.svec %₅ JuliaLowering.MacroContext core.Any core.Any core.Any)
@@ -1518,7 +1518,7 @@ end
     2   (call core.tuple %₁)
     3   (call JuliaLowering.interpolate_ast (inert (block (block (= nongen_stuff (call bothgen x y)) ($ (block (call JuliaLowering.interpolate_ast (inert (block (= maybe_gen_stuff (call some_gen_stuff x y))))))) (tuple-p nongen_stuff maybe_gen_stuff)))) %₂)
     4   (return %₃)
-11  (latestworld)
+11  latestworld
 12  TestMod.f_partially_generated
 13  (call core.Typeof %₁₂)
 14  (call core.svec %₁₃ core.Any core.Any)
@@ -1536,7 +1536,7 @@ end
     7   slot₄/maybe_gen_stuff
     8   (call core.tuple %₆ %₇)
     9   (return %₈)
-19  (latestworld)
+19  latestworld
 20  TestMod.f_partially_generated
 21  (return %₂₀)
 

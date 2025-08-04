@@ -46,7 +46,7 @@ begin
 end
 #---------------------
 1   (method TestMod.b)
-2   (latestworld)
+2   latestworld
 3   TestMod.b
 4   (call core.Typeof %₃)
 5   (call core.svec %₄)
@@ -58,7 +58,7 @@ end
     1   TestMod.d
     2   (= slot₂/c %₁)
     3   (return %₁)
-10  (latestworld)
+10  latestworld
 11  TestMod.b
 12  (= slot₁/a %₁₁)
 13  (return %₁₁)
@@ -143,7 +143,7 @@ X{T} = Y{T,T}
 7   (call core.apply_type %₄ %₅ %₆)
 8   (call core.UnionAll %₃ %₇)
 9   (constdecl TestMod.X %₈)
-10  (latestworld)
+10  latestworld
 11  (return %₈)
 
 ########################################
@@ -161,7 +161,7 @@ end
 7   (call core.apply_type %₄ %₅ %₆)
 8   (call core.UnionAll %₃ %₇)
 9   (= slot₁/X %₈)
-10  (latestworld)
+10  latestworld
 11  (return %₈)
 
 ########################################

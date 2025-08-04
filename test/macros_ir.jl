@@ -25,7 +25,7 @@ macro add_one(ex)
 end
 #---------------------
 1   (method TestMod.@add_one)
-2   (latestworld)
+2   latestworld
 3   TestMod.@add_one
 4   (call core.Typeof %₃)
 5   (call core.svec %₄ JuliaLowering.MacroContext core.Any)
@@ -37,7 +37,7 @@ end
     1   (call core.tuple slot₃/ex)
     2   (call JuliaLowering.interpolate_ast (inert (block (call-i ($ ex) + 1))) %₁)
     3   (return %₂)
-10  (latestworld)
+10  latestworld
 11  TestMod.@add_one
 12  (return %₁₁)
 
@@ -48,7 +48,7 @@ macro foo(ex)
 end
 #---------------------
 1   (method TestMod.@foo)
-2   (latestworld)
+2   latestworld
 3   TestMod.@foo
 4   (call core.Typeof %₃)
 5   (call core.svec %₄ JuliaLowering.MacroContext core.Any)
@@ -60,7 +60,7 @@ end
     1   slot₂/__context__
     2   (= slot₄/ctx %₁)
     3   (return %₁)
-10  (latestworld)
+10  latestworld
 11  TestMod.@foo
 12  (return %₁₁)
 

@@ -5,7 +5,7 @@
 1   (call core.svec)
 2   (call core.svec)
 3   (call JuliaLowering.eval_closure_type TestMod :#->##0 %₁ %₂)
-4   (latestworld)
+4   latestworld
 5   TestMod.#->##0
 6   (call core.svec %₅ core.Any)
 7   (call core.svec)
@@ -16,10 +16,10 @@
     1   TestMod.+
     2   (call %₁ slot₂/x 1)
     3   (return %₂)
-11  (latestworld)
+11  latestworld
 12  TestMod.#->##0
 13  (new %₁₂)
-14  (latestworld)
+14  latestworld
 15  TestMod.xs
 16  (call top.Generator %₁₃ %₁₅)
 17  (return %₁₆)
@@ -31,7 +31,7 @@
 1   (call core.svec)
 2   (call core.svec)
 3   (call JuliaLowering.eval_closure_type TestMod :#->##1 %₁ %₂)
-4   (latestworld)
+4   latestworld
 5   TestMod.#->##1
 6   (call core.svec %₅ core.Any)
 7   (call core.svec)
@@ -50,10 +50,10 @@
     9   slot₅/y
     10  (call %₇ %₈ %₉)
     11  (return %₁₀)
-11  (latestworld)
+11  latestworld
 12  TestMod.#->##1
 13  (new %₁₂)
-14  (latestworld)
+14  latestworld
 15  TestMod.xs
 16  TestMod.ys
 17  (call top.product %₁₅ %₁₆)
@@ -67,7 +67,7 @@
 1   (call core.svec)
 2   (call core.svec)
 3   (call JuliaLowering.eval_closure_type TestMod :#->##2 %₁ %₂)
-4   (latestworld)
+4   latestworld
 5   TestMod.#->##2
 6   (call core.svec %₅ core.Any)
 7   (call core.svec)
@@ -85,10 +85,10 @@
     8   slot₄/x
     9   (call %₇ %₈)
     10  (return %₉)
-11  (latestworld)
+11  latestworld
 12  TestMod.#->##2
 13  (new %₁₂)
-14  (latestworld)
+14  latestworld
 15  TestMod.iter
 16  (call top.Filter %₁₃ %₁₅)
 17  (call top.Generator top.identity %₁₆)
@@ -101,7 +101,7 @@
 1   (call core.svec)
 2   (call core.svec)
 3   (call JuliaLowering.eval_closure_type TestMod :#->##3 %₁ %₂)
-4   (latestworld)
+4   latestworld
 5   TestMod.#->##3
 6   (call core.svec %₅ core.Any)
 7   (call core.svec)
@@ -110,10 +110,10 @@
 10  --- method core.nothing %₉
     slots: [slot₁/#self#(!read) slot₂/_(!read)]
     1   (return 1)
-11  (latestworld)
+11  latestworld
 12  TestMod.#->##3
 13  (new %₁₂)
-14  (latestworld)
+14  latestworld
 15  TestMod.xs
 16  (call top.Generator %₁₃ %₁₅)
 17  (return %₁₆)
@@ -133,7 +133,7 @@ LoweringError:
 1   (call core.svec)
 2   (call core.svec)
 3   (call JuliaLowering.eval_closure_type TestMod :#->##5 %₁ %₂)
-4   (latestworld)
+4   latestworld
 5   TestMod.#->##5
 6   (call core.svec %₅ core.Any)
 7   (call core.svec)
@@ -153,10 +153,10 @@ LoweringError:
     10  (= slot₅/y (call core.getfield %₉ 1))
     11  TestMod.body
     12  (return %₁₁)
-11  (latestworld)
+11  latestworld
 12  TestMod.#->##5
 13  (new %₁₂)
-14  (latestworld)
+14  latestworld
 15  TestMod.iter
 16  (call top.Generator %₁₃ %₁₅)
 17  (return %₁₆)
@@ -168,7 +168,7 @@ LoweringError:
 1   (call core.svec)
 2   (call core.svec)
 3   (call JuliaLowering.eval_closure_type TestMod :#->##6 %₁ %₂)
-4   (latestworld)
+4   latestworld
 5   TestMod.#->##6
 6   (call core.svec %₅ core.Any)
 7   (call core.svec)
@@ -178,10 +178,10 @@ LoweringError:
     slots: [slot₁/#self#(!read) slot₂/_(!read)]
     1   (call JuliaLowering.interpolate_ast (inert (return x)))
     2   (return %₁)
-11  (latestworld)
+11  latestworld
 12  TestMod.#->##6
 13  (new %₁₂)
-14  (latestworld)
+14  latestworld
 15  TestMod.iter
 16  (call top.Generator %₁₃ %₁₅)
 17  (return %₁₆)
@@ -201,11 +201,11 @@ LoweringError:
 1   (call core.svec)
 2   (call core.svec)
 3   (call JuliaLowering.eval_closure_type TestMod :#->##7 %₁ %₂)
-4   (latestworld)
+4   latestworld
 5   (call core.svec)
 6   (call core.svec)
 7   (call JuliaLowering.eval_closure_type TestMod :#->#->##0 %₅ %₆)
-8   (latestworld)
+8   latestworld
 9   TestMod.#->#->##0
 10  (call core.svec %₉ core.Any)
 11  (call core.svec)
@@ -217,7 +217,7 @@ LoweringError:
     2   (= slot₃/x %₁)
     3   slot₃/x
     4   (return %₃)
-15  (latestworld)
+15  latestworld
 16  TestMod.#->##7
 17  (call core.svec %₁₆ core.Any)
 18  (call core.svec)
@@ -231,10 +231,10 @@ LoweringError:
     4   (call %₃ 1 2)
     5   (call top.Generator %₂ %₄)
     6   (return %₅)
-22  (latestworld)
+22  latestworld
 23  TestMod.#->##7
 24  (new %₂₃)
-25  (latestworld)
+25  latestworld
 26  TestMod.:
 27  (call %₂₆ 1 3)
 28  (call top.Generator %₂₄ %₂₇)

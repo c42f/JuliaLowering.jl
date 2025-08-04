@@ -15,12 +15,12 @@ end
 5   (call core.svec :x)
 6   (call core.svec true)
 7   (call JuliaLowering.eval_closure_type TestMod :#f##0 %₅ %₆)
-8   (latestworld)
+8   latestworld
 9   TestMod.#f##0
 10  slot₂/x
 11  (new %₉ %₁₀)
 12  (= slot₁/f %₁₁)
-13  (latestworld)
+13  latestworld
 14  TestMod.#f##0
 15  (call core.svec %₁₄ core.Any)
 16  (call core.svec)
@@ -38,7 +38,7 @@ end
     8   (call core.getfield %₂ :contents)
     9   (call %₁ %₈ slot₂/y)
     10  (return %₉)
-20  (latestworld)
+20  latestworld
 21  slot₁/f
 22  (return %₂₁)
 
@@ -53,11 +53,11 @@ end
 1   (call core.svec)
 2   (call core.svec)
 3   (call JuliaLowering.eval_closure_type TestMod :#no_method_f##0 %₁ %₂)
-4   (latestworld)
+4   latestworld
 5   TestMod.#no_method_f##0
 6   (new %₅)
 7   (= slot₁/no_method_f %₆)
-8   (latestworld)
+8   latestworld
 9   slot₁/no_method_f
 10  (return %₉)
 
@@ -77,12 +77,12 @@ end
 5   (call core.svec :x)
 6   (call core.svec true)
 7   (call JuliaLowering.eval_closure_type TestMod :#f##1 %₅ %₆)
-8   (latestworld)
+8   latestworld
 9   TestMod.#f##1
 10  slot₂/x
 11  (new %₉ %₁₀)
 12  (= slot₁/f %₁₁)
-13  (latestworld)
+13  latestworld
 14  TestMod.#f##1
 15  (call core.svec %₁₄ core.Any)
 16  (call core.svec)
@@ -94,7 +94,7 @@ end
     2   (call core.getfield slot₁/#self# :x)
     3   (call core.setfield! %₂ :contents %₁)
     4   (return %₁)
-20  (latestworld)
+20  latestworld
 21  slot₁/f
 22  (return %₂₁)
 
@@ -109,11 +109,11 @@ function f(x)
 end
 #---------------------
 1   (method TestMod.f)
-2   (latestworld)
+2   latestworld
 3   (call core.svec :x)
 4   (call core.svec true)
 5   (call JuliaLowering.eval_closure_type TestMod :#f#g##0 %₃ %₄)
-6   (latestworld)
+6   latestworld
 7   TestMod.#f#g##0
 8   (call core.svec %₇)
 9   (call core.svec)
@@ -125,7 +125,7 @@ end
     2   (call core.getfield slot₁/#self# :x)
     3   (call core.setfield! %₂ :contents %₁)
     4   (return %₁)
-13  (latestworld)
+13  latestworld
 14  TestMod.f
 15  (call core.Typeof %₁₄)
 16  (call core.svec %₁₅ core.Any)
@@ -148,7 +148,7 @@ end
     12  slot₄/x
     13  (call core.getfield %₇ :contents)
     14  (return %₁₃)
-21  (latestworld)
+21  latestworld
 22  TestMod.f
 23  (return %₂₂)
 
@@ -162,11 +162,11 @@ function f(x)
 end
 #---------------------
 1   (method TestMod.f)
-2   (latestworld)
+2   latestworld
 3   (call core.svec :x)
 4   (call core.svec false)
 5   (call JuliaLowering.eval_closure_type TestMod :#f#g##1 %₃ %₄)
-6   (latestworld)
+6   latestworld
 7   TestMod.#f#g##1
 8   (call core.svec %₇)
 9   (call core.svec)
@@ -177,7 +177,7 @@ end
     1   (call core.getfield slot₁/#self# :x)
     2   (= slot₂/y %₁)
     3   (return %₁)
-13  (latestworld)
+13  latestworld
 14  TestMod.f
 15  (call core.Typeof %₁₄)
 16  (call core.svec %₁₅ core.Any)
@@ -194,7 +194,7 @@ end
     6   slot₂/x
     7   (= slot₄/z %₆)
     8   (return %₆)
-21  (latestworld)
+21  latestworld
 22  TestMod.f
 23  (return %₂₂)
 
@@ -207,11 +207,11 @@ function f(::T) where T
 end
 #---------------------
 1   (method TestMod.f)
-2   (latestworld)
+2   latestworld
 3   (call core.svec :T)
 4   (call core.svec false)
 5   (call JuliaLowering.eval_closure_type TestMod :#f#g##2 %₃ %₄)
-6   (latestworld)
+6   latestworld
 7   TestMod.#f#g##2
 8   (call core.svec %₇)
 9   (call core.svec)
@@ -223,7 +223,7 @@ end
     2   (call core.getfield slot₁/#self# :T)
     3   (call %₁ %₂)
     4   (return %₃)
-13  (latestworld)
+13  latestworld
 14  (= slot₁/T (call core.TypeVar :T))
 15  TestMod.f
 16  (call core.Typeof %₁₅)
@@ -244,7 +244,7 @@ end
     7   (= slot₃/g %₆)
     8   slot₃/g
     9   (return %₈)
-24  (latestworld)
+24  latestworld
 25  TestMod.f
 26  (return %₂₅)
 
@@ -263,11 +263,11 @@ function f(x)
 end
 #---------------------
 1   (method TestMod.f)
-2   (latestworld)
+2   latestworld
 3   (call core.svec :x :y)
 4   (call core.svec false true)
 5   (call JuliaLowering.eval_closure_type TestMod :#f#g##3 %₃ %₄)
-6   (latestworld)
+6   latestworld
 7   TestMod.#f#g##3
 8   (call core.svec %₇)
 9   (call core.svec)
@@ -281,7 +281,7 @@ end
     4   (isdefined slot₂/z)
     5   (call core.tuple true %₃ %₄)
     6   (return %₅)
-13  (latestworld)
+13  latestworld
 14  TestMod.f
 15  (call core.Typeof %₁₄)
 16  (call core.svec %₁₅ core.Any)
@@ -304,7 +304,7 @@ end
     12  (call core.isdefined %₁₁ :contents)
     13  (call core.tuple %₁₂ true)
     14  (return %₁₃)
-21  (latestworld)
+21  latestworld
 22  TestMod.f
 23  (return %₂₂)
 
@@ -346,7 +346,7 @@ end
 3   slot₁/x
 4   (call core.setfield! %₃ :contents %₂)
 5   (method TestMod.f)
-6   (latestworld)
+6   latestworld
 7   TestMod.f
 8   (call core.Typeof %₇)
 9   (call core.svec %₈)
@@ -371,7 +371,7 @@ end
 15  (call core.svec %₁₄)
 16  (call JuliaLowering.replace_captured_locals! %₁₃ %₁₅)
 17  --- method core.nothing %₁₂ %₁₆
-18  (latestworld)
+18  latestworld
 19  TestMod.f
 20  (return %₁₉)
 
@@ -382,10 +382,10 @@ x -> x*x
 1   (call core.svec)
 2   (call core.svec)
 3   (call JuliaLowering.eval_closure_type TestMod :#->##0 %₁ %₂)
-4   (latestworld)
+4   latestworld
 5   TestMod.#->##0
 6   (new %₅)
-7   (latestworld)
+7   latestworld
 8   TestMod.#->##0
 9   (call core.svec %₈ core.Any)
 10  (call core.svec)
@@ -396,7 +396,7 @@ x -> x*x
     1   TestMod.*
     2   (call %₁ slot₂/x slot₂/x)
     3   (return %₂)
-14  (latestworld)
+14  latestworld
 15  (return %₆)
 
 ########################################
@@ -408,10 +408,10 @@ end
 1   (call core.svec)
 2   (call core.svec)
 3   (call JuliaLowering.eval_closure_type TestMod :##anon###0 %₁ %₂)
-4   (latestworld)
+4   latestworld
 5   TestMod.##anon###0
 6   (new %₅)
-7   (latestworld)
+7   latestworld
 8   TestMod.##anon###0
 9   (call core.svec %₈ core.Any)
 10  (call core.svec)
@@ -422,7 +422,7 @@ end
     1   TestMod.*
     2   (call %₁ slot₂/x slot₂/x)
     3   (return %₂)
-14  (latestworld)
+14  latestworld
 15  (return %₆)
 
 ########################################
@@ -439,7 +439,7 @@ end
 6   (call core.svec)
 7   (call core.svec)
 8   (call JuliaLowering.eval_closure_type TestMod :#do##0 %₆ %₇)
-9   (latestworld)
+9   latestworld
 10  TestMod.#do##0
 11  (call core.svec %₁₀ core.Any)
 12  (call core.svec)
@@ -450,10 +450,10 @@ end
     1   TestMod.+
     2   (call %₁ slot₂/y 2)
     3   (return %₂)
-16  (latestworld)
+16  latestworld
 17  TestMod.#do##0
 18  (new %₁₇)
-19  (latestworld)
+19  latestworld
 20  TestMod.x
 21  (call core.kwcall %₅ %₁ %₁₈ %₂₀)
 22  (return %₂₁)
@@ -545,13 +545,13 @@ end
 3   (call core.svec :recursive_b)
 4   (call core.svec true)
 5   (call JuliaLowering.eval_closure_type TestMod :#recursive_a##0 %₃ %₄)
-6   (latestworld)
+6   latestworld
 7   TestMod.#recursive_a##0
 8   slot₂/recursive_b
 9   (new %₇ %₈)
 10  slot₁/recursive_a
 11  (call core.setfield! %₁₀ :contents %₉)
-12  (latestworld)
+12  latestworld
 13  TestMod.#recursive_a##0
 14  (call core.svec %₁₃)
 15  (call core.svec)
@@ -568,17 +568,17 @@ end
     7   (call core.getfield %₁ :contents)
     8   (call %₇)
     9   (return %₈)
-19  (latestworld)
+19  latestworld
 20  (call core.svec :recursive_a)
 21  (call core.svec true)
 22  (call JuliaLowering.eval_closure_type TestMod :#recursive_b##0 %₂₀ %₂₁)
-23  (latestworld)
+23  latestworld
 24  TestMod.#recursive_b##0
 25  slot₁/recursive_a
 26  (new %₂₄ %₂₅)
 27  slot₂/recursive_b
 28  (call core.setfield! %₂₇ :contents %₂₆)
-29  (latestworld)
+29  latestworld
 30  TestMod.#recursive_b##0
 31  (call core.svec %₃₀)
 32  (call core.svec)
@@ -595,7 +595,7 @@ end
     7   (call core.getfield %₁ :contents)
     8   (call %₇)
     9   (return %₈)
-36  (latestworld)
+36  latestworld
 37  slot₂/recursive_b
 38  (call core.isdefined %₃₇ :contents)
 39  (gotoifnot %₃₈ label₄₁)
@@ -621,7 +621,7 @@ end
 6   (call core.svec :#f_kw_closure#0)
 7   (call core.svec true)
 8   (call JuliaLowering.eval_closure_type TestMod :#f_kw_closure##0 %₆ %₇)
-9   (latestworld)
+9   latestworld
 10  TestMod.#f_kw_closure##0
 11  slot₂/#f_kw_closure#0
 12  (new %₁₀ %₁₁)
@@ -629,13 +629,13 @@ end
 14  (call core.svec :y)
 15  (call core.svec true)
 16  (call JuliaLowering.eval_closure_type TestMod :##f_kw_closure#0##0 %₁₄ %₁₅)
-17  (latestworld)
+17  latestworld
 18  TestMod.##f_kw_closure#0##0
 19  slot₁/y
 20  (new %₁₈ %₁₉)
 21  slot₂/#f_kw_closure#0
 22  (call core.setfield! %₂₁ :contents %₂₀)
-23  (latestworld)
+23  latestworld
 24  TestMod.##f_kw_closure#0##0
 25  TestMod.X
 26  TestMod.#f_kw_closure##0
@@ -656,7 +656,7 @@ end
     9   (call core.getfield %₃ :contents)
     10  (call %₂ slot₂/x %₉)
     11  (return %₁₀)
-32  (latestworld)
+32  latestworld
 33  (call core.typeof core.kwcall)
 34  TestMod.#f_kw_closure##0
 35  (call core.svec %₃₃ core.NamedTuple %₃₄)
@@ -701,7 +701,7 @@ end
 41  (call core.svec %₄₀)
 42  (call JuliaLowering.replace_captured_locals! %₃₉ %₄₁)
 43  --- method core.nothing %₃₈ %₄₂
-44  (latestworld)
+44  latestworld
 45  TestMod.#f_kw_closure##0
 46  (call core.svec %₄₅)
 47  (call core.svec)
@@ -719,7 +719,7 @@ end
     8   TestMod.x_default
     9   (call %₇ %₈ slot₁/#self#)
     10  (return %₉)
-51  (latestworld)
+51  latestworld
 52  slot₃/f_kw_closure
 53  (return %₅₂)
 

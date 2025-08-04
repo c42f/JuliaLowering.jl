@@ -194,7 +194,7 @@ abstract type A end
 5   slot₁/A
 6   (call core._typebody! false %₅)
 7   (global TestMod.A)
-8   (latestworld)
+8   latestworld
 9   (call core.isdefinedglobal TestMod :A false)
 10  (gotoifnot %₉ label₁₅)
 11  TestMod.A
@@ -202,7 +202,7 @@ abstract type A end
 13  (gotoifnot %₁₂ label₁₅)
 14  (goto label₁₆)
 15  (constdecl TestMod.A %₂)
-16  (latestworld)
+16  latestworld
 17  (return core.nothing)
 
 ########################################
@@ -217,7 +217,7 @@ abstract type A <: B end
 6   slot₁/A
 7   (call core._typebody! false %₆)
 8   (global TestMod.A)
-9   (latestworld)
+9   latestworld
 10  (call core.isdefinedglobal TestMod :A false)
 11  (gotoifnot %₁₀ label₁₆)
 12  TestMod.A
@@ -225,7 +225,7 @@ abstract type A <: B end
 14  (gotoifnot %₁₃ label₁₆)
 15  (goto label₁₇)
 16  (constdecl TestMod.A %₂)
-17  (latestworld)
+17  latestworld
 18  (return core.nothing)
 
 ########################################
@@ -244,7 +244,7 @@ abstract type A{X, Y <: X} end
 10  slot₁/A
 11  (call core._typebody! false %₁₀)
 12  (global TestMod.A)
-13  (latestworld)
+13  latestworld
 14  (call core.isdefinedglobal TestMod :A false)
 15  (gotoifnot %₁₄ label₂₀)
 16  TestMod.A
@@ -252,7 +252,7 @@ abstract type A{X, Y <: X} end
 18  (gotoifnot %₁₇ label₂₀)
 19  (goto label₂₁)
 20  (constdecl TestMod.A %₇)
-21  (latestworld)
+21  latestworld
 22  (return core.nothing)
 
 ########################################
@@ -302,7 +302,7 @@ primitive type P 8 end
 5   slot₁/P
 6   (call core._typebody! false %₅)
 7   (global TestMod.P)
-8   (latestworld)
+8   latestworld
 9   (call core.isdefinedglobal TestMod :P false)
 10  (gotoifnot %₉ label₁₅)
 11  TestMod.P
@@ -310,7 +310,7 @@ primitive type P 8 end
 13  (gotoifnot %₁₂ label₁₅)
 14  (goto label₁₆)
 15  (constdecl TestMod.P %₂)
-16  (latestworld)
+16  latestworld
 17  (return core.nothing)
 
 ########################################
@@ -329,7 +329,7 @@ primitive type P{X,Y} <: Z 32 end
 10  slot₁/P
 11  (call core._typebody! false %₁₀)
 12  (global TestMod.P)
-13  (latestworld)
+13  latestworld
 14  (call core.isdefinedglobal TestMod :P false)
 15  (gotoifnot %₁₄ label₂₀)
 16  TestMod.P
@@ -337,7 +337,7 @@ primitive type P{X,Y} <: Z 32 end
 18  (gotoifnot %₁₇ label₂₀)
 19  (goto label₂₁)
 20  (constdecl TestMod.P %₆)
-21  (latestworld)
+21  latestworld
 22  (return core.nothing)
 
 ########################################
@@ -353,7 +353,7 @@ primitive type P P_nbits() end
 7   slot₁/P
 8   (call core._typebody! false %₇)
 9   (global TestMod.P)
-10  (latestworld)
+10  latestworld
 11  (call core.isdefinedglobal TestMod :P false)
 12  (gotoifnot %₁₁ label₁₇)
 13  TestMod.P
@@ -361,7 +361,7 @@ primitive type P P_nbits() end
 15  (gotoifnot %₁₄ label₁₇)
 16  (goto label₁₈)
 17  (constdecl TestMod.P %₄)
-18  (latestworld)
+18  latestworld
 19  (return core.nothing)
 
 ########################################
@@ -370,7 +370,7 @@ struct X
 end
 #---------------------
 1   (global TestMod.X)
-2   (latestworld)
+2   latestworld
 3   (call core.svec)
 4   (call core.svec)
 5   (call core.svec)
@@ -394,7 +394,7 @@ end
 23  (call core.svec)
 24  (call core._typebody! %₂₁ %₆ %₂₃)
 25  (constdecl TestMod.X %₂₄)
-26  (latestworld)
+26  latestworld
 27  TestMod.X
 28  (call core.apply_type core.Type %₂₇)
 29  (call core.svec %₂₈)
@@ -406,7 +406,7 @@ end
     1   TestMod.X
     2   (new %₁)
     3   (return %₂)
-34  (latestworld)
+34  latestworld
 35  (return core.nothing)
 
 ########################################
@@ -418,7 +418,7 @@ struct X
 end
 #---------------------
 1   (global TestMod.X)
-2   (latestworld)
+2   latestworld
 3   (call core.svec)
 4   (call core.svec :a :b :c)
 5   (call core.svec)
@@ -443,12 +443,12 @@ end
 24  (call core.svec core.Any %₂₃ core.Any)
 25  (call core._typebody! %₂₁ %₆ %₂₄)
 26  (constdecl TestMod.X %₂₅)
-27  (latestworld)
+27  latestworld
 28  TestMod.T
 29  (call core.=== core.Any %₂₈)
 30  (gotoifnot %₂₉ label₃₂)
 31  (goto label₄₁)
-32  (latestworld)
+32  latestworld
 33  TestMod.X
 34  (call core.apply_type core.Type %₃₃)
 35  (call core.svec %₃₄ core.Any core.Any core.Any)
@@ -469,8 +469,8 @@ end
     10  slot₅/tmp
     11  (new slot₁/#ctor-self# slot₂/a %₁₀ slot₄/c)
     12  (return %₁₁)
-40  (latestworld)
-41  (latestworld)
+40  latestworld
+41  latestworld
 42  TestMod.X
 43  (call core.apply_type core.Type %₄₂)
 44  TestMod.T
@@ -483,7 +483,7 @@ end
     1   TestMod.X
     2   (new %₁ slot₂/a slot₃/b slot₄/c)
     3   (return %₂)
-50  (latestworld)
+50  latestworld
 51  (return core.nothing)
 
 ########################################
@@ -492,7 +492,7 @@ struct X{U, S <: V <: T} <: Z
 end
 #---------------------
 1   (global TestMod.X)
-2   (latestworld)
+2   latestworld
 3   (= slot₂/U (call core.TypeVar :U))
 4   TestMod.S
 5   TestMod.T
@@ -533,7 +533,7 @@ end
 40  (call core.svec)
 41  (call core._typebody! %₂₈ %₁₂ %₄₀)
 42  (constdecl TestMod.X %₄₁)
-43  (latestworld)
+43  latestworld
 44  slot₂/U
 45  slot₃/V
 46  TestMod.X
@@ -551,7 +551,7 @@ end
     slots: [slot₁/#ctor-self#]
     1   (new slot₁/#ctor-self#)
     2   (return %₁)
-58  (latestworld)
+58  latestworld
 59  (return core.nothing)
 
 ########################################
@@ -563,7 +563,7 @@ struct X
 end
 #---------------------
 1   (global TestMod.X)
-2   (latestworld)
+2   latestworld
 3   (call core.svec)
 4   (call core.svec :a :b :c)
 5   (call core.svec 1 :const 2 :atomic 3 :atomic 3 :const)
@@ -587,7 +587,7 @@ end
 23  (call core.svec core.Any core.Any core.Any)
 24  (call core._typebody! %₂₁ %₆ %₂₃)
 25  (constdecl TestMod.X %₂₄)
-26  (latestworld)
+26  latestworld
 27  TestMod.X
 28  (call core.apply_type core.Type %₂₇)
 29  (call core.svec %₂₈ core.Any core.Any core.Any)
@@ -599,7 +599,7 @@ end
     1   TestMod.X
     2   (new %₁ slot₂/a slot₃/b slot₄/c)
     3   (return %₂)
-34  (latestworld)
+34  latestworld
 35  (return core.nothing)
 
 ########################################
@@ -615,7 +615,7 @@ struct X
 end
 #---------------------
 1   (global TestMod.X)
-2   (latestworld)
+2   latestworld
 3   (call core.svec)
 4   (call core.svec :a :b)
 5   (call core.svec)
@@ -639,7 +639,7 @@ end
 23  (call core.svec core.Any core.Any)
 24  (call core._typebody! %₂₁ %₆ %₂₃)
 25  (constdecl TestMod.X %₂₄)
-26  (latestworld)
+26  latestworld
 27  TestMod.X
 28  (call core.apply_type core.Type %₂₇)
 29  (call core.svec %₂₈ core.Any core.Any)
@@ -651,7 +651,7 @@ end
     1   TestMod.X
     2   (new %₁ slot₂/a slot₃/b)
     3   (return %₂)
-34  (latestworld)
+34  latestworld
 35  JuliaLowering.bind_docs!
 36  (call core.tuple :field_docs)
 37  (call core.apply_type core.NamedTuple %₃₆)
@@ -670,7 +670,7 @@ struct X{U}
 end
 #---------------------
 1   (global TestMod.X)
-2   (latestworld)
+2   latestworld
 3   (= slot₁/U (call core.TypeVar :U))
 4   slot₁/U
 5   (call core.svec %₄)
@@ -702,7 +702,7 @@ end
 31  (call core.svec %₃₀)
 32  (call core._typebody! %₂₃ %₈ %₃₁)
 33  (constdecl TestMod.X %₃₂)
-34  (latestworld)
+34  latestworld
 35  slot₁/U
 36  TestMod.X
 37  slot₁/U
@@ -727,7 +727,7 @@ end
     10  slot₃/tmp
     11  (new slot₁/#ctor-self# %₁₀)
     12  (return %₁₁)
-46  (latestworld)
+46  latestworld
 47  TestMod.X
 48  (call core.apply_type core.Type %₄₇)
 49  slot₁/U
@@ -743,7 +743,7 @@ end
     3   (call core.apply_type %₁ %₂)
     4   (new %₃ slot₂/x)
     5   (return %₄)
-56  (latestworld)
+56  latestworld
 57  (return core.nothing)
 
 ########################################
@@ -754,7 +754,7 @@ struct X{T, S <: Vector{T}}
 end
 #---------------------
 1   (global TestMod.X)
-2   (latestworld)
+2   latestworld
 3   (= slot₃/T (call core.TypeVar :T))
 4   TestMod.Vector
 5   slot₃/T
@@ -798,7 +798,7 @@ end
 43  (call core.svec %₄₂)
 44  (call core._typebody! %₂₈ %₁₃ %₄₃)
 45  (constdecl TestMod.X %₄₄)
-46  (latestworld)
+46  latestworld
 47  slot₃/T
 48  slot₂/S
 49  TestMod.X
@@ -826,7 +826,7 @@ end
     10  slot₃/tmp
     11  (new slot₁/#ctor-self# %₁₀)
     12  (return %₁₁)
-61  (latestworld)
+61  latestworld
 62  TestMod.X
 63  (call core.apply_type core.Type %₆₂)
 64  TestMod.Vector
@@ -846,7 +846,7 @@ end
     4   (call core.apply_type %₁ %₂ %₃)
     5   (new %₄ slot₂/v)
     6   (return %₅)
-74  (latestworld)
+74  latestworld
 75  (return core.nothing)
 
 ########################################
@@ -865,7 +865,7 @@ end
 #---------------------
 1   (= slot₂/f (call core.Box))
 2   (global TestMod.X)
-3   (latestworld)
+3   latestworld
 4   (call core.svec)
 5   (call core.svec :x)
 6   (call core.svec)
@@ -889,16 +889,16 @@ end
 24  (call core.svec core.Any)
 25  (call core._typebody! %₂₂ %₇ %₂₄)
 26  (constdecl TestMod.X %₂₅)
-27  (latestworld)
+27  latestworld
 28  (call core.svec)
 29  (call core.svec)
 30  (call JuliaLowering.eval_closure_type TestMod :#f##0 %₂₈ %₂₉)
-31  (latestworld)
+31  latestworld
 32  TestMod.#f##0
 33  (new %₃₂)
 34  slot₂/f
 35  (call core.setfield! %₃₄ :contents %₃₃)
-36  (latestworld)
+36  latestworld
 37  TestMod.#f##0
 38  (call core.svec %₃₇)
 39  (call core.svec)
@@ -909,7 +909,7 @@ end
     1   TestMod.X
     2   (new %₁ 1)
     3   (return %₂)
-43  (latestworld)
+43  latestworld
 44  TestMod.X
 45  (call core.apply_type core.Type %₄₄)
 46  (call core.svec %₄₅)
@@ -931,7 +931,7 @@ end
 52  (call core.svec %₅₁)
 53  (call JuliaLowering.replace_captured_locals! %₅₀ %₅₂)
 54  --- method core.nothing %₄₉ %₅₃
-55  (latestworld)
+55  latestworld
 56  TestMod.X
 57  (call core.apply_type core.Type %₅₆)
 58  (call core.svec %₅₇ core.Any)
@@ -943,7 +943,7 @@ end
     1   slot₁/#ctor-self#
     2   (new %₁ slot₂/x)
     3   (return %₂)
-63  (latestworld)
+63  latestworld
 64  TestMod.X
 65  (call core.apply_type core.Type %₆₄)
 66  (call core.svec %₆₅ core.Any core.Any)
@@ -966,7 +966,7 @@ end
     12  (= slot₄/tmp (call core.typeassert %₁₁ %₁))
     13  slot₄/tmp
     14  (return %₁₃)
-71  (latestworld)
+71  latestworld
 72  TestMod.X
 73  (call core.apply_type core.Type %₇₂)
 74  (call core.svec %₇₃ core.Any core.Any core.Any)
@@ -978,7 +978,7 @@ end
     1   slot₁/#ctor-self#
     2   (new %₁ slot₂/a)
     3   (return %₂)
-79  (latestworld)
+79  latestworld
 80  TestMod.X
 81  (call core.apply_type core.Type %₈₀)
 82  (call JuliaLowering.bind_docs! %₈₁ "Docs for X constructor\n" %₇₇)
@@ -995,7 +995,7 @@ end
 #---------------------
 1   (newvar slot₅/f)
 2   (global TestMod.X)
-3   (latestworld)
+3   latestworld
 4   (= slot₂/S (call core.TypeVar :S))
 5   (= slot₃/T (call core.TypeVar :T))
 6   slot₂/S
@@ -1033,7 +1033,7 @@ end
 38  (call core.svec core.Any)
 39  (call core._typebody! %₂₆ %₁₁ %₃₈)
 40  (constdecl TestMod.X %₃₉)
-41  (latestworld)
+41  latestworld
 42  TestMod.X
 43  TestMod.A
 44  TestMod.B
@@ -1048,7 +1048,7 @@ end
     1   slot₁/#ctor-self#
     2   (new %₁ 1)
     3   (return %₂)
-52  (latestworld)
+52  latestworld
 53  (= slot₆/U (call core.TypeVar :U))
 54  (= slot₇/V (call core.TypeVar :V))
 55  TestMod.X
@@ -1067,15 +1067,15 @@ end
     1   slot₁/#ctor-self#
     2   (new %₁ 1)
     3   (return %₂)
-67  (latestworld)
+67  latestworld
 68  (call core.svec)
 69  (call core.svec)
 70  (call JuliaLowering.eval_closure_type TestMod :#f##1 %₆₈ %₆₉)
-71  (latestworld)
+71  latestworld
 72  TestMod.#f##1
 73  (new %₇₂)
 74  (= slot₅/f %₇₃)
-75  (latestworld)
+75  latestworld
 76  TestMod.#f##1
 77  (call core.svec %₇₆)
 78  (call core.svec)
@@ -1089,7 +1089,7 @@ end
     4   (call core.apply_type %₁ %₂ %₃)
     5   (new %₄ 1)
     6   (return %₅)
-82  (latestworld)
+82  latestworld
 83  (return core.nothing)
 
 ########################################
@@ -1101,7 +1101,7 @@ struct X
 end
 #---------------------
 1   (global TestMod.X)
-2   (latestworld)
+2   latestworld
 3   (call core.svec)
 4   (call core.svec :x :y)
 5   (call core.svec)
@@ -1125,7 +1125,7 @@ end
 23  (call core.svec core.Any core.Any)
 24  (call core._typebody! %₂₁ %₆ %₂₃)
 25  (constdecl TestMod.X %₂₄)
-26  (latestworld)
+26  latestworld
 27  TestMod.X
 28  (call core.apply_type core.Type %₂₇)
 29  (call core.svec %₂₈ core.Any)
@@ -1138,7 +1138,7 @@ end
     2   (call core._apply_iterate top.iterate core.tuple slot₂/xs)
     3   (splatnew %₁ %₂)
     4   (return %₃)
-34  (latestworld)
+34  latestworld
 35  (return core.nothing)
 
 ########################################
@@ -1150,7 +1150,7 @@ struct X{T}
 end
 #---------------------
 1   (global TestMod.X)
-2   (latestworld)
+2   latestworld
 3   (= slot₁/T (call core.TypeVar :T))
 4   slot₁/T
 5   (call core.svec %₄)
@@ -1183,7 +1183,7 @@ end
 32  (call core.svec %₃₀ %₃₁)
 33  (call core._typebody! %₂₃ %₈ %₃₂)
 34  (constdecl TestMod.X %₃₃)
-35  (latestworld)
+35  latestworld
 36  (= slot₃/T (call core.TypeVar :T))
 37  TestMod.X
 38  slot₃/T
@@ -1227,7 +1227,7 @@ end
     29  slot₄/tmp
     30  (new %₁₁ %₂₀ %₂₉)
     31  (return %₃₀)
-47  (latestworld)
+47  latestworld
 48  (return core.nothing)
 
 ########################################

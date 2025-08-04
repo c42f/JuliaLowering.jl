@@ -1853,7 +1853,7 @@ function expand_call(ctx, ex)
                 expand_forms_2(ctx, farg)
                 expand_forms_2(ctx, args)...
             ]]
-            [K"latestworld_if_toplevel"]
+            (::K"latestworld_if_toplevel")
             r
         ]
     else

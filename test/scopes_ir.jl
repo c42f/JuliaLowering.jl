@@ -73,11 +73,11 @@ end
 1   (call core.svec)
 2   (call core.svec)
 3   (call JuliaLowering.eval_closure_type TestMod :#f##0 %₁ %₂)
-4   (latestworld)
+4   latestworld
 5   TestMod.#f##0
 6   (new %₅)
 7   (= slot₁/f %₆)
-8   (latestworld)
+8   latestworld
 9   TestMod.#f##0
 10  (call core.svec %₉)
 11  (call core.svec)
@@ -87,7 +87,7 @@ end
     slots: [slot₁/#self#(!read)]
     1   TestMod.body
     2   (return %₁)
-15  (latestworld)
+15  latestworld
 16  (return core.nothing)
 
 ########################################
@@ -145,7 +145,7 @@ end
 3   slot₁/y
 4   (call core.setfield! %₃ :contents %₂)
 5   (method TestMod.f)
-6   (latestworld)
+6   latestworld
 7   TestMod.f
 8   (call core.Typeof %₇)
 9   (call core.svec %₈ core.Any)
@@ -156,7 +156,7 @@ end
     slots: [slot₁/#self#(!read) slot₂/x(!read)]
     1   (call core.tuple false true true)
     2   (return %₁)
-14  (latestworld)
+14  latestworld
 15  TestMod.f
 16  (return %₁₅)
 
@@ -168,7 +168,7 @@ begin
 end
 #---------------------
 1   (global TestMod.x)
-2   (latestworld)
+2   latestworld
 3   (return false)
 
 ########################################
@@ -181,7 +181,7 @@ end
 #---------------------
 1   (newvar slot₁/y)
 2   (global TestMod.x)
-3   (latestworld)
+3   latestworld
 4   (call core.apply_type top.Dict core.Symbol core.Any)
 5   (call %₄)
 6   (isdefined slot₁/y)
@@ -197,7 +197,7 @@ function f(z)
 end
 #---------------------
 1   (method TestMod.f)
-2   (latestworld)
+2   latestworld
 3   TestMod.f
 4   (call core.Typeof %₃)
 5   (call core.svec %₄ core.Any)
@@ -211,7 +211,7 @@ end
     3   (gotoifnot true label₅)
     4   (call top.setindex! %₂ slot₂/z :z)
     5   (return %₂)
-10  (latestworld)
+10  latestworld
 11  TestMod.f
 12  (return %₁₁)
 

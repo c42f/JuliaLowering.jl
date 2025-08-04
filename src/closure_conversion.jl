@@ -391,7 +391,7 @@ function _convert_closures(ctx::ClosureConversionCtx, ex)
                     type_for_closure(ctx, ex, name_str, field_syms, field_is_box)
                 if !ctx.is_toplevel_seq_point
                     push!(ctx.toplevel_stmts, closure_type_def)
-                    push!(ctx.toplevel_stmts, @ast ctx ex [K"latestworld_if_toplevel"])
+                    push!(ctx.toplevel_stmts, @ast ctx ex (::K"latestworld_if_toplevel"))
                     closure_type_def = nothing
                 end
                 closure_info = ClosureInfo(closure_type_, field_syms, field_inds)
@@ -416,7 +416,7 @@ function _convert_closures(ctx::ClosureConversionCtx, ex)
                 end
                 @ast ctx ex [K"block"
                     closure_type_def
-                    [K"latestworld_if_toplevel"]
+                    (::K"latestworld_if_toplevel")
                     closure_type := if isempty(type_params)
                         closure_type_
                     else

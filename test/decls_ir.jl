@@ -23,7 +23,7 @@ const xx = 10
 #---------------------
 1   10
 2   (constdecl TestMod.xx %₁)
-3   (latestworld)
+3   latestworld
 4   (return %₁)
 
 ########################################
@@ -41,7 +41,7 @@ const xx::T = 10
 9   (= slot₁/tmp (call core.typeassert %₈ %₁))
 10  slot₁/tmp
 11  (constdecl TestMod.xx %₁₀)
-12  (latestworld)
+12  latestworld
 13  (return %₁₀)
 
 ########################################
@@ -59,7 +59,7 @@ const c0 = v0 = v1 = 123
 1   123
 2   (constdecl TestMod.c0 %₁)
 3   (globaldecl TestMod.v0)
-4   (latestworld)
+4   latestworld
 5   (call core.get_binding_type TestMod :v0)
 6   (= slot₁/tmp %₁)
 7   slot₁/tmp
@@ -71,7 +71,7 @@ const c0 = v0 = v1 = 123
 13  slot₁/tmp
 14  (call core.setglobal! TestMod :v0 %₁₃)
 15  (globaldecl TestMod.v1)
-16  (latestworld)
+16  latestworld
 17  (call core.get_binding_type TestMod :v1)
 18  (= slot₂/tmp %₁)
 19  slot₂/tmp
@@ -89,7 +89,7 @@ const c0 = v0 = v1 = 123
 xx = 10
 #---------------------
 1   (globaldecl TestMod.xx)
-2   (latestworld)
+2   latestworld
 3   (call core.get_binding_type TestMod :xx)
 4   (= slot₁/tmp 10)
 5   slot₁/tmp
@@ -107,11 +107,11 @@ xx = 10
 global xx::T = 10
 #---------------------
 1   (globaldecl TestMod.xx TestMod.T)
-2   (latestworld)
+2   latestworld
 3   (global TestMod.xx)
-4   (latestworld)
+4   latestworld
 5   (globaldecl TestMod.xx)
-6   (latestworld)
+6   latestworld
 7   (call core.get_binding_type TestMod :xx)
 8   (= slot₁/tmp 10)
 9   slot₁/tmp
@@ -167,7 +167,7 @@ function f(x)
 end
 #---------------------
 1   (method TestMod.f)
-2   (latestworld)
+2   latestworld
 3   TestMod.f
 4   (call core.Typeof %₃)
 5   (call core.svec %₄ core.Any)
@@ -202,7 +202,7 @@ end
     24  (= slot₂/x %₂₃)
     25  slot₂/x
     26  (return %₂₅)
-10  (latestworld)
+10  latestworld
 11  TestMod.f
 12  (return %₁₁)
 
