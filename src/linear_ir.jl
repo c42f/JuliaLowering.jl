@@ -666,7 +666,6 @@ function compile(ctx::LinearIRContext, ex, needs_value, in_tail_pos)
                 if in_tail_pos
                     emit_return(ctx, ex, r)
                 else
-                    @assert false "If this code is reachable, add a test case"
                     r
                 end
             else

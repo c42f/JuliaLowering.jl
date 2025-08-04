@@ -24,6 +24,21 @@ end
 6   (return %₂)
 
 ########################################
+# Assignment in value but not tail position
+let
+    x = begin
+        y = 42
+    end
+    x
+end
+#---------------------
+1   42
+2   (= slot₂/y %₁)
+3   (= slot₁/x %₁)
+4   slot₁/x
+5   (return %₄)
+
+########################################
 # short form function def, not chain of assignments
 begin
     local a
