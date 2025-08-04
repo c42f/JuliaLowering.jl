@@ -19,10 +19,9 @@
 11  latestworld
 12  TestMod.#->##0
 13  (new %₁₂)
-14  latestworld
-15  TestMod.xs
-16  (call top.Generator %₁₃ %₁₅)
-17  (return %₁₆)
+14  TestMod.xs
+15  (call top.Generator %₁₃ %₁₄)
+16  (return %₁₅)
 
 ########################################
 # Product iteration
@@ -53,12 +52,11 @@
 11  latestworld
 12  TestMod.#->##1
 13  (new %₁₂)
-14  latestworld
-15  TestMod.xs
-16  TestMod.ys
-17  (call top.product %₁₅ %₁₆)
-18  (call top.Generator %₁₃ %₁₇)
-19  (return %₁₈)
+14  TestMod.xs
+15  TestMod.ys
+16  (call top.product %₁₄ %₁₅)
+17  (call top.Generator %₁₃ %₁₆)
+18  (return %₁₇)
 
 ########################################
 # Use `identity` as the Generator function when possible eg in filters
@@ -88,11 +86,10 @@
 11  latestworld
 12  TestMod.#->##2
 13  (new %₁₂)
-14  latestworld
-15  TestMod.iter
-16  (call top.Filter %₁₃ %₁₅)
-17  (call top.Generator top.identity %₁₆)
-18  (return %₁₇)
+14  TestMod.iter
+15  (call top.Filter %₁₃ %₁₄)
+16  (call top.Generator top.identity %₁₅)
+17  (return %₁₆)
 
 ########################################
 # Use of placeholders in iteration vars
@@ -113,10 +110,9 @@
 11  latestworld
 12  TestMod.#->##3
 13  (new %₁₂)
-14  latestworld
-15  TestMod.xs
-16  (call top.Generator %₁₃ %₁₅)
-17  (return %₁₆)
+14  TestMod.xs
+15  (call top.Generator %₁₃ %₁₄)
+16  (return %₁₅)
 
 ########################################
 # Error: Use of placeholders in body
@@ -156,10 +152,9 @@ LoweringError:
 11  latestworld
 12  TestMod.#->##5
 13  (new %₁₂)
-14  latestworld
-15  TestMod.iter
-16  (call top.Generator %₁₃ %₁₅)
-17  (return %₁₆)
+14  TestMod.iter
+15  (call top.Generator %₁₃ %₁₄)
+16  (return %₁₅)
 
 ########################################
 # return permitted in quoted syntax in generator
@@ -181,10 +176,9 @@ LoweringError:
 11  latestworld
 12  TestMod.#->##6
 13  (new %₁₂)
-14  latestworld
-15  TestMod.iter
-16  (call top.Generator %₁₃ %₁₅)
-17  (return %₁₆)
+14  TestMod.iter
+15  (call top.Generator %₁₃ %₁₄)
+16  (return %₁₅)
 
 ########################################
 # Error: `return` not permitted in generator body
@@ -234,12 +228,11 @@ LoweringError:
 22  latestworld
 23  TestMod.#->##7
 24  (new %₂₃)
-25  latestworld
-26  TestMod.:
-27  (call %₂₆ 1 3)
-28  (call top.Generator %₂₄ %₂₇)
-29  (call top.Flatten %₂₈)
-30  (return %₂₉)
+25  TestMod.:
+26  (call %₂₅ 1 3)
+27  (call top.Generator %₂₄ %₂₆)
+28  (call top.Flatten %₂₇)
+29  (return %₂₈)
 
 ########################################
 # Comprehension lowers to generator with collect

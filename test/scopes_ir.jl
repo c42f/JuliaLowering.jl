@@ -77,18 +77,17 @@ end
 5   TestMod.#f##0
 6   (new %₅)
 7   (= slot₁/f %₆)
-8   latestworld
-9   TestMod.#f##0
-10  (call core.svec %₉)
-11  (call core.svec)
-12  SourceLocation::1:5
-13  (call core.svec %₁₀ %₁₁ %₁₂)
-14  --- method core.nothing %₁₃
+8   TestMod.#f##0
+9   (call core.svec %₈)
+10  (call core.svec)
+11  SourceLocation::1:5
+12  (call core.svec %₉ %₁₀ %₁₁)
+13  --- method core.nothing %₁₂
     slots: [slot₁/#self#(!read)]
     1   TestMod.body
     2   (return %₁)
-15  latestworld
-16  (return core.nothing)
+14  latestworld
+15  (return core.nothing)
 
 ########################################
 # Error: Invalid `let` var with K"::"

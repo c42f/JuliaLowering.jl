@@ -657,7 +657,7 @@ function compile(ctx::LinearIRContext, ex, needs_value, in_tail_pos)
         end
     elseif k == K"=" || k == K"constdecl"
         lhs = ex[1]
-        if kind(lhs) == K"Placeholder"
+        res = if kind(lhs) == K"Placeholder"
             compile(ctx, ex[2], needs_value, in_tail_pos)
         else
             rhs = compile(ctx, ex[2], true, false)
@@ -674,6 +674,8 @@ function compile(ctx::LinearIRContext, ex, needs_value, in_tail_pos)
                 emit_assignment(ctx, ex, lhs, rhs, k)
             end
         end
+        k == K"constdecl" && emit_latestworld(ctx, ex)
+        res
     elseif k == K"block" || k == K"scope_block"
         nc = numchildren(ex)
         if nc == 0
@@ -782,7 +784,7 @@ function compile(ctx::LinearIRContext, ex, needs_value, in_tail_pos)
         # TODO
         # throw(LoweringError(ex,
         #     "Global method definition needs to be placed at the top level, or use `eval`"))
-        if numchildren(ex) == 1
+        res = if numchildren(ex) == 1
             if in_tail_pos
                 emit_return(ctx, ex)
             elseif needs_value
@@ -807,6 +809,8 @@ function compile(ctx::LinearIRContext, ex, needs_value, in_tail_pos)
             @assert !needs_value && !in_tail_pos
             nothing
         end
+        emit_latestworld(ctx, ex)
+        res
     elseif k == K"opaque_closure_method"
         @ast ctx ex [K"opaque_closure_method"
             ex[1]

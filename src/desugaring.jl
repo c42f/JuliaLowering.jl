@@ -1174,7 +1174,6 @@ function expand_unionall_def(ctx, srcref, lhs, rhs, is_const=true)
         @ast ctx srcref [K"block"
             rr := [K"where" rhs lhs[2:end]...]
             [is_const ? K"constdecl" : K"assign_or_constdecl_if_global" name rr]
-            [K"latestworld_if_toplevel"]
             [K"removable" rr]
         ]
     )
@@ -1229,7 +1228,6 @@ function expand_assignment(ctx, ex, is_const=false)
             @ast ctx ex [K"block"
                 rr := expand_forms_2(ctx, rhs)
                 [K"constdecl" lhs rr]
-                [K"latestworld"]
                 [K"removable" rr]
             ]
         else
@@ -2293,7 +2291,6 @@ function method_def_expr(ctx, srcref, callex_srcref, method_table,
                 ret_var  # might be `nothing` and hence removed
             ]
         ]
-        [K"latestworld"]
         [K"removable" method_metadata]
     ]
 end
@@ -2422,12 +2419,10 @@ function expand_function_generator(ctx, srcref, callex_srcref, func_name, func_n
     # Code generator definition
     gen_func_method_defs = @ast ctx srcref [K"block"
         [K"function_decl" gen_name]
-        [K"latestworld_if_toplevel"]
         [K"scope_block"(scope_type=:hard)
             [K"method_defs"
                 gen_name
                 [K"block"
-                    [K"latestworld_if_toplevel"]
                     method_def_expr(ctx, srcref, callex_srcref, nothing, SyntaxList(ctx),
                                     gen_arg_names, gen_arg_types, gen_body, nothing)
                 ]
@@ -2761,7 +2756,6 @@ function keyword_function_defs(ctx, srcref, callex_srcref, name_str, typevar_nam
 
     kw_func_method_defs = @ast ctx srcref [K"block"
         [K"function_decl" body_func_name]
-        [K"latestworld"]
         [K"scope_block"(scope_type=:hard)
             [K"method_defs"
                 body_func_name
@@ -2831,7 +2825,6 @@ function expand_function_def(ctx, ex, docs, rewrite_call=identity, rewrite_body=
         end
         return @ast ctx ex [K"block"
             [K"function_decl" name]
-            [K"latestworld"]
             name
         ]
     end
@@ -3068,7 +3061,6 @@ function expand_function_def(ctx, ex, docs, rewrite_call=identity, rewrite_body=
         end
         gen_func_method_defs
         kw_func_method_defs
-        [K"latestworld_if_toplevel"]
         [K"scope_block"(scope_type=:hard)
             [K"method_defs"
                 isnothing(bare_func_name) ? "nothing"::K"core" : bare_func_name
@@ -3386,7 +3378,6 @@ function expand_abstract_or_primitive_type(ctx, ex)
             nothing_(ctx, ex)
             [K"constdecl" name newtype_var]
         ]
-        [K"latestworld"]
         nothing_(ctx, ex)
     ]
 end
@@ -3961,7 +3952,6 @@ function expand_struct_def(ctx, ex, docs)
                     global_struct_name
                     newdef
                  ]
-                [K"latestworld"]
                 # Default constructors
                 if isempty(inner_defs)
                     default_inner_constructors(ctx, ex, global_struct_name,

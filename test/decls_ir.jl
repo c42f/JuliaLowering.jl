@@ -58,31 +58,32 @@ const c0 = v0 = v1 = 123
 #---------------------
 1   123
 2   (constdecl TestMod.c0 %₁)
-3   (globaldecl TestMod.v0)
-4   latestworld
-5   (call core.get_binding_type TestMod :v0)
-6   (= slot₁/tmp %₁)
-7   slot₁/tmp
-8   (call core.isa %₇ %₅)
-9   (gotoifnot %₈ label₁₁)
-10  (goto label₁₃)
-11  slot₁/tmp
-12  (= slot₁/tmp (call top.convert %₅ %₁₁))
-13  slot₁/tmp
-14  (call core.setglobal! TestMod :v0 %₁₃)
-15  (globaldecl TestMod.v1)
-16  latestworld
-17  (call core.get_binding_type TestMod :v1)
-18  (= slot₂/tmp %₁)
-19  slot₂/tmp
-20  (call core.isa %₁₉ %₁₇)
-21  (gotoifnot %₂₀ label₂₃)
-22  (goto label₂₅)
-23  slot₂/tmp
-24  (= slot₂/tmp (call top.convert %₁₇ %₂₃))
-25  slot₂/tmp
-26  (call core.setglobal! TestMod :v1 %₂₅)
-27  (return %₁)
+3   latestworld
+4   (globaldecl TestMod.v0)
+5   latestworld
+6   (call core.get_binding_type TestMod :v0)
+7   (= slot₁/tmp %₁)
+8   slot₁/tmp
+9   (call core.isa %₈ %₆)
+10  (gotoifnot %₉ label₁₂)
+11  (goto label₁₄)
+12  slot₁/tmp
+13  (= slot₁/tmp (call top.convert %₆ %₁₂))
+14  slot₁/tmp
+15  (call core.setglobal! TestMod :v0 %₁₄)
+16  (globaldecl TestMod.v1)
+17  latestworld
+18  (call core.get_binding_type TestMod :v1)
+19  (= slot₂/tmp %₁)
+20  slot₂/tmp
+21  (call core.isa %₂₀ %₁₈)
+22  (gotoifnot %₂₁ label₂₄)
+23  (goto label₂₆)
+24  slot₂/tmp
+25  (= slot₂/tmp (call top.convert %₁₈ %₂₄))
+26  slot₂/tmp
+27  (call core.setglobal! TestMod :v1 %₂₆)
+28  (return %₁)
 
 ########################################
 # Global assignment

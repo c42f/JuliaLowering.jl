@@ -20,13 +20,12 @@ end
 10  slot₂/x
 11  (new %₉ %₁₀)
 12  (= slot₁/f %₁₁)
-13  latestworld
-14  TestMod.#f##0
-15  (call core.svec %₁₄ core.Any)
-16  (call core.svec)
-17  SourceLocation::3:14
-18  (call core.svec %₁₅ %₁₆ %₁₇)
-19  --- method core.nothing %₁₈
+13  TestMod.#f##0
+14  (call core.svec %₁₃ core.Any)
+15  (call core.svec)
+16  SourceLocation::3:14
+17  (call core.svec %₁₄ %₁₅ %₁₆)
+18  --- method core.nothing %₁₇
     slots: [slot₁/#self#(!read) slot₂/y slot₃/x(!read)]
     1   TestMod.+
     2   (call core.getfield slot₁/#self# :x)
@@ -38,9 +37,9 @@ end
     8   (call core.getfield %₂ :contents)
     9   (call %₁ %₈ slot₂/y)
     10  (return %₉)
-20  latestworld
-21  slot₁/f
-22  (return %₂₁)
+19  latestworld
+20  slot₁/f
+21  (return %₂₀)
 
 ########################################
 # Closure declaration with no methods
@@ -57,9 +56,8 @@ end
 5   TestMod.#no_method_f##0
 6   (new %₅)
 7   (= slot₁/no_method_f %₆)
-8   latestworld
-9   slot₁/no_method_f
-10  (return %₉)
+8   slot₁/no_method_f
+9   (return %₈)
 
 ########################################
 # Closure which sets the value of a captured variable
@@ -82,21 +80,20 @@ end
 10  slot₂/x
 11  (new %₉ %₁₀)
 12  (= slot₁/f %₁₁)
-13  latestworld
-14  TestMod.#f##1
-15  (call core.svec %₁₄ core.Any)
-16  (call core.svec)
-17  SourceLocation::3:14
-18  (call core.svec %₁₅ %₁₆ %₁₇)
-19  --- method core.nothing %₁₈
+13  TestMod.#f##1
+14  (call core.svec %₁₃ core.Any)
+15  (call core.svec)
+16  SourceLocation::3:14
+17  (call core.svec %₁₄ %₁₅ %₁₆)
+18  --- method core.nothing %₁₇
     slots: [slot₁/#self#(!read) slot₂/y(!read)]
     1   2
     2   (call core.getfield slot₁/#self# :x)
     3   (call core.setfield! %₂ :contents %₁)
     4   (return %₁)
-20  latestworld
-21  slot₁/f
-22  (return %₂₁)
+19  latestworld
+20  slot₁/f
+21  (return %₂₀)
 
 ########################################
 # Function where arguments are captured into a closure and assigned
@@ -385,19 +382,18 @@ x -> x*x
 4   latestworld
 5   TestMod.#->##0
 6   (new %₅)
-7   latestworld
-8   TestMod.#->##0
-9   (call core.svec %₈ core.Any)
-10  (call core.svec)
-11  SourceLocation::1:1
-12  (call core.svec %₉ %₁₀ %₁₁)
-13  --- method core.nothing %₁₂
+7   TestMod.#->##0
+8   (call core.svec %₇ core.Any)
+9   (call core.svec)
+10  SourceLocation::1:1
+11  (call core.svec %₈ %₉ %₁₀)
+12  --- method core.nothing %₁₁
     slots: [slot₁/#self#(!read) slot₂/x]
     1   TestMod.*
     2   (call %₁ slot₂/x slot₂/x)
     3   (return %₂)
-14  latestworld
-15  (return %₆)
+13  latestworld
+14  (return %₆)
 
 ########################################
 # Anonymous function syntax with `function`
@@ -411,19 +407,18 @@ end
 4   latestworld
 5   TestMod.##anon###0
 6   (new %₅)
-7   latestworld
-8   TestMod.##anon###0
-9   (call core.svec %₈ core.Any)
-10  (call core.svec)
-11  SourceLocation::1:10
-12  (call core.svec %₉ %₁₀ %₁₁)
-13  --- method core.nothing %₁₂
+7   TestMod.##anon###0
+8   (call core.svec %₇ core.Any)
+9   (call core.svec)
+10  SourceLocation::1:10
+11  (call core.svec %₈ %₉ %₁₀)
+12  --- method core.nothing %₁₁
     slots: [slot₁/#self#(!read) slot₂/x]
     1   TestMod.*
     2   (call %₁ slot₂/x slot₂/x)
     3   (return %₂)
-14  latestworld
-15  (return %₆)
+13  latestworld
+14  (return %₆)
 
 ########################################
 # `do` blocks
@@ -453,10 +448,9 @@ end
 16  latestworld
 17  TestMod.#do##0
 18  (new %₁₇)
-19  latestworld
-20  TestMod.x
-21  (call core.kwcall %₅ %₁ %₁₈ %₂₀)
-22  (return %₂₁)
+19  TestMod.x
+20  (call core.kwcall %₅ %₁ %₁₈ %₁₉)
+21  (return %₂₀)
 
 ########################################
 # Error: Static parameter clashing with closure name
@@ -551,13 +545,12 @@ end
 9   (new %₇ %₈)
 10  slot₁/recursive_a
 11  (call core.setfield! %₁₀ :contents %₉)
-12  latestworld
-13  TestMod.#recursive_a##0
-14  (call core.svec %₁₃)
-15  (call core.svec)
-16  SourceLocation::2:14
-17  (call core.svec %₁₄ %₁₅ %₁₆)
-18  --- method core.nothing %₁₇
+12  TestMod.#recursive_a##0
+13  (call core.svec %₁₂)
+14  (call core.svec)
+15  SourceLocation::2:14
+16  (call core.svec %₁₃ %₁₄ %₁₅)
+17  --- method core.nothing %₁₆
     slots: [slot₁/#self#(!read) slot₂/recursive_b(!read)]
     1   (call core.getfield slot₁/#self# :recursive_b)
     2   (call core.isdefined %₁ :contents)
@@ -568,23 +561,22 @@ end
     7   (call core.getfield %₁ :contents)
     8   (call %₇)
     9   (return %₈)
-19  latestworld
-20  (call core.svec :recursive_a)
-21  (call core.svec true)
-22  (call JuliaLowering.eval_closure_type TestMod :#recursive_b##0 %₂₀ %₂₁)
-23  latestworld
-24  TestMod.#recursive_b##0
-25  slot₁/recursive_a
-26  (new %₂₄ %₂₅)
-27  slot₂/recursive_b
-28  (call core.setfield! %₂₇ :contents %₂₆)
-29  latestworld
-30  TestMod.#recursive_b##0
-31  (call core.svec %₃₀)
-32  (call core.svec)
-33  SourceLocation::5:14
-34  (call core.svec %₃₁ %₃₂ %₃₃)
-35  --- method core.nothing %₃₄
+18  latestworld
+19  (call core.svec :recursive_a)
+20  (call core.svec true)
+21  (call JuliaLowering.eval_closure_type TestMod :#recursive_b##0 %₁₉ %₂₀)
+22  latestworld
+23  TestMod.#recursive_b##0
+24  slot₁/recursive_a
+25  (new %₂₃ %₂₄)
+26  slot₂/recursive_b
+27  (call core.setfield! %₂₆ :contents %₂₅)
+28  TestMod.#recursive_b##0
+29  (call core.svec %₂₈)
+30  (call core.svec)
+31  SourceLocation::5:14
+32  (call core.svec %₂₉ %₃₀ %₃₁)
+33  --- method core.nothing %₃₂
     slots: [slot₁/#self#(!read) slot₂/recursive_a(!read)]
     1   (call core.getfield slot₁/#self# :recursive_a)
     2   (call core.isdefined %₁ :contents)
@@ -595,15 +587,15 @@ end
     7   (call core.getfield %₁ :contents)
     8   (call %₇)
     9   (return %₈)
-36  latestworld
-37  slot₂/recursive_b
-38  (call core.isdefined %₃₇ :contents)
-39  (gotoifnot %₃₈ label₄₁)
-40  (goto label₄₃)
-41  (newvar slot₄/recursive_b)
-42  slot₄/recursive_b
-43  (call core.getfield %₃₇ :contents)
-44  (return %₄₃)
+34  latestworld
+35  slot₂/recursive_b
+36  (call core.isdefined %₃₅ :contents)
+37  (gotoifnot %₃₆ label₃₉)
+38  (goto label₄₁)
+39  (newvar slot₄/recursive_b)
+40  slot₄/recursive_b
+41  (call core.getfield %₃₅ :contents)
+42  (return %₄₁)
 
 ########################################
 # Closure with keywords
@@ -635,15 +627,14 @@ end
 20  (new %₁₈ %₁₉)
 21  slot₂/#f_kw_closure#0
 22  (call core.setfield! %₂₁ :contents %₂₀)
-23  latestworld
-24  TestMod.##f_kw_closure#0##0
-25  TestMod.X
-26  TestMod.#f_kw_closure##0
-27  (call core.svec %₂₄ %₂₅ %₂₆)
-28  (call core.svec)
-29  SourceLocation::2:14
-30  (call core.svec %₂₇ %₂₈ %₂₉)
-31  --- method core.nothing %₃₀
+23  TestMod.##f_kw_closure#0##0
+24  TestMod.X
+25  TestMod.#f_kw_closure##0
+26  (call core.svec %₂₃ %₂₄ %₂₅)
+27  (call core.svec)
+28  SourceLocation::2:14
+29  (call core.svec %₂₆ %₂₇ %₂₈)
+30  --- method core.nothing %₂₉
     slots: [slot₁/#self#(!read) slot₂/x slot₃/#self#(!read) slot₄/y(!read)]
     1   (meta :nkw 1)
     2   TestMod.+
@@ -656,14 +647,14 @@ end
     9   (call core.getfield %₃ :contents)
     10  (call %₂ slot₂/x %₉)
     11  (return %₁₀)
-32  latestworld
-33  (call core.typeof core.kwcall)
-34  TestMod.#f_kw_closure##0
-35  (call core.svec %₃₃ core.NamedTuple %₃₄)
-36  (call core.svec)
-37  SourceLocation::2:14
-38  (call core.svec %₃₅ %₃₆ %₃₇)
-39  --- code_info
+31  latestworld
+32  (call core.typeof core.kwcall)
+33  TestMod.#f_kw_closure##0
+34  (call core.svec %₃₂ core.NamedTuple %₃₃)
+35  (call core.svec)
+36  SourceLocation::2:14
+37  (call core.svec %₃₄ %₃₅ %₃₆)
+38  --- code_info
     slots: [slot₁/#self#(!read) slot₂/kws slot₃/#self# slot₄/kwtmp slot₅/x(!read) slot₆/#f_kw_closure#0(!read)]
     1   (newvar slot₅/x)
     2   (call core.isdefined slot₂/kws :x)
@@ -697,17 +688,17 @@ end
     30  (call core.getfield %₂₄ :contents)
     31  (call %₃₀ %₁₆ slot₃/#self#)
     32  (return %₃₁)
-40  slot₂/#f_kw_closure#0
-41  (call core.svec %₄₀)
-42  (call JuliaLowering.replace_captured_locals! %₃₉ %₄₁)
-43  --- method core.nothing %₃₈ %₄₂
-44  latestworld
-45  TestMod.#f_kw_closure##0
-46  (call core.svec %₄₅)
-47  (call core.svec)
-48  SourceLocation::2:14
-49  (call core.svec %₄₆ %₄₇ %₄₈)
-50  --- method core.nothing %₄₉
+39  slot₂/#f_kw_closure#0
+40  (call core.svec %₃₉)
+41  (call JuliaLowering.replace_captured_locals! %₃₈ %₄₀)
+42  --- method core.nothing %₃₇ %₄₁
+43  latestworld
+44  TestMod.#f_kw_closure##0
+45  (call core.svec %₄₄)
+46  (call core.svec)
+47  SourceLocation::2:14
+48  (call core.svec %₄₅ %₄₆ %₄₇)
+49  --- method core.nothing %₄₈
     slots: [slot₁/#self# slot₂/#f_kw_closure#0(!read)]
     1   (call core.getfield slot₁/#self# :#f_kw_closure#0)
     2   (call core.isdefined %₁ :contents)
@@ -719,9 +710,9 @@ end
     8   TestMod.x_default
     9   (call %₇ %₈ slot₁/#self#)
     10  (return %₉)
-51  latestworld
-52  slot₃/f_kw_closure
-53  (return %₅₂)
+50  latestworld
+51  slot₃/f_kw_closure
+52  (return %₅₁)
 
 ########################################
 # Closure capturing a typed local must also capture the type expression

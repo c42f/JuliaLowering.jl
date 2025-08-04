@@ -161,8 +161,7 @@ end
 7   (call core.apply_type %₄ %₅ %₆)
 8   (call core.UnionAll %₃ %₇)
 9   (= slot₁/X %₈)
-10  latestworld
-11  (return %₈)
+10  (return %₈)
 
 ########################################
 # Error: Invalid lhs in `=`
