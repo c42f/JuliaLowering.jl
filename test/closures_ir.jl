@@ -236,12 +236,14 @@ end
 23  --- method core.nothing %₂₂
     slots: [slot₁/#self#(!read) slot₂/_(!read) slot₃/g]
     1   TestMod.#f#g##2
-    2   (call core.typeof static_parameter₁)
-    3   (call core.apply_type %₁ %₂)
-    4   (new %₃ static_parameter₁)
-    5   (= slot₃/g %₄)
-    6   slot₃/g
-    7   (return %₆)
+    2   static_parameter₁
+    3   (call core.typeof %₂)
+    4   (call core.apply_type %₁ %₃)
+    5   static_parameter₁
+    6   (new %₄ %₅)
+    7   (= slot₃/g %₆)
+    8   slot₃/g
+    9   (return %₈)
 24  (latestworld)
 25  TestMod.f
 26  (return %₂₅)

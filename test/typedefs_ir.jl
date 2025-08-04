@@ -739,9 +739,10 @@ end
 55  --- method core.nothing %₅₄
     slots: [slot₁/#self#(!read) slot₂/x]
     1   TestMod.X
-    2   (call core.apply_type %₁ static_parameter₁)
-    3   (new %₂ slot₂/x)
-    4   (return %₃)
+    2   static_parameter₁
+    3   (call core.apply_type %₁ %₂)
+    4   (new %₃ slot₂/x)
+    5   (return %₄)
 56  (latestworld)
 57  (return core.nothing)
 
@@ -840,9 +841,11 @@ end
 73  --- method core.nothing %₇₂
     slots: [slot₁/#self#(!read) slot₂/v]
     1   TestMod.X
-    2   (call core.apply_type %₁ static_parameter₁ static_parameter₂)
-    3   (new %₂ slot₂/v)
-    4   (return %₃)
+    2   static_parameter₁
+    3   static_parameter₂
+    4   (call core.apply_type %₁ %₂ %₃)
+    5   (new %₄ slot₂/v)
+    6   (return %₅)
 74  (latestworld)
 75  (return core.nothing)
 

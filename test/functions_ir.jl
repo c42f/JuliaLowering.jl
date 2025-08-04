@@ -161,8 +161,11 @@ end
 17  (call core.svec %₁₁ %₁₅ %₁₆)
 18  --- method core.nothing %₁₇
     slots: [slot₁/#self#(!read) slot₂/_(!read) slot₃/_(!read) slot₄/_(!read)]
-    1   (call core.tuple static_parameter₃ static_parameter₁ static_parameter₂)
-    2   (return %₁)
+    1   static_parameter₃
+    2   static_parameter₁
+    3   static_parameter₂
+    4   (call core.tuple %₁ %₂ %₃)
+    5   (return %₄)
 19  (latestworld)
 20  TestMod.f
 21  (return %₂₀)
@@ -190,7 +193,8 @@ end
 15  (call core.svec %₁₁ %₁₃ %₁₄)
 16  --- method core.nothing %₁₅
     slots: [slot₁/#self#(!read) slot₂/_(!read)]
-    1   (return static_parameter₁)
+    1   static_parameter₁
+    2   (return %₁)
 17  (latestworld)
 18  TestMod.f
 19  (return %₁₈)
@@ -220,8 +224,10 @@ end
 16  (call core.svec %₁₁ %₁₄ %₁₅)
 17  --- method core.nothing %₁₆
     slots: [slot₁/#self#(!read) slot₂/x(!read) slot₃/y(!read)]
-    1   (call core.tuple static_parameter₁ static_parameter₂)
-    2   (return %₁)
+    1   static_parameter₁
+    2   static_parameter₂
+    3   (call core.tuple %₁ %₂)
+    4   (return %₃)
 18  (latestworld)
 19  TestMod.f
 20  (return %₁₉)
@@ -329,7 +335,8 @@ end
 10  (call core.svec %₆ %₈ %₉)
 11  --- method core.nothing %₁₀
     slots: [slot₁/x(!read)]
-    1   (return static_parameter₁)
+    1   static_parameter₁
+    2   (return %₁)
 12  (latestworld)
 13  (return core.nothing)
 
@@ -664,8 +671,11 @@ end
 38  (call core.svec %₃₂ %₃₆ %₃₇)
 39  --- method core.nothing %₃₈
     slots: [slot₁/#self#(!read) slot₂/x slot₃/y slot₄/z]
-    1   (call core.tuple slot₂/x slot₃/y slot₄/z static_parameter₁ static_parameter₂ static_parameter₃)
-    2   (return %₁)
+    1   static_parameter₁
+    2   static_parameter₂
+    3   static_parameter₃
+    4   (call core.tuple slot₂/x slot₃/y slot₄/z %₁ %₂ %₃)
+    5   (return %₄)
 40  (latestworld)
 41  TestMod.f
 42  (return %₄₁)
@@ -1316,8 +1326,10 @@ end
 19  --- method core.nothing %₁₈
     slots: [slot₁/#self#(!read) slot₂/a(!read) slot₃/b(!read) slot₄/#self#(!read) slot₅/x(!read)]
     1   (meta :nkw 2)
-    2   (call core.tuple static_parameter₁ static_parameter₂)
-    3   (return %₂)
+    2   static_parameter₁
+    3   static_parameter₂
+    4   (call core.tuple %₂ %₃)
+    5   (return %₄)
 20  (latestworld)
 21  (= slot₄/X (call core.TypeVar :X))
 22  (= slot₃/A (call core.TypeVar :A))
@@ -1343,28 +1355,30 @@ end
     9   (= slot₅/kwtmp %₈)
     10  slot₅/kwtmp
     11  (call core.isdefined slot₂/kws :b)
-    12  (gotoifnot %₁₁ label₂₁)
+    12  (gotoifnot %₁₁ label₂₃)
     13  (call core.getfield slot₂/kws :b)
-    14  (call core.isa %₁₃ static_parameter₁)
-    15  (gotoifnot %₁₄ label₁₇)
-    16  (goto label₁₉)
-    17  (new core.TypeError :keyword argument :b static_parameter₁ %₁₃)
-    18  (call core.throw %₁₇)
-    19  (= slot₅/kwtmp %₁₃)
-    20  (goto label₂₃)
-    21  TestMod.b_def
-    22  (= slot₅/kwtmp %₂₁)
-    23  slot₅/kwtmp
-    24  (call top.keys slot₂/kws)
-    25  (call core.tuple :a :b)
-    26  (call top.diff_names %₂₄ %₂₅)
-    27  (call top.isempty %₂₆)
-    28  (gotoifnot %₂₇ label₃₀)
-    29  (goto label₃₁)
-    30  (call top.kwerr slot₂/kws slot₃/#self# slot₄/x)
-    31  TestMod.#f_kw_sparams#0
-    32  (call %₃₁ %₁₀ %₂₃ slot₃/#self# slot₄/x)
-    33  (return %₃₂)
+    14  static_parameter₁
+    15  (call core.isa %₁₃ %₁₄)
+    16  (gotoifnot %₁₅ label₁₈)
+    17  (goto label₂₁)
+    18  static_parameter₁
+    19  (new core.TypeError :keyword argument :b %₁₈ %₁₃)
+    20  (call core.throw %₁₉)
+    21  (= slot₅/kwtmp %₁₃)
+    22  (goto label₂₅)
+    23  TestMod.b_def
+    24  (= slot₅/kwtmp %₂₃)
+    25  slot₅/kwtmp
+    26  (call top.keys slot₂/kws)
+    27  (call core.tuple :a :b)
+    28  (call top.diff_names %₂₆ %₂₇)
+    29  (call top.isempty %₂₈)
+    30  (gotoifnot %₂₉ label₃₂)
+    31  (goto label₃₃)
+    32  (call top.kwerr slot₂/kws slot₃/#self# slot₄/x)
+    33  TestMod.#f_kw_sparams#0
+    34  (call %₃₃ %₁₀ %₂₅ slot₃/#self# slot₄/x)
+    35  (return %₃₄)
 33  (latestworld)
 34  (= slot₆/X (call core.TypeVar :X))
 35  (= slot₅/A (call core.TypeVar :A))

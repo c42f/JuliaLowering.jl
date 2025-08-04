@@ -8,10 +8,12 @@ function is_valid_ir_argument(ctx, ex)
     elseif k == K"BindingId"
         binfo = lookup_binding(ctx, ex)
         bk = binfo.kind
-        # TODO: Can we allow bk == :local || bk == :argument || bk == :static_parameter ???
-        # Why does flisp seem to allow (slot) and (static_parameter), but these
-        # aren't yet converted to by existing lowering??
-        (bk == :slot || bk == :static_parameter)
+        bk === :slot
+        # TODO: We should theoretically be able to allow `bk ===
+        # :static_parameter` for slightly more compact IR, but it's uncertain
+        # what the compiler is built to tolerate.  Notably, flisp allows
+        # static_parameter, but doesn't produce this form until a later pass, so
+        # it doesn't end up in the IR.
     else
         false
     end
