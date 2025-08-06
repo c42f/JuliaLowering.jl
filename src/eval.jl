@@ -84,7 +84,7 @@ function add_ir_debug_info!(current_codelocs_stack, stmt)
                                   current_codelocs_stack[j][1] != locstk[j][1])
             while length(current_codelocs_stack) >= j
                 info = pop!(current_codelocs_stack)
-                !isempty(current_codelocs_stack) && push!(last(current_codelocs_stack)[2], info)
+                push!(last(current_codelocs_stack)[2], info)
             end
         end
         if j > length(locstk)

@@ -2112,7 +2112,7 @@ end
 
 # Separate decls and assignments (which require re-expansion)
 # local x, (y=2), z ==> local x; local z; y = 2
-function expand_decls(ctx, ex, is_const=false)
+function expand_decls(ctx, ex)
     declkind = kind(ex)
     @assert declkind in KSet"local global"
     declmeta = get(ex, :meta, nothing)
@@ -2124,7 +2124,7 @@ function expand_decls(ctx, ex, is_const=false)
             @chk numchildren(binding) == 2
             lhs = strip_decls!(ctx, stmts, declkind, declmeta, binding[1])
             push!(stmts, expand_assignment(ctx, @ast ctx binding [kb lhs binding[2]]))
-        elseif is_sym_decl(binding) && !is_const
+        elseif is_sym_decl(binding)
             strip_decls!(ctx, stmts, declkind, declmeta, binding)
         else
             throw(LoweringError(ex, "invalid syntax in variable declaration"))
@@ -3085,7 +3085,7 @@ function expand_arrow_arglist(ctx, arglist, arrowname)
     if k == K"where"
         @ast ctx arglist [K"where"
             expand_arrow_arglist(ctx, arglist[1], arrowname)
-            argslist[2]
+            arglist[2]
         ]
     else
         # The arglist can sometimes be parsed as a block, or something else, and
@@ -3098,7 +3098,6 @@ function expand_arrow_arglist(ctx, arglist, arrowname)
                 [K"parameters" arglist[2]]
             ]
         elseif k != K"tuple"
-            # `x::Int -> body`
             arglist = @ast ctx arglist [K"tuple"
                 arglist[1]
             ]
