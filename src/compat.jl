@@ -1,11 +1,11 @@
 const JS = JuliaSyntax
 
-function _insert_tree_node(graph::SyntaxGraph, k::JS.Kind,
-                           src::SourceAttrType, flags::UInt16=0x0000)
+function _insert_tree_node(graph::SyntaxGraph, k::JS.Kind, src::SourceAttrType,
+                           flags::UInt16=0x0000; attrs...)
     id = newnode!(graph)
     sethead!(graph, id, k)
-    setattr!(graph, id, source=src)
     setflags!(graph, id, flags)
+    setattr!(graph, id; source=src, attrs...)
     return id
 end
 
@@ -156,18 +156,16 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
     #---------------------------------------------------------------------------
     # Non-expr types
     if isnothing(e)
-        st_id = _insert_tree_node(graph, K"core", src)
-        setattr!(graph, st_id, name_val="nothing")
-        return (st_id, src)
+        st_id = _insert_tree_node(graph, K"core", src; name_val="nothing")
+        return st_id, src
     elseif e isa Symbol
-        st_id = _insert_tree_node(graph, K"Identifier", src)
-        setattr!(graph, st_id; name_val=String(e))
+        st_id = _insert_tree_node(graph, K"Identifier", src; name_val=String(e))
         if !Base.isoperator(e) && !Base.is_valid_identifier(e)
             return _insert_var_str(st_id, graph, src)
         end
-        return (st_id, src)
+        return st_id, src
     elseif e isa LineNumberNode
-        return (nothing, e)
+        return nothing, e
     elseif e isa QuoteNode && e.value isa Symbol
         # Undo special handling from st->expr
         return _insert_convert_expr(Expr(:quote, e.value), graph, src)
@@ -175,32 +173,30 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
     #     st_id = _insert_tree_node(graph, K"inert", src)
     #     quote_child, _ = _insert_convert_expr(e.value, graph, src)
     #     setchildren!(graph, st_id, NodeId[quote_child])
-    #     return (st_id, src)
+    #     return st_id, src
     elseif e isa String
-        st_id = _insert_tree_node(graph, K"string", src)
-        id_inner = _insert_tree_node(graph, K"String", src)
-        setattr!(graph, id_inner, value=e)
-        setflags!(graph, st_id, JS.NON_TERMINAL_FLAG)
+        st_id = _insert_tree_node(graph, K"string", src, JS.NON_TERMINAL_FLAG)
+        id_inner = _insert_tree_node(graph, K"String", src; value=e)
         setchildren!(graph, st_id, [id_inner])
-        return (st_id, src)
+        return st_id, src
     elseif !(e isa Expr)
         # There are other kinds we could potentially back-convert (e.g. Float),
         # but Value should work fine.
         st_k = e isa Integer ? K"Integer" : find_kind(string(typeof(e)))
-        st_id = _insert_tree_node(graph, isnothing(st_k) ? K"Value" : st_k, src)
-        setattr!(graph, st_id, value=e)
-        return (st_id, src)
+        st_id = _insert_tree_node(graph, isnothing(st_k) ? K"Value" : st_k, src; value=e)
+        return st_id, src
     end
 
     #---------------------------------------------------------------------------
     # `e` is an expr.  In many cases, it suffices to
     # - guess that the kind name is the same as the expr head
-    # - add no syntax flags
+    # - add no syntax flags or attrs
     # - map e.args to syntax tree children one-to-one
     nargs = length(e.args)
     maybe_kind = find_kind(string(e.head))
     st_k = isnothing(maybe_kind) ? K"None" : maybe_kind
     st_flags = 0x0000
+    st_attrs = Dict{Symbol, Any}()
     # Note that SyntaxTree/Node differentiate 0-child non-terminals and leaves
     child_exprs::Union{Nothing, Vector{Any}} = copy(e.args)
 
@@ -394,9 +390,8 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
         # upstream for consistency.
         if nargs === 0
             child_exprs = nothing
-            st_id = _insert_tree_node(graph, st_k, src, st_flags)
-            setattr!(graph, st_id, value=JS.ErrorVal())
-            return st_id, src
+            st_attrs[:value] = JS.ErrorVal()
+            st_flags |= JS.TRIVIA_FLAG
         end
     end
 
@@ -427,46 +422,50 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
     elseif e.head === :symbolicgoto || e.head === :symboliclabel
         @assert nargs === 1
         st_k = e.head === :symbolicgoto ? K"symbolic_label" : K"symbolic_goto"
-        st_id = _insert_tree_node(graph, st_k, src)
-        setattr!(graph, st_id, name_val=string(e.args[1]))
-        return st_id, src
+        st_attrs[:name_val] = string(e.args[1])
+        child_exprs = nothing
     elseif e.head === :inline || e.head === :noinline
         @assert nargs === 1 && e.args[1] isa Bool
         # TODO: JuliaLowering doesn't accept this (non-:meta) form yet
-        return (nothing, src)
+        return nothing, src
     elseif e.head === :core
         @assert nargs === 1
         @assert e.args[1] isa Symbol
-        coreref_name = string(e.args[1])
-        st_id = _insert_tree_node(graph, K"core", src)
-        setattr!(graph, st_id; name_val=coreref_name)
-        return st_id, src
+        st_attrs[:name_val] = string(e.args[1])
+        child_exprs = nothing
     elseif e.head === :islocal || e.head === :isglobal
         st_k = K"extension"
         child_exprs = [Expr(:sym_not_identifier, e.head), e.args[1]]
+    elseif e.head === :block && nargs >= 1 &&
+        e.args[1] isa Expr && e.args[1].head === :softscope
+        # (block (softscope true) ex) produced with every REPL prompt.
+        # :hardscope exists too, but should just be a let, and appears to be
+        # unused in the wild.
+        ensure_attributes!(graph; scope_type=Symbol)
+        st_k = K"scope_block"
+        st_attrs[:scope_type] = :soft
+        child_exprs = e.args[2:end]
     end
 
     #---------------------------------------------------------------------------
     # Temporary heads introduced by us converting the parent expr
     if e.head === :MacroName
         @assert nargs === 1
-        st_id = _insert_tree_node(graph, K"MacroName", src, st_flags)
         mac_name = string(e.args[1])
-        setattr!(graph, st_id, name_val=mac_name == "@__dot__" ? "@." : mac_name)
+        mac_name = mac_name == "@__dot__" ? "@." : mac_name
+        st_id = _insert_tree_node(graph, K"MacroName", src, st_flags; name_val=mac_name)
         if !Base.is_valid_identifier(mac_name[2:end])
             return _insert_var_str(st_id, graph, src)
         end
         return st_id, src
     elseif e.head === :catch_var_placeholder
-        st_id = _insert_tree_node(graph, K"Placeholder", src, st_flags)
-        setattr!(graph, st_id, name_val="")
-        return st_id, src
+        st_k = K"Placeholder"
+        st_attrs[:name_val] = ""
+        child_exprs = nothing
     elseif e.head === :sym_not_identifier
-        estr = String(e.args[1])
         st_k = K"Symbol"
-        st_id = _insert_tree_node(graph, st_k, src)
-        setattr!(graph, st_id, name_val=estr)
-        return st_id, src
+        st_attrs[:name_val] = String(e.args[1])
+        child_exprs = nothing
     elseif e.head === :do_lambda
         st_k = K"do"
     end
@@ -478,21 +477,22 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
         error("Unknown expr head `$(e.head)`\n$(sprint(dump, e))")
     end
 
-    st_flags |= JS.NON_TERMINAL_FLAG
-    st_id = _insert_tree_node(graph, st_k, src, st_flags)
+    st_id = _insert_tree_node(graph, st_k, src, st_flags; st_attrs...)
 
     # child_exprs === nothing means we want a leaf.  Note that setchildren! with
     # an empty list makes a node non-leaf.
     if isnothing(child_exprs)
         return st_id, src
     else
-        st_child_ids, last_src = _insert_expr_children(child_exprs, graph, src)
+        st_flags |= JS.NON_TERMINAL_FLAG
+        setflags!(graph, st_id, st_flags)
+        st_child_ids, last_src = _insert_child_expr(child_exprs, graph, src)
         setchildren!(graph, st_id, st_child_ids)
         return st_id, last_src
     end
 end
 
-function _insert_expr_children(child_exprs::Vector{Any}, graph::SyntaxGraph,
+function _insert_child_expr(child_exprs::Vector{Any}, graph::SyntaxGraph,
                                src::SourceAttrType)
     st_child_ids = NodeId[]
     last_src = src
