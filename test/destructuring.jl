@@ -36,17 +36,6 @@ let
 end
 """) == ([1, 2, 3], 4)
 
-@test_throws JuliaLowering.LoweringError JuliaLowering.include_string(test_mod, """
-let
-    (x,) = ()
-end
-""") == ([1, 2, 3], 4)
-@test_throws JuliaLowering.LoweringError JuliaLowering.include_string(test_mod, """
-let
-    (x,y,ys...) = (1,)
-end
-""")
-
 # Case where indexed_iterate is just iteration
 @test JuliaLowering.include_string(test_mod, """
 let

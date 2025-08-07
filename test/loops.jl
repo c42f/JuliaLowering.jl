@@ -95,6 +95,7 @@ let
     a
 end
 """) == [1, 2]
+# Break from inner nested loop
 @test JuliaLowering.include_string(test_mod, """
 let
     a = []
