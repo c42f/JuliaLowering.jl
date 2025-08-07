@@ -127,7 +127,7 @@ function eval_macro_name(ctx::MacroExpansionContext, mctx::MacroContext, ex::Syn
     try
         eval(mod, expr_form)
     catch
-        throw(MacroExpansionError(mctx, ex, "Error evaluating macro name", :all))
+        throw(MacroExpansionError(mctx, ex, "Macro not found", :all))
     end
 end
 
