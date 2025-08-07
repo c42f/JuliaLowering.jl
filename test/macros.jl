@@ -167,7 +167,7 @@ let res = try
         e
     end
     @test res isa JuliaLowering.MacroExpansionError
-    @test res.msg == "Error evaluating macro name"
+    @test res.msg == "Macro not found"
 end
 
 include("ccall_demo.jl")
