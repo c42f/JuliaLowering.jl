@@ -22,6 +22,10 @@ function freeze_attrs(graph::SyntaxGraph)
     SyntaxGraph(graph.edge_ranges, graph.edges, frozen_attrs)
 end
 
+function unfreeze_attrs(graph::SyntaxGraph)
+    SyntaxGraph(graph.edge_ranges, graph.edges, Dict(pairs(graph.attributes)...))
+end
+
 function _show_attrs(io, attributes::Dict)
     show(io, MIME("text/plain"), attributes)
 end
@@ -31,6 +35,10 @@ end
 
 function attrnames(graph::SyntaxGraph)
     keys(graph.attributes)
+end
+
+function attrtypes(graph::SyntaxGraph)
+    [(k, typeof(v).parameters[2]) for (k, v) in pairs(graph.attributes)]
 end
 
 function Base.show(io::IO, ::MIME"text/plain", graph::SyntaxGraph)
@@ -54,7 +62,7 @@ function ensure_attributes!(graph::SyntaxGraph{<:Dict}; kws...)
 end
 
 function ensure_attributes(graph::SyntaxGraph; kws...)
-    g = SyntaxGraph(graph.edge_ranges, graph.edges, Dict(pairs(graph.attributes)...))
+    g = unfreeze_attrs(graph)
     ensure_attributes!(g; kws...)
     freeze_attrs(g)
 end
