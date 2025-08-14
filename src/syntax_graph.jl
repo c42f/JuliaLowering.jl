@@ -39,7 +39,7 @@ function Base.show(io::IO, ::MIME"text/plain", graph::SyntaxGraph)
     _show_attrs(io, graph.attributes)
 end
 
-function ensure_attributes!(graph::SyntaxGraph; kws...)
+function ensure_attributes!(graph::SyntaxGraph{<:Dict}; kws...)
     for (k,v) in pairs(kws)
         @assert k isa Symbol
         @assert v isa Type
