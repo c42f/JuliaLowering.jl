@@ -304,12 +304,15 @@ end
 struct SourceRef
     file::SourceFile
     first_byte::Int
-    # TODO: Do we need the green node, or would last_byte suffice?
-    green_tree::JuliaSyntax.GreenNode
+    last_byte::Int
+    green_tree::Union{Nothing, JuliaSyntax.GreenNode}
 end
 
+SourceRef(file::SourceFile, first_byte::Int, green_tree::Union{Nothing, JuliaSyntax.GreenNode}) =
+    SourceRef(file, first_byte, first_byte + span(green_tree) - 1, green_tree)
+
 JuliaSyntax.sourcefile(src::SourceRef) = src.file
-JuliaSyntax.byte_range(src::SourceRef) = src.first_byte:(src.first_byte + span(src.green_tree) - 1)
+JuliaSyntax.byte_range(src::SourceRef) = src.first_byte:src.last_byte
 
 # TODO: Adding these methods to support LineNumberNode is kind of hacky but we
 # can remove these after JuliaLowering becomes self-bootstrapping for macros
