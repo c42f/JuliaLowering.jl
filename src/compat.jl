@@ -1,10 +1,10 @@
 const JS = JuliaSyntax
 
-function _insert_tree_node(graph::SyntaxGraph, k::JS.Kind, src::SourceAttrType,
+function _insert_tree_node(graph::SyntaxGraph, k::Kind, src::SourceAttrType,
                            flags::UInt16=0x0000; attrs...)
     id = newnode!(graph)
     sethead!(graph, id, k)
-    setflags!(graph, id, flags)
+    flags !== 0 && setflags!(graph, id, flags)
     setattr!(graph, id; source=src, attrs...)
     return id
 end
@@ -19,21 +19,21 @@ Expr-producing macros.  Always prefer re-parsing source text over using this.
 
 Supports parsed and/or macro-expanded exprs, but not lowered exprs
 """
-function expr_to_syntaxtree(@nospecialize(e),
-                            lnn::Union{LineNumberNode, Nothing}=nothing,
-                            ctx=nothing)
-    graph = if isnothing(ctx)
-        ensure_attributes!(SyntaxGraph(),
-                           kind=Kind, syntax_flags=UInt16,
-                           source=SourceAttrType, var_id=Int, value=Any,
-                           name_val=String, is_toplevel_thunk=Bool)
-    else
-        syntax_graph(ctx)
-    end
+function expr_to_syntaxtree(@nospecialize(e), lnn::Union{LineNumberNode, Nothing}=nothing)
+    graph = ensure_attributes!(
+        SyntaxGraph(),
+        kind=Kind, syntax_flags=UInt16,
+        source=SourceAttrType, var_id=Int, value=Any,
+        name_val=String, is_toplevel_thunk=Bool)
+    expr_to_syntaxtree(graph, e, lnn)
+end
+
+function expr_to_syntaxtree(ctx, @nospecialize(e), lnn::Union{LineNumberNode, Nothing})
+    graph = syntax_graph(ctx)
     toplevel_src = if isnothing(lnn)
         # Provenance sinkhole for all nodes until we hit a linenode
         dummy_src = SourceRef(
-            SourceFile("No source for expression $e"),
+            SourceFile("No source for expression: $e"),
             1, JS.GreenNode(K"None", 0))
         _insert_tree_node(graph, K"None", dummy_src)
     else
@@ -56,14 +56,14 @@ function _expr_replace!(@nospecialize(e), replace_pred::Function, replacer!::Fun
     end
 end
 
-function _to_iterspec(exs::Vector)
+function _to_iterspec(exs::Vector, is_generator::Bool)
     if length(exs) === 1 && exs[1].head === :filter
         @assert length(exs[1].args) >= 2
-        return Expr(:filter, _to_iterspec(exs[1].args[2:end]), exs[1].args[1])
+        return Expr(:filter, _to_iterspec(exs[1].args[2:end], true), exs[1].args[1])
     end
     outex = Expr(:iteration)
     for e in exs
-        if e.head === :block
+        if e.head === :block && !is_generator
             for iter in e.args
                 push!(outex.args, Expr(:in, iter.args...))
             end
@@ -109,13 +109,21 @@ function expr_parameters(p::Expr, pos::Int)
     return nothing
 end
 
-"Unwrap (usually block) if it has only one non-linenode child"
-function maybe_strip_block(b::Expr)
+"""
+If `b` (usually a block) has exactly one non-LineNumberNode argument, unwrap it.
+"""
+function maybe_unwrap_arg(b::Expr)
     e1 = findfirst(c -> !isa(c, LineNumberNode), b.args)
     isnothing(e1) && return b
     e2 = findfirst(c -> !isa(c, LineNumberNode), b.args[e1+1:end])
     !isnothing(e2) && return b
     return b.args[e1]
+end
+
+function maybe_extract_lnn(b, default)
+    !(b isa Expr) && return b
+    lnn_i = findfirst(a->isa(a, LineNumberNode), b.args)
+    return isnothing(lnn_i) ? default : b.args[lnn_i]
 end
 
 # Get kind by string if exists.  TODO relies on internals
@@ -130,19 +138,9 @@ function is_dotted_operator(s::AbstractString)
         JS.is_operator(something(find_kind(s[2:end]), K"None"))
 end
 
-# Expr doesn't record whether or not var"x" was used on x, so just assume one
-# was used for any invalid identifier, but lose the information otherwise.
-function _insert_var_str(child::NodeId, graph::SyntaxGraph, src::SourceAttrType)
-    var_id = _insert_tree_node(graph, K"var", src)
-    setchildren!(graph, var_id, [child])
-    setflags!(graph, child, JS.RAW_STRING_FLAG)
-    setflags!(graph, var_id, JS.NON_TERMINAL_FLAG)
-    return (var_id, src)
-end
-
-function is_call_expr(e)
+function is_eventually_call(e)
     return e isa Expr && (e.head === :call ||
-        e.head in (:where, :(::)) && is_call_expr(e.args[1]))
+        e.head in (:where, :(::)) && is_eventually_call(e.args[1]))
 end
 
 """
@@ -160,12 +158,7 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
         return st_id, src
     elseif e isa Symbol
         st_id = _insert_tree_node(graph, K"Identifier", src; name_val=String(e))
-        if !Base.isoperator(e) && !Base.is_valid_identifier(e)
-            return _insert_var_str(st_id, graph, src)
-        end
         return st_id, src
-    elseif e isa LineNumberNode
-        return nothing, e
     elseif e isa QuoteNode && e.value isa Symbol
         # Undo special handling from st->expr
         return _insert_convert_expr(Expr(:quote, e.value), graph, src)
@@ -175,7 +168,7 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
     #     setchildren!(graph, st_id, NodeId[quote_child])
     #     return st_id, src
     elseif e isa String
-        st_id = _insert_tree_node(graph, K"string", src, JS.NON_TERMINAL_FLAG)
+        st_id = _insert_tree_node(graph, K"string", src)
         id_inner = _insert_tree_node(graph, K"String", src; value=e)
         setchildren!(graph, st_id, [id_inner])
         return st_id, src
@@ -192,6 +185,7 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
     # - guess that the kind name is the same as the expr head
     # - add no syntax flags or attrs
     # - map e.args to syntax tree children one-to-one
+    e::Expr
     nargs = length(e.args)
     maybe_kind = find_kind(string(e.head))
     st_k = isnothing(maybe_kind) ? K"None" : maybe_kind
@@ -200,8 +194,8 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
     # Note that SyntaxTree/Node differentiate 0-child non-terminals and leaves
     child_exprs::Union{Nothing, Vector{Any}} = copy(e.args)
 
-    # However, the following are (many) special cases where the kind, flags, or
-    # children are different from what we guessed above
+    # However, the following are (many) special cases where the kind, flags,
+    # children, or attributes are different from what we guessed above
     if Base.isoperator(e.head) && st_k === K"None"
         # e.head is an updating assignment operator (+=, .-=, etc).  Non-=
         # dotted ops are wrapped in a call, so we don't reach this.
@@ -214,7 +208,7 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
             st_k = K"op="
             op = s[1:end-1]
         end
-        child_exprs = [e.args[1], Symbol(op), e.args[2]]
+        child_exprs = Any[e.args[1], Symbol(op), e.args[2]]
     elseif e.head === :comparison
         for i = 2:2:length(child_exprs)
             op = child_exprs[i]
@@ -228,7 +222,9 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
         @assert nargs >= 2
         a1 = e.args[1]
         child_exprs = collect_expr_parameters(e, 3)
-        # macrocall has a linenode "argument" here. should we set src?
+        if child_exprs[2] isa LineNumberNode
+            src = child_exprs[2]
+        end
         deleteat!(child_exprs, 2)
         if a1 isa Symbol
             child_exprs[1] = Expr(:MacroName, a1)
@@ -244,13 +240,15 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
             elseif a1.name === Symbol("@big_str")
             end
         elseif a1 isa Function
+            # pass
         else
             error("Unknown macrocall form $(sprint(dump, e))")
+            @assert false
         end
     elseif e.head === Symbol("'")
         @assert nargs === 1
         st_k = K"call"
-        child_exprs = [e.head, e.args[1]]
+        child_exprs = Any[e.head, e.args[1]]
     elseif e.head === :. && nargs === 2
         a2 = e.args[2]
         if a2 isa Expr && a2.head === :tuple
@@ -265,11 +263,11 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
         end
     elseif e.head === :for
         @assert nargs === 2
-        child_exprs = Expr[_to_iterspec(Any[e.args[1]]), e.args[2]]
+        child_exprs = Any[_to_iterspec(Any[e.args[1]], false), e.args[2]]
     elseif e.head === :where
         @assert nargs >= 2
         if !(e.args[2] isa Expr && e.args[2].head === :braces)
-            child_exprs = [e.args[1], Expr(:braces, e.args[2:end]...)]
+            child_exprs = Any[e.args[1], Expr(:braces, e.args[2:end]...)]
         end
     elseif e.head in (:tuple, :vect, :braces)
         child_exprs = collect_expr_parameters(e, 1)
@@ -304,15 +302,15 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
         next = e
         while next.head === :flatten
             @assert next.args[1].head === :generator
-            push!(child_exprs, _to_iterspec(next.args[1].args[2:end]))
+            push!(child_exprs, _to_iterspec(next.args[1].args[2:end], true))
             next = next.args[1].args[1]
         end
         @assert next.head === :generator
-        push!(child_exprs, _to_iterspec(next.args[2:end]))
+        push!(child_exprs, _to_iterspec(next.args[2:end], true))
         pushfirst!(child_exprs, next.args[1])
     elseif e.head === :ncat || e.head === :nrow
-        st_flags |= JS.set_numeric_flags(e.args[1])
-        child_exprs = child_exprs[2:end]
+        dim = popfirst!(child_exprs)
+        st_flags |= JS.set_numeric_flags(dim)
     elseif e.head === :typed_ncat
         st_flags |= JS.set_numeric_flags(e.args[2])
         deleteat!(child_exprs, 2)
@@ -330,7 +328,8 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
         elseif !(e.args[1] isa Expr && (e.args[1].head in (:tuple, :where)))
             child_exprs[1] = Expr(:tuple, e.args[1])
         end
-        child_exprs[2] = maybe_strip_block(e.args[2])
+        src = maybe_extract_lnn(e.args[2], src)
+        child_exprs[2] = maybe_unwrap_arg(e.args[2])
     elseif e.head === :call
         child_exprs = collect_expr_parameters(e, 2)
         a1 = child_exprs[1]
@@ -342,18 +341,23 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
                 child_exprs[1] = Symbol(a1s[2:end])
             end
         end
+    elseif e.head === :function
+        if nargs >= 2
+            src = maybe_extract_lnn(e.args[2], src)
+        end
     elseif e.head === :(=)
-        if is_call_expr(e.args[1])
+        if is_eventually_call(e.args[1])
             st_k = K"function"
             st_flags |= JS.SHORT_FORM_FUNCTION_FLAG
-            child_exprs[2] = maybe_strip_block(child_exprs[2])
+            src = maybe_extract_lnn(e.args[2], src)
+            child_exprs[2] = maybe_unwrap_arg(e.args[2])
         end
     elseif e.head === :module
         @assert nargs === 3
         if !e.args[1]
             st_flags |= JS.BARE_MODULE_FLAG
         end
-        child_exprs = [e.args[2], e.args[3]]
+        child_exprs = Any[e.args[2], e.args[3]]
     elseif e.head === :do
         # Expr:
         # (do (call f args...) (-> (tuple lam_args...) (block ...)))
@@ -361,13 +365,13 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
         # (call f args... (do (tuple lam_args...) (block ...)))
         callargs = collect_expr_parameters(e.args[1], 2)
         fname = string(callargs[1])
-        if fname[1] === '@'
+        if e.args[1].head === :macrocall
             st_k = K"macrocall"
             callargs[1] = Expr(:MacroName, callargs[1])
         else
             st_k = K"call"
         end
-        child_exprs = [callargs..., Expr(:do_lambda, e.args[2].args...)]
+        child_exprs = Any[callargs..., Expr(:do_lambda, e.args[2].args...)]
     elseif e.head === :let
         if nargs >= 1 && !(e.args[1] isa Expr && e.args[1].head === :block)
             child_exprs[1] = Expr(:block, e.args[1])
@@ -384,7 +388,7 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
         st_k = K"="
     elseif e.head in (:local, :global) && nargs > 1
         # Possible normalization
-        # child_exprs = [Expr(:tuple, child_exprs...)]
+        # child_exprs = Any[Expr(:tuple, child_exprs...)]
     elseif e.head === :error
         # Zero-child errors from parsing are leaf nodes.  We could change this
         # upstream for consistency.
@@ -417,7 +421,7 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
             end
         else
             @assert nargs === 1
-            child_exprs[1] = Expr(:sym_not_identifier, e.args[1])
+            child_exprs[1] = Expr(:quoted_symbol, e.args[1])
         end
     elseif e.head === :symbolicgoto || e.head === :symboliclabel
         @assert nargs === 1
@@ -427,7 +431,8 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
     elseif e.head === :inline || e.head === :noinline
         @assert nargs === 1 && e.args[1] isa Bool
         # TODO: JuliaLowering doesn't accept this (non-:meta) form yet
-        return nothing, src
+        st_k = K"TOMBSTONE"
+        child_exprs = nothing
     elseif e.head === :core
         @assert nargs === 1
         @assert e.args[1] isa Symbol
@@ -435,7 +440,7 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
         child_exprs = nothing
     elseif e.head === :islocal || e.head === :isglobal
         st_k = K"extension"
-        child_exprs = [Expr(:sym_not_identifier, e.head), e.args[1]]
+        child_exprs = [Expr(:quoted_symbol, e.head), e.args[1]]
     elseif e.head === :block && nargs >= 1 &&
         e.args[1] isa Expr && e.args[1].head === :softscope
         # (block (softscope true) ex) produced with every REPL prompt.
@@ -454,15 +459,12 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
         mac_name = string(e.args[1])
         mac_name = mac_name == "@__dot__" ? "@." : mac_name
         st_id = _insert_tree_node(graph, K"MacroName", src, st_flags; name_val=mac_name)
-        if !Base.is_valid_identifier(mac_name[2:end])
-            return _insert_var_str(st_id, graph, src)
-        end
         return st_id, src
     elseif e.head === :catch_var_placeholder
         st_k = K"Placeholder"
         st_attrs[:name_val] = ""
         child_exprs = nothing
-    elseif e.head === :sym_not_identifier
+    elseif e.head === :quoted_symbol
         st_k = K"Symbol"
         st_attrs[:name_val] = String(e.args[1])
         child_exprs = nothing
@@ -484,7 +486,6 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
     if isnothing(child_exprs)
         return st_id, src
     else
-        st_flags |= JS.NON_TERMINAL_FLAG
         setflags!(graph, st_id, st_flags)
         st_child_ids, last_src = _insert_child_expr(child_exprs, graph, src)
         setchildren!(graph, st_id, st_child_ids)
@@ -493,13 +494,17 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
 end
 
 function _insert_child_expr(child_exprs::Vector{Any}, graph::SyntaxGraph,
-                               src::SourceAttrType)
+                            src::SourceAttrType)
     st_child_ids = NodeId[]
     last_src = src
     for c in child_exprs
-        (c_id, c_src) = _insert_convert_expr(c, graph, last_src)
-        isnothing(c_id) || push!(st_child_ids, c_id)
-        last_src = something(c_src, src)
+        if c isa LineNumberNode
+            last_src = c
+        else
+            (c_id, c_src) = _insert_convert_expr(c, graph, last_src)
+            push!(st_child_ids, c_id)
+            last_src = something(c_src, src)
+        end
     end
     return st_child_ids, last_src
 end

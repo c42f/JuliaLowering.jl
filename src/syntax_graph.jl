@@ -146,9 +146,7 @@ function sethead!(graph, id::NodeId, k::Kind)
 end
 
 function setflags!(graph, id::NodeId, f::UInt16)
-    if f != 0
-        graph.syntax_flags[id] = f
-    end
+    graph.syntax_flags[id] = f
 end
 
 function _convert_nodes(graph::SyntaxGraph, node::SyntaxNode)
