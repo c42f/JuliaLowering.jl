@@ -487,14 +487,14 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
         return st_id, src
     else
         setflags!(graph, st_id, st_flags)
-        st_child_ids, last_src = _insert_child_expr(child_exprs, graph, src)
+        st_child_ids, last_src = _insert_child_exprs(child_exprs, graph, src)
         setchildren!(graph, st_id, st_child_ids)
         return st_id, last_src
     end
 end
 
-function _insert_child_expr(child_exprs::Vector{Any}, graph::SyntaxGraph,
-                            src::SourceAttrType)
+function _insert_child_exprs(child_exprs::Vector{Any}, graph::SyntaxGraph,
+                             src::SourceAttrType)
     st_child_ids = NodeId[]
     last_src = src
     for c in child_exprs
