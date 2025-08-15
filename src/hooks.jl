@@ -10,7 +10,12 @@ function core_lowering_hook(@nospecialize(code), mod::Module,
         # e.g. LineNumberNode, integer...
         return Core.svec(code)
     end
-    st0 = code isa Expr ? expr_to_syntaxtree(code) : code
+
+    # TODO: fix in base
+    file = file isa Ptr{UInt8} ? unsafe_string(file) : file
+    line = !(line isa Int64) ? Int64(line) : line
+
+    st0 = code isa Expr ? expr_to_syntaxtree(code, LineNumberNode(line, file)) : code
     try
         ctx1, st1 = expand_forms_1(  mod,  st0)
         ctx2, st2 = expand_forms_2(  ctx1, st1)
