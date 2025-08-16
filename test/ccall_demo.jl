@@ -1,26 +1,8 @@
 module CCall
 
 using JuliaSyntax, JuliaLowering
-using JuliaLowering: is_identifier_like, numchildren, children, MacroExpansionError, @ast, SyntaxTree
-
-# Hacky utils
-# macro K_str(str)
-#     JuliaSyntax.Kind(str[1].value)
-# end
-#
-# # Needed because we can't lower kwarg calls yet ehehe :-/
-# function mac_ex_error(ex, msg, pos)
-#     kwargs = Core.apply_type(Core.NamedTuple, (:position,))((pos,))
-#     Core.kwcall(kwargs, MacroExpansionError, ex, msg)
-# end
-
-macro ast_str(str)
-    ex = parsestmt(JuliaLowering.SyntaxTree, str, filename=string(__source__.file))
-    ctx1, ex1 = JuliaLowering.expand_forms_1(__module__, ex)
-    @assert kind(ex1) == K"call" && ex1[1].value === JuliaLowering.interpolate_ast
-    cs = map(e->esc(Expr(e)), ex1[3:end])
-    :(JuliaLowering.interpolate_ast($(ex1[2][1]), $(cs...)))
-end
+using JuliaLowering: is_identifier_like, numchildren, children, MacroExpansionError,
+    @ast, SyntaxTree, @SyntaxTree
 
 function ccall_macro_parse(ex)
     if kind(ex) != K"::"
@@ -85,13 +67,13 @@ end
 function ccall_macro_lower(ex, convention, func, rettype, types, args, num_varargs)
     statements = SyntaxTree[]
     if kind(func) == K"$"
-        check = ast"""quote
+        check = @SyntaxTree quote
             func = $(func[1])
             if !isa(func, Ptr{Cvoid})
                 name = :($(func[1]))
                 throw(ArgumentError("interpolated function `$name` was not a `Ptr{Cvoid}`, but $(typeof(func))"))
             end
-        end"""
+        end
         func = check[1][1]
         push!(statements, check)
     end
@@ -100,16 +82,16 @@ function ccall_macro_lower(ex, convention, func, rettype, types, args, num_varar
     cargs = SyntaxTree[]
     for (i, (type, arg)) in enumerate(zip(types, args))
         argi = @ast ex arg "arg$i"::K"Identifier"
-        # TODO: Is there any safe way to use SSAValue here?
-        push!(statements, ast":(local $argi = Base.cconvert($type, $arg))")
+        # TODO: Can we allow this macro to emit SSAValue?
+        push!(statements, @SyntaxTree :(local $argi = Base.cconvert($type, $arg)))
         push!(roots, argi)
-        push!(cargs, ast":(Base.unsafe_convert($type, $argi))")
+        push!(cargs, @SyntaxTree :(Base.unsafe_convert($type, $argi)))
     end
     push!(statements,
           @ast ex ex [K"foreigncall"
               func
               rettype
-              ast":(Core.svec($(types...)))"
+              @SyntaxTree :(Core.svec($(types...)))
               # Is this num_varargs correct? It seems wrong?
               num_varargs::K"Integer"
               convention::K"Symbol"

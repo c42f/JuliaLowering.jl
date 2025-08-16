@@ -307,7 +307,7 @@ function (g::GeneratedFunctionStub)(world::UInt, source::Method, @nospecialize a
 
     # Macro expansion
     layers = ScopeLayer[ScopeLayer(1, mod, false)]
-    ctx1 = MacroExpansionContext(graph, Bindings(), layers, layers[1])
+    ctx1 = MacroExpansionContext(graph, Bindings(), layers, LayerId[1])
 
     # Run code generator - this acts like a macro expander and like a macro
     # expander it gets a MacroContext.
@@ -326,11 +326,11 @@ function (g::GeneratedFunctionStub)(world::UInt, source::Method, @nospecialize a
     # Expand any macros emitted by the generator
     ex1 = expand_forms_1(ctx1, reparent(ctx1, ex0))
     ctx1 = MacroExpansionContext(delete_attributes(graph, :__macro_ctx__),
-                                 ctx1.bindings, ctx1.scope_layers, ctx1.current_layer)
+                                 ctx1.bindings, ctx1.scope_layers, LayerId[])
     ex1 = reparent(ctx1, ex1)
 
     # Desugaring
-    ctx2, ex2 = expand_forms_2(  ctx1, ex1)
+    ctx2, ex2 = expand_forms_2(ctx1, ex1)
 
     # Wrap expansion in a non-toplevel lambda and run scope resolution
     ex2 = @ast ctx2 ex0 [K"lambda"(is_toplevel_thunk=false)
@@ -342,12 +342,11 @@ function (g::GeneratedFunctionStub)(world::UInt, source::Method, @nospecialize a
         ]
         ex2
     ]
-    ctx3, ex3 = resolve_scopes(  ctx2, ex2)
-
+    ctx3, ex3 = resolve_scopes(ctx2, ex2)
 
     # Rest of lowering
     ctx4, ex4 = convert_closures(ctx3, ex3)
-    ctx5, ex5 = linearize_ir(    ctx4, ex4)
+    ctx5, ex5 = linearize_ir(ctx4, ex4)
     ci = to_lowered_expr(mod, ex5)
     @assert ci isa Core.CodeInfo
     return ci

@@ -15,7 +15,7 @@ function DesugaringContext(ctx)
                               scope_type=Symbol, # :hard or :soft
                               var_id=IdTag,
                               is_toplevel_thunk=Bool)
-    DesugaringContext(graph, ctx.bindings, ctx.scope_layers, ctx.current_layer.mod)
+    DesugaringContext(graph, ctx.bindings, ctx.scope_layers, first(ctx.scope_layers).mod)
 end
 
 #-------------------------------------------------------------------------------

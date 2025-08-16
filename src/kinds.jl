@@ -6,6 +6,9 @@ function _register_kinds()
         # expansion, and known to lowering. These are part of the AST API but
         # without having surface syntax.
         "BEGIN_EXTENSION_KINDS"
+            # Used for converting `esc()`'d expressions arising from old macro
+            # invocations during macro expansion
+            "escape"
             # atomic fields or accesses (see `@atomic`)
             "atomic"
             # Flag for @generated parts of a functon
@@ -51,6 +54,11 @@ function _register_kinds()
             # For expr-macro compatibility; gone after expansion
             "escape"
             "hygienic_scope"
+            # An expression which will eventually be evaluated at top level in
+            # the enclosing module. Used for the callable name in @cfunction;
+            # TODO: Use this for GeneratedFunctionStub and ccall types also?
+            # may be used for ccall type arguments at some point.
+            "deferred_toplevel_eval"
             # Catch-all for additional syntax extensions without the need to
             # extend `Kind`. Known extensions include:
             #   locals, islocal
