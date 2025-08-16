@@ -54,6 +54,11 @@ function _register_kinds()
             # For expr-macro compatibility; gone after expansion
             "escape"
             "hygienic_scope"
+            # An expression which will eventually be evaluated at top level in
+            # the enclosing module. Used for the callable name in @cfunction;
+            # TODO: Use this for GeneratedFunctionStub and ccall types also?
+            # may be used for ccall type arguments at some point.
+            "deferred_toplevel_eval"
             # Catch-all for additional syntax extensions without the need to
             # extend `Kind`. Known extensions include:
             #   locals, islocal

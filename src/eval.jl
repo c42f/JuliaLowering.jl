@@ -302,6 +302,9 @@ function to_lowered_expr(mod, ex, ssa_offset=0)
         # Unpack K"Symbol" QuoteNode as `Expr(:meta)` requires an identifier here.
         args[1] = args[1].value
         Expr(:meta, args...)
+    elseif k == K"deferred_toplevel_eval"
+        @assert numchildren(ex) == 1
+        QuoteNode(to_lowered_expr(mod, ex[1], ssa_offset))
     else
         # Allowed forms according to https://docs.julialang.org/en/v1/devdocs/ast/
         #

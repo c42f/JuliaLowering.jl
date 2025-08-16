@@ -42,7 +42,10 @@ cf_int = JuliaLowering.include_string(test_mod, """
 """)
 @test @ccall($cf_int(2::Int, 3::Int)::Int) == 32
 cf_float = JuliaLowering.include_string(test_mod, """
-@cfunction(f_ccallable, Float64, (Float64,Float64))
+let
+    f_ccallable = "irrelevant"
+    @cfunction(f_ccallable, Float64, (Float64,Float64))
+end
 """)
 @test @ccall($cf_float(2::Float64, 3::Float64)::Float64) == 32.0
 

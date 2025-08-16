@@ -323,7 +323,7 @@ JuxtTest.@emit_juxt
 # @cfunction expansion with global generic function as function argument
 @cfunction(callable, Int, (Int, Float64))
 #---------------------
-1   (cfunction Ptr{Nothing} :(:callable) TestMod.Int (call core.svec TestMod.Int TestMod.Float64) :ccall)
+1   (cfunction Ptr{Nothing} (deferred_toplevel_eval TestMod.callable) TestMod.Int (call core.svec TestMod.Int TestMod.Float64) :ccall)
 2   (return %₁)
 
 ########################################

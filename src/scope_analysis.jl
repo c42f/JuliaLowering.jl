@@ -488,6 +488,14 @@ function _resolve_scopes(ctx, ex::SyntaxTree)
         end
         pop!(ctx.scope_stack)
         @ast ctx ex [K"block" stmts...]
+    elseif k == K"deferred_toplevel_eval"
+        local_scopes = splice!(ctx.scope_stack, 2:lastindex(ctx.scope_stack))
+        scope = analyze_scope(ctx, ex, nothing, true)
+        push!(ctx.scope_stack, scope)
+        resolved = mapchildren(e->_resolve_scopes(ctx, e), ctx, ex)
+        pop!(ctx.scope_stack)
+        append!(ctx.scope_stack, local_scopes)
+        resolved
     elseif k == K"extension"
         etype = extension_type(ex)
         if etype == "islocal"
@@ -647,7 +655,7 @@ function analyze_variables!(ctx, ex)
                 update_binding!(ctx, ex, is_captured=true)
             end
         end
-    elseif is_leaf(ex) || is_quoted(ex)
+    elseif is_leaf(ex) || is_quoted(ex) || k == K"deferred_toplevel_eval"
         return
     elseif k == K"local" || k == K"global"
         # Presence of BindingId within local/global is ignored.
