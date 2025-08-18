@@ -132,3 +132,4 @@ _never_exist = @m_not_exist 42
 MacroExpansionError while expanding @m_not_exist in module Main.TestMod:
 _never_exist = @m_not_exist 42
 #               └─────────┘ ── Macro not found
+

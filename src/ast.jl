@@ -428,15 +428,21 @@ end
 
 
 """
-Copy AST `ex` into `ctx`
+Recursively copy AST `ex` into `ctx`.  The resulting tree contains new nodes
+only, and does not contain nodes with multiple parents.
+
+Special provenance handling: If `copy_source` is true, treat the `.source`
+attribute as a reference and recurse on its contents.  Otherwise, treat it like
+any other attribute.
 """
-function copy_ast(ctx, ex)
+function copy_ast(ctx, ex; copy_source=true)
     # TODO: Do we need to keep a mapping of node IDs to ensure we don't
     # double-copy here in the case when some tree nodes are pointed to by
     # multiple parents? (How much does this actually happen in practice?)
-    s = ex.source
+    s = get(ex, :source, nothing)
     # TODO: Figure out how to use provenance() here?
-    srcref = s isa NodeId ? copy_ast(ctx, SyntaxTree(ex._graph, s))            :
+    srcref = !copy_source ? s                                                  :
+             s isa NodeId ? copy_ast(ctx, SyntaxTree(ex._graph, s))            :
              s isa Tuple  ? map(i->copy_ast(ctx, SyntaxTree(ex._graph, i)), s) :
              s
     if !is_leaf(ex)
