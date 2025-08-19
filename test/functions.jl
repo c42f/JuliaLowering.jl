@@ -204,6 +204,27 @@ end
 
     @test JuliaLowering.include_string(test_mod, """
     begin
+        function f_def_typevar_with_lowerbound(x::T) where {T>:Int}
+            x
+        end
+
+        (f_def_typevar_with_lowerbound(1), f_def_typevar_with_lowerbound(1.0))
+    end
+    """) == (1, 1.0)
+
+    # throws "UndefVarError: `T` not defined in static parameter matching"
+    @test_throws UndefVarError JuliaLowering.include_string(test_mod, """
+    begin
+        function f_def_ret_typevar_with_lowerbound(x::T) where {T>:Int}
+            T
+        end
+
+        f_def_ret_typevar_with_lowerbound(1.0)
+    end
+    """)
+
+    @test JuliaLowering.include_string(test_mod, """
+    begin
         function f_def_slurp(x=1, ys...)
             (x, ys)
         end
