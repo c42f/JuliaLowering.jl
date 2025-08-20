@@ -310,4 +310,13 @@ end
     MethodError: no method matching var"@sig_mismatch"(::JuliaLowering.MacroContext, ::JuliaLowering.SyntaxTree""")
 end
 
+@testset "old macros producing exotic expr heads" begin
+    @test JuliaLowering.include_string(test_mod, """
+    let # example from @preserve docstring
+        x = Ref{Int}(101)
+        p = Base.unsafe_convert(Ptr{Int}, x)
+        GC.@preserve x unsafe_load(p)
+     end""") === 101 # Expr(:gc_preserve)
+end
+
 end # module macros
