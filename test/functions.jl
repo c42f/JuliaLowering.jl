@@ -460,6 +460,16 @@ end
     end
     """) == ((:shared_stuff, (:nongen, (NTuple{2,Int}, 2, Int))),
              (:shared_stuff, (:gen, (NTuple{5,Int}, 5, Int))))
+
+    # Test generated function edges to bindings
+    # (see also https://github.com/JuliaLang/julia/pull/57230)
+    JuliaLowering.include_string(test_mod, raw"""
+    const delete_me = 4
+    @generated f_generated_return_delete_me() = return :(delete_me)
+    """)
+    @test test_mod.f_generated_return_delete_me() == 4
+    Base.delete_binding(test_mod, :delete_me)
+    @test_throws UndefVarError test_mod.f_generated_return_delete_me()
 end
 
 @testset "Broadcast" begin
