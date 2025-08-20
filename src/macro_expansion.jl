@@ -242,7 +242,10 @@ function expand_macro(ctx, ex)
     else
         # Compat: attempt to invoke an old-style macro if there's no applicable
         # method for new-style macro arguments.
-        macro_loc = source_location(LineNumberNode, ex)
+        macro_loc = let loc = source_location(LineNumberNode, ex)
+            # Some macros, e.g. @cmd, don't play nicely with file == nothing
+            isnothing(loc.file) ? LineNumberNode(loc.line, :none) : loc
+        end
         macro_args = Any[macro_loc, current_layer(ctx).mod]
         for arg in raw_args
             # For hygiene in old-style macros, we omit any additional scope
@@ -392,6 +395,9 @@ function expand_forms_1(ctx::MacroExpansionContext, ex::SyntaxTree)
             e2 = @ast ctx e2 e2=>K"Symbol"
         end
         @ast ctx ex [K"." expand_forms_1(ctx, ex[1]) e2]
+    elseif k == K"cmdstring"
+        e2 = @ast ctx ex [K"macrocall" "@cmd"::K"core" ex[1]]
+        expand_macro(ctx, e2)
     elseif (k == K"call" || k == K"dotcall")
         # Do some initial desugaring of call and dotcall here to simplify
         # the later desugaring pass
