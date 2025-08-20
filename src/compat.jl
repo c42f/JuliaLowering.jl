@@ -433,9 +433,14 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
         st_k = e.head === :symbolicgoto ? K"symbolic_label" : K"symbolic_goto"
         st_attrs[:name_val] = string(e.args[1])
         child_exprs = nothing
-    elseif e.head === :inline || e.head === :noinline
+    elseif e.head in (:inline, :noinline)
         @assert nargs === 1 && e.args[1] isa Bool
         # TODO: JuliaLowering doesn't accept this (non-:meta) form yet
+        st_k = K"TOMBSTONE"
+        child_exprs = nothing
+    elseif e.head === :inbounds
+        @assert nargs === 1 && typeof(e.args[1]) in (Symbol, Bool)
+        # TODO: JuliaLowering doesn't accept this form yet
         st_k = K"TOMBSTONE"
         child_exprs = nothing
     elseif e.head === :core
