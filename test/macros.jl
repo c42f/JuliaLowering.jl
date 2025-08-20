@@ -316,7 +316,18 @@ end
         x = Ref{Int}(101)
         p = Base.unsafe_convert(Ptr{Int}, x)
         GC.@preserve x unsafe_load(p)
-     end""") === 101 # Expr(:gc_preserve)
+    end""") === 101 # Expr(:gc_preserve)
+
+    # only invokelatest produces :isglobal now, so MWE here
+    Base.eval(test_mod, :(macro test_isglobal(x); esc(Expr(:isglobal, x)); end))
+    JuliaLowering.include_string(test_mod, """
+    some_global = 1
+    function isglobal_chk(some_arg)
+       local some_local = 1
+       (@test_isglobal(some_global), @test_isglobal(some_arg), @test_isglobal(some_local))
+    end
+    isglobal_chk(1)
+    """) === (true, false, false)
 end
 
 end # module macros
