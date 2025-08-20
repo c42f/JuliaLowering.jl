@@ -5,9 +5,10 @@ struct DesugaringContext{GraphType} <: AbstractLoweringContext
     bindings::Bindings
     scope_layers::Vector{ScopeLayer}
     mod::Module
+    expr_compat_mode::Bool
 end
 
-function DesugaringContext(ctx)
+function DesugaringContext(ctx, expr_compat_mode::Bool)
     graph = ensure_attributes(syntax_graph(ctx),
                               kind=Kind, syntax_flags=UInt16,
                               source=SourceAttrType,
@@ -15,7 +16,11 @@ function DesugaringContext(ctx)
                               scope_type=Symbol, # :hard or :soft
                               var_id=IdTag,
                               is_toplevel_thunk=Bool)
-    DesugaringContext(graph, ctx.bindings, ctx.scope_layers, first(ctx.scope_layers).mod)
+    DesugaringContext(graph,
+                      ctx.bindings,
+                      ctx.scope_layers,
+                      first(ctx.scope_layers).mod,
+                      expr_compat_mode)
 end
 
 #-------------------------------------------------------------------------------
@@ -3246,20 +3251,40 @@ function expand_macro_def(ctx, ex)
     name = sig[1]
     args = remove_empty_parameters(children(sig))
     @chk kind(args[end]) != K"parameters" (args[end], "macros cannot accept keyword arguments")
-    ret = @ast ctx ex [K"function"
-        [K"call"(sig)
-            _make_macro_name(ctx, name)
-            [K"::"
-                adopt_scope(@ast(ctx, sig, "__context__"::K"Identifier"),
-                            kind(name) == K"." ? name[1] : name)
-                MacroContext::K"Value"
+    if ctx.expr_compat_mode
+        @ast ctx ex [K"function"
+            [K"call"(sig)
+                _make_macro_name(ctx, name)
+                [K"::"
+                    adopt_scope(@ast(ctx, sig, "__source__"::K"Identifier"),
+                                kind(name) == K"." ? name[1] : name)
+                    LineNumberNode::K"Value"
+                ]
+                [K"::"
+                    adopt_scope(@ast(ctx, sig, "__module__"::K"Identifier"),
+                                kind(name) == K"." ? name[1] : name)
+                    Module::K"Value"
+                ]
+                args[2:end]... # nospecialize?
             ]
-            # flisp: We don't mark these @nospecialize because all arguments to
-            # new macros will be of type SyntaxTree
-            args[2:end]...
+            ex[2]
         ]
-        ex[2]
-    ]
+    else
+        @ast ctx ex [K"function"
+            [K"call"(sig)
+                _make_macro_name(ctx, name)
+                [K"::"
+                    adopt_scope(@ast(ctx, sig, "__context__"::K"Identifier"),
+                                kind(name) == K"." ? name[1] : name)
+                    MacroContext::K"Value"
+                ]
+                # flisp: We don't mark these @nospecialize because all arguments to
+                # new macros will be of type SyntaxTree
+                args[2:end]...
+            ]
+            ex[2]
+        ]
+    end
 end
 
 #-------------------------------------------------------------------------------
@@ -4546,7 +4571,7 @@ function expand_forms_2(ctx::StatementListCtx, args...)
 end
 
 function expand_forms_2(ctx::MacroExpansionContext, ex::SyntaxTree)
-    ctx1 = DesugaringContext(ctx)
+    ctx1 = DesugaringContext(ctx, ctx.expr_compat_mode)
     ex1 = expand_forms_2(ctx1, reparent(ctx1, ex))
     ctx1, ex1
 end

@@ -1,5 +1,5 @@
-function lower(mod::Module, ex0)
-    ctx1, ex1 = expand_forms_1(  mod,  ex0)
+function lower(mod::Module, ex0, expr_compat_mode=false)
+    ctx1, ex1 = expand_forms_1(  mod,  ex0, expr_compat_mode)
     ctx2, ex2 = expand_forms_2(  ctx1, ex1)
     ctx3, ex3 = resolve_scopes(  ctx2, ex2)
     ctx4, ex4 = convert_closures(ctx3, ex3)
@@ -7,8 +7,8 @@ function lower(mod::Module, ex0)
     ex5
 end
 
-function macroexpand(mod::Module, ex)
-    ctx1, ex1 = expand_forms_1(mod, ex)
+function macroexpand(mod::Module, ex, expr_compat_mode=false)
+    ctx1, ex1 = expand_forms_1(mod, ex, expr_compat_mode)
     ex1
 end
 

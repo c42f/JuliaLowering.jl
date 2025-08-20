@@ -71,7 +71,7 @@ function _interpolate_ast(ctx::InterpolationContext, ex, depth)
     makenode(ctx, ex, head(ex), expanded_children)
 end
 
-function interpolate_ast(ex, values...)
+function interpolate_ast(::Type{SyntaxTree}, ex, values...)
     # Construct graph for interpolation context. We inherit this from the macro
     # context where possible by detecting it using __macro_ctx__. This feels
     # hacky though.
@@ -106,6 +106,10 @@ function interpolate_ast(ex, values...)
     else
         _interpolate_ast(ctx, ex1, 0)
     end
+end
+
+function interpolate_ast(::Type{Expr}, ex, values...)
+    Base.Expr(interpolate_ast(SyntaxTree, ex, values...))
 end
 
 #--------------------------------------------------
@@ -296,7 +300,7 @@ function (g::GeneratedFunctionStub)(world::UInt, source::Method, @nospecialize a
                               )
 
     # Macro expansion
-    ctx1 = MacroExpansionContext(graph, mod)
+    ctx1 = MacroExpansionContext(graph, mod, false)
 
     # Run code generator - this acts like a macro expander and like a macro
     # expander it gets a MacroContext.
@@ -315,7 +319,7 @@ function (g::GeneratedFunctionStub)(world::UInt, source::Method, @nospecialize a
     # Expand any macros emitted by the generator
     ex1 = expand_forms_1(ctx1, reparent(ctx1, ex0))
     ctx1 = MacroExpansionContext(delete_attributes(graph, :__macro_ctx__),
-                                 ctx1.bindings, ctx1.scope_layers, LayerId[])
+                                 ctx1.bindings, ctx1.scope_layers, LayerId[], false)
     ex1 = reparent(ctx1, ex1)
 
     # Desugaring
