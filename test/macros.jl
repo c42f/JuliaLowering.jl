@@ -239,6 +239,23 @@ MacroExpansionError while expanding @oldstyle_error in module Main.macros.test_m
 Caused by:
 Some error in old style macro"""
 
+# Parsed to prevent this test being sensitive to its line number
+Base.eval(test_mod, JuliaLowering.parsestmt(Expr, """
+macro oldstyle_calls_oldstyle_error()
+    :(@oldstyle_error)
+end
+"""))
+@test try
+    JuliaLowering.include_string(test_mod, """
+    @oldstyle_calls_oldstyle_error
+    """)
+catch exc
+    sprint(showerror, exc)
+end == "MacroExpansionError while expanding @oldstyle_error in module Main.macros.test_mod:
+#= line 2 =# - Error expanding macro
+Caused by:
+Some error in old style macro"
+
 # Old-style macros returning non-Expr values
 Base.eval(test_mod, :(
 macro oldstyle_non_Expr()

@@ -118,14 +118,18 @@ function Base.showerror(io::IO, exc::MacroExpansionError)
     # * How to deal with highlighting trivia? Could provide a token kind or
     #   child position within the raw tree? How to abstract this??
     src = sourceref(exc.ex)
-    fb = first_byte(src)
-    lb = last_byte(src)
-    pos = exc.position
-    byterange = pos == :all     ? (fb:lb)   :
-                pos == :begin   ? (fb:fb-1) :
-                pos == :end     ? (lb+1:lb) :
-                error("Unknown position $pos")
-    highlight(io, src.file, byterange, note=exc.msg)
+    if src isa LineNumberNode
+        highlight(io, src, note=exc.msg)
+    else
+        fb = first_byte(src)
+        lb = last_byte(src)
+        pos = exc.position
+        byterange = pos == :all     ? (fb:lb)   :
+            pos == :begin   ? (fb:fb-1) :
+            pos == :end     ? (lb+1:lb) :
+            error("Unknown position $pos")
+        highlight(io, src.file, byterange, note=exc.msg)
+    end
     if !isnothing(exc.err)
         print(io, "\nCaused by:\n")
         showerror(io, exc.err)
