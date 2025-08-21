@@ -258,9 +258,6 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
             child_exprs = pushfirst!(tuple_exprs, e.args[1])
         elseif a2 isa QuoteNode && a2.value isa Symbol
             child_exprs[2] = a2.value
-        elseif a2 isa Expr && a2.head === :MacroName
-        else
-            @error "Unknown 2-arg dot form" e
         end
     elseif e.head === :for
         @assert nargs === 2
