@@ -2,36 +2,33 @@
 # Basic import
 import A: b
 #---------------------
-1   (call core.svec "A")
-2   (call core.svec 1 "b" core.nothing)
-3   (call JuliaLowering.module_import TestMod false %₁ %₂)
-4   (return %₃)
+1   (call top._eval_import true TestMod :($(QuoteNode(:($(Expr(:., :A)))))) :($(QuoteNode(:($(Expr(:., :b)))))))
+2   latestworld
+3   (return core.nothing)
 
 ########################################
 # Import with paths and `as`
 import A.B.C: b, c.d as e
 #---------------------
-1   (call core.svec "A" "B" "C")
-2   (call core.svec 1 "b" core.nothing 2 "c" "d" "e")
-3   (call JuliaLowering.module_import TestMod false %₁ %₂)
-4   (return %₃)
+1   (call top._eval_import true TestMod :($(QuoteNode(:($(Expr(:., :A, :B, :C)))))) :($(QuoteNode(:($(Expr(:., :b)))))) :($(QuoteNode(:(c.d as e)))))
+2   latestworld
+3   (return core.nothing)
 
 ########################################
 # Using
 using A
 #---------------------
-1   (call core.svec 1 "A" core.nothing)
-2   (call JuliaLowering.module_import TestMod true core.nothing %₁)
-3   (return %₂)
+1   (call top._eval_using TestMod :($(QuoteNode(:($(Expr(:., :A)))))))
+2   latestworld
+3   (return core.nothing)
 
 ########################################
 # Using with paths and `as`
 using A.B.C: b, c.d as e
 #---------------------
-1   (call core.svec "A" "B" "C")
-2   (call core.svec 1 "b" core.nothing 2 "c" "d" "e")
-3   (call JuliaLowering.module_import TestMod true %₁ %₂)
-4   (return %₃)
+1   (call top._eval_import false TestMod :($(QuoteNode(:($(Expr(:., :A, :B, :C)))))) :($(QuoteNode(:($(Expr(:., :b)))))) :($(QuoteNode(:(c.d as e)))))
+2   latestworld
+3   (return core.nothing)
 
 ########################################
 # Error: Import not at top level
