@@ -243,7 +243,7 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
         elseif a1 isa Function
             # pass
         else
-            error("Unknown macrocall form $(sprint(dump, e))")
+            error("Unknown macrocall form at $src: $(sprint(dump, e))")
             @assert false
         end
     elseif e.head === Symbol("'")
@@ -417,8 +417,15 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
                 setmeta!(SyntaxTree(graph, st_id); nospecialize=true)
                 return st_id, src
             end
+        elseif e.args[1] in (:inline, :noinline, :generated, :generated_only,
+                             :max_methods, :optlevel, :toplevel, :push_loc, :pop_loc,
+                             :aggressive_constprop, :specialize, :compile, :infer,
+                             :nospecializeinfer)
+            # TODO: Some need to be handled in lowering
+            child_exprs[1] = Expr(:quoted_symbol, e.args[1])
         else
-            @assert nargs === 1
+            # Can't throw a hard error; it is explicitly tested that meta can take arbitrary keys.
+            @error("Unknown meta form at $src: `$e`\n$(sprint(dump, e))")
             child_exprs[1] = Expr(:quoted_symbol, e.args[1])
         end
     elseif e.head === :scope_layer 
@@ -486,7 +493,7 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
     # Throw if this script isn't complete.  Finally, insert a new node into the
     # graph and recurse on child_exprs
     if st_k === K"None"
-        error("Unknown expr head `$(e.head)`\n$(sprint(dump, e))")
+        error("Unknown expr head at $src: `$(e.head)`\n$(sprint(dump, e))")
     end
 
     st_id = _insert_tree_node(graph, st_k, src, st_flags; st_attrs...)
