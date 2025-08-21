@@ -4122,9 +4122,7 @@ function expand_importpath(path)
 end
 
 function expand_import_or_using(ctx, ex)
-    is_using = kind(ex) == K"using"
-    has_from_path = kind(ex[1]) == K":"
-    if has_from_path
+    if kind(ex[1]) == K":"
         # import M: x.y as z, w
         # (import (: (importpath M) (as (importpath x y) z) (importpath w)))
         # =>
@@ -4141,7 +4139,7 @@ function expand_import_or_using(ctx, ex)
         # (using (importpath A B))
         # (call eval_import true nothing (call core.svec 1 "w"))
         @chk numchildren(ex) >= 1
-        from_path = nothing_(ctx, ex)
+        from_path = nothing
         paths = children(ex)
     end
     # Here we represent the paths as quoted `Expr` data structures
@@ -4158,25 +4156,46 @@ function expand_import_or_using(ctx, ex)
         end
         push!(path_specs, @ast ctx spec path::K"Value")
     end
+    is_using = kind(ex) == K"using"
+    stmts = SyntaxList(ctx)
+    if isnothing(from_path)
+        for spec in path_specs
+            if is_using
+                push!(stmts,
+                    @ast ctx spec [K"call"
+                        eval_using   ::K"Value"
+                        ctx.mod      ::K"Value"
+                        spec
+                    ]
+                )
+            else
+                push!(stmts,
+                    @ast ctx spec [K"call"
+                        eval_import   ::K"Value"
+                        (!is_using)   ::K"Bool"
+                        ctx.mod       ::K"Value"
+                        "nothing"     ::K"top"
+                        spec
+                    ]
+                )
+            end
+            # latestworld required between imports so that previous symbols
+            # become visible
+            push!(stmts, @ast ctx spec (::K"latestworld"))
+        end
+    else
+        push!(stmts, @ast ctx ex [K"call"
+            eval_import   ::K"Value"
+            (!is_using)   ::K"Bool"
+            ctx.mod       ::K"Value"
+            from_path
+            path_specs...
+        ])
+        push!(stmts, @ast ctx ex (::K"latestworld"))
+    end
     @ast ctx ex [K"block"
         [K"assert" "toplevel_only"::K"Symbol" [K"inert" ex]]
-        if is_using && !has_from_path
-            # Using A, B - rather different from
-            [K"call"
-                "_eval_using"::K"top"
-                ctx.mod      ::K"Value"
-                path_specs...
-            ]
-        else
-            [K"call"
-                "_eval_import"::K"top"
-                (!is_using)   ::K"Bool"
-                ctx.mod       ::K"Value"
-                from_path
-                path_specs...
-            ]
-        end
-        ::K"latestworld"
+        stmts...
         [K"removable" "nothing"::K"core"]
     ]
 end
