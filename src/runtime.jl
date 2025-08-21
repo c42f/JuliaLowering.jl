@@ -109,7 +109,7 @@ function interpolate_ast(::Type{SyntaxTree}, ex, values...)
 end
 
 function interpolate_ast(::Type{Expr}, ex, values...)
-    Base.Expr(interpolate_ast(SyntaxTree, ex, values...))
+    Expr(interpolate_ast(SyntaxTree, ex, values...))
 end
 
 #--------------------------------------------------
