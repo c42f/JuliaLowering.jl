@@ -4309,9 +4309,10 @@ function expand_module(ctx, ex::SyntaxTree)
             [K"inert" ex]
         ]
         [K"call"
-            eval_module ::K"Value"
-            ctx.mod     ::K"Value"
-            modname     ::K"String"
+            eval_module           ::K"Value"
+            ctx.mod               ::K"Value"
+            modname               ::K"String"
+            ctx.expr_compat_mode  ::K"Bool"
             [K"inert"(body)
                 [K"toplevel"
                     std_defs
@@ -4505,9 +4506,10 @@ function expand_forms_2(ctx::DesugaringContext, ex::SyntaxTree, docs=nothing)
         @ast ctx ex [K"block"
             [K"assert" "toplevel_only"::K"Symbol" [K"inert" ex]]
             [K"call"
-                eval          ::K"Value"
-                ctx.mod       ::K"Value"
+                eval                  ::K"Value"
+                ctx.mod               ::K"Value"
                 [K"inert" ex]
+                ctx.expr_compat_mode  ::K"Bool"
             ]
         ]
     elseif k == K"vect"

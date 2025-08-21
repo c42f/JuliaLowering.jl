@@ -344,16 +344,16 @@ end
 
 #-------------------------------------------------------------------------------
 # Our version of eval takes our own data structures
-function Core.eval(mod::Module, ex::SyntaxTree)
+function Core.eval(mod::Module, ex::SyntaxTree, expr_compat_mode::Bool=false)
     k = kind(ex)
     if k == K"toplevel"
         x = nothing
         for e in children(ex)
-            x = eval(mod, e)
+            x = eval(mod, e, expr_compat_mode)
         end
         return x
     end
-    linear_ir = lower(mod, ex)
+    linear_ir = lower(mod, ex, expr_compat_mode)
     expr_form = to_lowered_expr(mod, linear_ir)
     eval(mod, expr_form)
 end

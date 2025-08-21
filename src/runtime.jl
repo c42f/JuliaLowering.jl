@@ -158,7 +158,7 @@ end
 #     public modname
 #
 # And run statments in the toplevel expression `body`
-function eval_module(parentmod, modname, body)
+function eval_module(parentmod, modname, expr_compat_mode, body)
     # Here we just use `eval()` with an Expr.
     # If we wanted to avoid this we'd need to reproduce a lot of machinery from
     # jl_eval_module_expr()
@@ -175,7 +175,7 @@ function eval_module(parentmod, modname, body)
     name = Symbol(modname)
     eval(parentmod, :(
         baremodule $name
-            $eval($name, $body)
+            $eval($name, $body, $expr_compat_mode)
         end
     ))
 end
