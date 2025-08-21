@@ -4183,11 +4183,17 @@ end
 
 # Expand `public` or `export`
 function expand_public(ctx, ex)
+    identifiers = String[]
+    for e in children(ex)
+        @chk kind(e) == K"Identifier" (ex, "Expected identifier")
+        push!(identifiers, e.name_val)
+    end
+    (e.name_val::K"String" for e in children(ex))
     @ast ctx ex [K"call"
-        module_public::K"Value"
+        eval_public::K"Value"
         ctx.mod::K"Value"
         (kind(ex) == K"export")::K"Bool"
-        (e.name_val::K"String" for e in children(ex))...
+        identifiers::K"Value"
     ]
 end
 

@@ -176,7 +176,7 @@ function eval_module(parentmod, modname, body)
     ))
 end
 
-function module_public(mod::Module, is_exported::Bool, identifiers...)
+function eval_public(mod::Module, is_exported::Bool, identifiers)
     # symbol jl_module_public is no longer exported as of #57765
     eval(mod, Expr((is_exported ? :export : :public), map(Symbol, identifiers)...))
 end
