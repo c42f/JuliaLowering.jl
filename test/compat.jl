@@ -310,8 +310,21 @@ const JL = JuliaLowering
         ]
 
         for p in programs
-            @testset "`$p`" begin
+            @testset "`$(repr(p))`" begin
                 st_good = JS.parsestmt(JL.SyntaxTree, p; ignore_errors=true)
+                st_test = JL.expr_to_syntaxtree(Expr(st_good))
+                @test st_roughly_equal(;st_good, st_test)
+            end
+        end
+
+        # toplevel has a special parsing mode where docstrings and a couple of
+        # other things are enabled
+        toplevel_programs = [
+            "\"docstr\"\nthing_to_be_documented",
+        ]
+        for p in toplevel_programs
+            @testset "`$(repr(p))`" begin
+                st_good = JS.parseall(JL.SyntaxTree, p; ignore_errors=true)
                 st_test = JL.expr_to_syntaxtree(Expr(st_good))
                 @test st_roughly_equal(;st_good, st_test)
             end

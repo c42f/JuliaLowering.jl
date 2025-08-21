@@ -266,11 +266,13 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
                 child_exprs[1] = a1_esc(Expr(:(.), a1.args[1],
                                              Expr(:MacroName, a12_esc(a12.value))))
             end
-        elseif a1 isa GlobalRef
+        elseif a1 isa GlobalRef && a1.mod === Core
             # TODO (maybe): syntax-introduced macrocalls are listed here for
             # reference.  We probably don't need to convert these.
             if a1.name === Symbol("@cmd")
             elseif a1.name === Symbol("@doc")
+                st_k = K"doc"
+                child_exprs = child_exprs[2:end]
             elseif a1.name === Symbol("@int128_str")
             elseif a1.name === Symbol("@int128_str")
             elseif a1.name === Symbol("@big_str")
