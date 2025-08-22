@@ -4502,7 +4502,7 @@ function expand_forms_2(ctx::DesugaringContext, ex::SyntaxTree, docs=nothing)
     elseif k == K"toplevel"
         # The toplevel form can't be lowered here - it needs to just be quoted
         # and passed through to a call to eval.
-        @ast ctx ex [K"block"
+        ex2 = @ast ctx ex [K"block"
             [K"assert" "toplevel_only"::K"Symbol" [K"inert" ex]]
             [K"call"
                 eval                  ::K"Value"
@@ -4516,6 +4516,7 @@ function expand_forms_2(ctx::DesugaringContext, ex::SyntaxTree, docs=nothing)
                 ]
             ]
         ]
+        expand_forms_2(ctx, ex2)
     elseif k == K"vect"
         check_no_parameters(ex, "unexpected semicolon in array expression")
         expand_array(ctx, ex, "vect")
