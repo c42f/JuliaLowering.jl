@@ -344,12 +344,12 @@ end
 
 #-------------------------------------------------------------------------------
 # Our version of eval takes our own data structures
-function Core.eval(mod::Module, ex::SyntaxTree, expr_compat_mode::Bool=false)
+function Core.eval(mod::Module, ex::SyntaxTree; expr_compat_mode::Bool=false)
     k = kind(ex)
     if k == K"toplevel"
         x = nothing
         for e in children(ex)
-            x = eval(mod, e, expr_compat_mode)
+            x = eval(mod, e; expr_compat_mode)
         end
         return x
     end

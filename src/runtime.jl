@@ -109,6 +109,10 @@ function interpolate_ast(::Type{SyntaxTree}, ex, values...)
 end
 
 function interpolate_ast(::Type{Expr}, ex, values...)
+    # TODO: Adjust `_interpolated_value` to ensure that incoming `Expr` data
+    # structures are treated as AST in Expr compat mode, rather than `K"Value"`?
+    # Or convert `ex` to `Expr` early during lowering and implement
+    # `interpolate_ast` for `Expr`?
     Expr(interpolate_ast(SyntaxTree, ex, values...))
 end
 
@@ -175,7 +179,7 @@ function eval_module(parentmod, modname, expr_compat_mode, body)
     name = Symbol(modname)
     eval(parentmod, :(
         baremodule $name
-            $eval($name, $body, $expr_compat_mode)
+            $eval($name, $body; expr_compat_mode=$expr_compat_mode)
         end
     ))
 end

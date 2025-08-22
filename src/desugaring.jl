@@ -3251,21 +3251,21 @@ function expand_macro_def(ctx, ex)
     name = sig[1]
     args = remove_empty_parameters(children(sig))
     @chk kind(args[end]) != K"parameters" (args[end], "macros cannot accept keyword arguments")
+    scope_ref = kind(name) == K"." ? name[1] : name
     if ctx.expr_compat_mode
         @ast ctx ex [K"function"
             [K"call"(sig)
                 _make_macro_name(ctx, name)
                 [K"::"
-                    adopt_scope(@ast(ctx, sig, "__source__"::K"Identifier"),
-                                kind(name) == K"." ? name[1] : name)
+                    # TODO: should we be adopting the scope of the K"macro" expression itself?
+                    adopt_scope(@ast(ctx, sig, "__source__"::K"Identifier"), scope_ref)
                     LineNumberNode::K"Value"
                 ]
                 [K"::"
-                    adopt_scope(@ast(ctx, sig, "__module__"::K"Identifier"),
-                                kind(name) == K"." ? name[1] : name)
+                    adopt_scope(@ast(ctx, sig, "__module__"::K"Identifier"), scope_ref)
                     Module::K"Value"
                 ]
-                args[2:end]... # nospecialize?
+                map(e->_apply_nospecialize(ctx, e), args[2:end])...
             ]
             ex[2]
         ]
@@ -3274,8 +3274,7 @@ function expand_macro_def(ctx, ex)
             [K"call"(sig)
                 _make_macro_name(ctx, name)
                 [K"::"
-                    adopt_scope(@ast(ctx, sig, "__context__"::K"Identifier"),
-                                kind(name) == K"." ? name[1] : name)
+                    adopt_scope(@ast(ctx, sig, "__context__"::K"Identifier"), scope_ref)
                     MacroContext::K"Value"
                 ]
                 # flisp: We don't mark these @nospecialize because all arguments to
@@ -4509,7 +4508,12 @@ function expand_forms_2(ctx::DesugaringContext, ex::SyntaxTree, docs=nothing)
                 eval                  ::K"Value"
                 ctx.mod               ::K"Value"
                 [K"inert" ex]
-                ctx.expr_compat_mode  ::K"Bool"
+                [K"parameters"
+                    [K"="
+                        "expr_compat_mode"::K"Identifier"
+                        ctx.expr_compat_mode::K"Bool"
+                    ]
+                ]
             ]
         ]
     elseif k == K"vect"

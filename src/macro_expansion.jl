@@ -68,7 +68,7 @@ function expand_quote(ctx, ex)
     # (ex, @HERE) ?
     @ast ctx ex [K"call"
         interpolate_ast::K"Value"
-        ctx.expr_compat_mode ? Expr::K"Value" : SyntaxTree::K"Value"
+        (ctx.expr_compat_mode ? Expr : SyntaxTree)::K"Value"
         [K"inert" ex]
         unquoted...
     ]
