@@ -396,6 +396,7 @@ function expand_forms_1(ctx::MacroExpansionContext, ex::SyntaxTree)
         end
         @ast ctx ex [K"." expand_forms_1(ctx, ex[1]) e2]
     elseif k == K"cmdstring"
+        @chk numchildren(ex) == 1
         e2 = @ast ctx ex [K"macrocall" "@cmd"::K"core" ex[1]]
         expand_macro(ctx, e2)
     elseif (k == K"call" || k == K"dotcall")

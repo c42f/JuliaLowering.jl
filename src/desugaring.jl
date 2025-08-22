@@ -4548,8 +4548,8 @@ function expand_forms_2(ctx::DesugaringContext, ex::SyntaxTree, docs=nothing)
         s = ssavar(ctx, ex)
         r = ssavar(ctx, ex)
         @ast ctx ex [K"block"
-            [K"=" s [K"gc_preserve_begin" children(ex)[2:end]...]]
-            [K"=" r expand_forms_2(ctx, children(ex)[1])]
+            s := [K"gc_preserve_begin" children(ex)[2:end]...]
+            r := expand_forms_2(ctx, children(ex)[1])
             [K"gc_preserve_end" s]
             r
         ]
