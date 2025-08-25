@@ -438,7 +438,7 @@ attrsummary(name, value::Number) = "$name=$value"
 
 function _value_string(ex)
     k = kind(ex)
-    str = k == K"Identifier" || k == K"MacroName" || is_operator(k) ? ex.name_val :
+    str = k in KSet"Identifier MacroName StringMacroName CmdMacroName" || is_operator(k) ? ex.name_val :
           k == K"Placeholder" ? ex.name_val           :
           k == K"SSAValue"    ? "%"                   :
           k == K"BindingId"   ? "#"                   :
