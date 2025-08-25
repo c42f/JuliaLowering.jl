@@ -434,10 +434,10 @@ end
 
 const SourceAttrType = Union{SourceRef,LineNumberNode,NodeId,Tuple}
 
-function SyntaxTree(graph::SyntaxGraph, node::SyntaxNode)
+function SyntaxTree(graph::SyntaxGraph{<:Dict}, node::SyntaxNode)
     ensure_attributes!(graph, kind=Kind, syntax_flags=UInt16, source=SourceAttrType,
                        value=Any, name_val=String)
-    id = _convert_nodes(freeze_attrs(graph), node)
+    id = _convert_nodes(graph, node)
     return SyntaxTree(graph, id)
 end
 
