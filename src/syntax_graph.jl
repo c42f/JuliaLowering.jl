@@ -60,19 +60,31 @@ function ensure_attributes!(graph::SyntaxGraph{<:Dict}; kws...)
     end
     graph
 end
+function ensure_attributes(graph::SyntaxGraph{<:Dict}; kws...)
+    g = unfreeze_attrs(graph)
+    ensure_attributes!(g; kws...)
+end
 
-function ensure_attributes(graph::SyntaxGraph; kws...)
+function ensure_attributes(graph::SyntaxGraph{<:NamedTuple}; kws...)
     g = unfreeze_attrs(graph)
     ensure_attributes!(g; kws...)
     freeze_attrs(g)
 end
 
-function delete_attributes(graph::SyntaxGraph, attr_names...)
-    attributes = Dict(pairs(graph.attributes)...)
+function delete_attributes!(graph::SyntaxGraph{<:Dict}, attr_names::Symbol...)
     for name in attr_names
-        delete!(attributes, name)
+        delete!(graph.attributes, name)
     end
-    SyntaxGraph(graph.edge_ranges, graph.edges, (; pairs(attributes)...))
+    graph
+end
+
+function delete_attributes(graph::SyntaxGraph{<:Dict}, attr_names::Symbol...)
+    delete_attributes!(unfreeze_attrs(graph), attr_names...)
+end
+
+function delete_attributes(graph::SyntaxGraph{<:NamedTuple}, attr_names::Symbol...)
+    g = delete_attributes!(unfreeze_attrs(graph), attr_names...)
+    freeze_attrs(g)
 end
 
 function newnode!(graph::SyntaxGraph)
