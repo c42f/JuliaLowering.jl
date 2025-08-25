@@ -213,7 +213,9 @@ function Base.getproperty(ex::SyntaxTree, name::Symbol)
     name === :_id  && return getfield(ex, :_id)
     _id = getfield(ex, :_id)
     return get(getproperty(getfield(ex, :_graph), name), _id) do
-        error("Property `$name[$_id]` not found")
+        attrstr = join(["\n    $n = $(getproperty(ex, n))"
+                        for n in attrnames(ex)], ",")
+        error("Property `$name[$_id]` not found. Available attributes:$attrstr")
     end
 end
 
