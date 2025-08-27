@@ -23,7 +23,8 @@ function freeze_attrs(graph::SyntaxGraph)
 end
 
 function unfreeze_attrs(graph::SyntaxGraph)
-    SyntaxGraph(graph.edge_ranges, graph.edges, Dict(pairs(graph.attributes)...))
+    unfrozen_attrs = Dict{Symbol,Any}(pairs(graph.attributes)...)
+    SyntaxGraph(graph.edge_ranges, graph.edges, unfrozen_attrs)
 end
 
 function _show_attrs(io, attributes::Dict)
