@@ -22,6 +22,7 @@ function freeze_attrs(graph::SyntaxGraph)
     SyntaxGraph(graph.edge_ranges, graph.edges, frozen_attrs)
 end
 
+# Create a copy of `graph` where the attribute list is mutable
 function unfreeze_attrs(graph::SyntaxGraph)
     unfrozen_attrs = Dict{Symbol,Any}(pairs(graph.attributes)...)
     SyntaxGraph(graph.edge_ranges, graph.edges, unfrozen_attrs)
@@ -38,8 +39,8 @@ function attrnames(graph::SyntaxGraph)
     keys(graph.attributes)
 end
 
-function attrtypes(graph::SyntaxGraph)
-    [(k, typeof(v).parameters[2]) for (k, v) in pairs(graph.attributes)]
+function attrdefs(graph::SyntaxGraph)
+    [(k=>typeof(v).parameters[2]) for (k, v) in pairs(graph.attributes)]
 end
 
 function Base.show(io::IO, ::MIME"text/plain", graph::SyntaxGraph)
@@ -48,19 +49,24 @@ function Base.show(io::IO, ::MIME"text/plain", graph::SyntaxGraph)
     _show_attrs(io, graph.attributes)
 end
 
-function ensure_attributes!(graph::SyntaxGraph{<:Dict}; kws...)
+function ensure_attributes!(graph::SyntaxGraph; kws...)
     for (k,v) in pairs(kws)
         @assert k isa Symbol
         @assert v isa Type
         if haskey(graph.attributes, k)
             v0 = valtype(graph.attributes[k])
             v == v0 || throw(ErrorException("Attribute type mismatch $v != $v0"))
+        elseif graph.attributes isa NamedTuple
+            throw(ErrorException("""
+                ensure_attributes!: $k is not an existing attribute, and the graph's attributes are frozen. \
+                Consider calling non-mutating `ensure_attributes` instead."""))
         else
             graph.attributes[k] = Dict{NodeId,v}()
         end
     end
     graph
 end
+
 function ensure_attributes(graph::SyntaxGraph{<:Dict}; kws...)
     g = unfreeze_attrs(graph)
     ensure_attributes!(g; kws...)
@@ -435,7 +441,7 @@ end
 
 const SourceAttrType = Union{SourceRef,LineNumberNode,NodeId,Tuple}
 
-function SyntaxTree(graph::SyntaxGraph{<:Dict}, node::SyntaxNode)
+function SyntaxTree(graph::SyntaxGraph, node::SyntaxNode)
     ensure_attributes!(graph, kind=Kind, syntax_flags=UInt16, source=SourceAttrType,
                        value=Any, name_val=String)
     id = _convert_nodes(graph, node)

@@ -16,12 +16,12 @@
     @test gf2.attributes isa NamedTuple
     @test gu2.attributes isa Dict
     # does its job
-    @test (:test_attr, Symbol) in JuliaLowering.attrtypes(gf2)
-    @test (:foo, Type) in JuliaLowering.attrtypes(gf2)
+    @test (:test_attr=>Symbol) in JuliaLowering.attrdefs(gf2)
+    @test (:foo=>Type) in JuliaLowering.attrdefs(gf2)
     @test Set(keys(gf2.attributes)) == Set(keys(gu2.attributes))
     # no mutation
-    @test !((:test_attr, Symbol) in JuliaLowering.attrtypes(gf1))
-    @test !((:foo, Type) in JuliaLowering.attrtypes(gf1))
+    @test !((:test_attr=>Symbol) in JuliaLowering.attrdefs(gf1))
+    @test !((:foo=>Type) in JuliaLowering.attrdefs(gf1))
     @test Set(keys(gf1.attributes)) == Set(keys(gu1.attributes))
 
     # delete_attributes
@@ -31,12 +31,12 @@
     @test gf3.attributes isa NamedTuple
     @test gu3.attributes isa Dict
     # does its job
-    @test !((:test_attr, Symbol) in JuliaLowering.attrtypes(gf3))
-    @test !((:foo, Type) in JuliaLowering.attrtypes(gf3))
+    @test !((:test_attr=>Symbol) in JuliaLowering.attrdefs(gf3))
+    @test !((:foo=>Type) in JuliaLowering.attrdefs(gf3))
     @test Set(keys(gf3.attributes)) == Set(keys(gu3.attributes))
     # no mutation
-    @test (:test_attr, Symbol) in JuliaLowering.attrtypes(gf2)
-    @test (:foo, Type) in JuliaLowering.attrtypes(gf2)
+    @test (:test_attr=>Symbol) in JuliaLowering.attrdefs(gf2)
+    @test (:foo=>Type) in JuliaLowering.attrdefs(gf2)
     @test Set(keys(gf2.attributes)) == Set(keys(gu2.attributes))
 end
 
