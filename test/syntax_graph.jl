@@ -58,4 +58,53 @@ end
     @test kind(tree2) == K"block"
     @test kind(tree2[1]) == K"Identifier" && tree2[1].name_val == "x"
     @test kind(tree2[2]) == K"Identifier" && tree2[2].name_val == "some_unique_identifier"
+
+    "For filling required attrs in graphs created by hand"
+    function testgraph(edge_ranges, edges, more_attrs...)
+        kinds = Dict(map(i->(i=>K"block"), eachindex(edge_ranges)))
+        sources = Dict(map(i->(i=>LineNumberNode(i)), eachindex(edge_ranges)))
+        SyntaxGraph(
+            edge_ranges,
+            edges,
+            Dict(:kind => kinds, :source => sources, more_attrs...))
+    end
+
+    @testset "copy_ast" begin
+        # 1 --> 2 --> 3     src(7-9) = line 7-9
+        # 4 --> 5 --> 6     src(i) = i + 3
+        # 7 --> 8 --> 9
+        g = testgraph([1:1, 2:2, 0:-1, 3:3, 4:4, 0:-1, 5:5, 6:6, 0:-1],
+                      [2, 3, 5, 6, 8, 9],
+                      :source => Dict(enumerate([
+                          map(i->i+3, 1:6)...
+                          map(LineNumberNode, 7:9)...])))
+        st = SyntaxTree(g, 1)
+        stcopy = JuliaLowering.copy_ast(g, st)
+        # Each node should be copied once
+        @test length(g.edge_ranges) === 18
+        @test st._id != stcopy._id
+        @test st ≈ stcopy
+        @test st.source !== stcopy.source
+        @test st.source[1] !== stcopy.source[1]
+        @test st.source[1][1] !== stcopy.source[1][1]
+
+        stcopy2 = JuliaLowering.copy_ast(g, st; copy_source=false)
+        # Only nodes 1-3 should be copied
+        @test length(g.edge_ranges) === 21
+        @test st._id != stcopy2._id
+        @test st ≈ stcopy2
+        @test st.source === stcopy2.source
+        @test st.source[1] === stcopy2.source[1]
+        @test st.source[1][1] === stcopy2.source[1][1]
+
+        # Copy into a new graph
+        new_g = ensure_attributes!(SyntaxGraph(); JuliaLowering.attrdefs(g)...)
+        stcopy3 = JuliaLowering.copy_ast(new_g, st)
+        @test length(new_g.edge_ranges) === 9
+        @test st ≈ stcopy3
+
+        new_g = ensure_attributes!(SyntaxGraph(); JuliaLowering.attrdefs(g)...)
+        # Disallow for now, since we can't prevent dangling sourcerefs
+        @test_throws ErrorException JuliaLowering.copy_ast(new_g, st; copy_source=false)
+    end
 end
