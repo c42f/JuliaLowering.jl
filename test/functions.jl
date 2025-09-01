@@ -444,19 +444,22 @@ end
         function f_partially_gen(x::NTuple{N,T}) where {N,T}
             shared = :shared_stuff
             if @generated
+                if N == 2
+                    error("intentionally broken codegen (will trigger nongen branch)")
+                end
                 quote
-                    unshared = ($x, $N, $T)
+                    unshared = (:gen, ($x, $N, $T))
                 end
             else
-                # Uuuum. How do we actually test both sides of this branch???
-                unshared = :nongen # (typeof(x), N, T)
+                unshared = (:nongen, (typeof(x), N, T))
             end
             (shared, unshared)
         end
 
-        f_partially_gen((1,2,3,4,5))
+        (f_partially_gen((1,2)), f_partially_gen((1,2,3,4,5)))
     end
-    """) == (:shared_stuff, (NTuple{5,Int}, 5, Int))
+    """) == ((:shared_stuff, (:nongen, (NTuple{2,Int}, 2, Int))),
+             (:shared_stuff, (:gen, (NTuple{5,Int}, 5, Int))))
 end
 
 @testset "Broadcast" begin
