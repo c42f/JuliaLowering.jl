@@ -49,11 +49,11 @@ function debug_lower(mod, ex; expr_compat_mode=false, verbose=false, do_eval=fal
     ctx5, ex_compiled = JuliaLowering.linearize_ir(ctx4, ex_converted)
     verbose && @info "Linear IR" formatsrc(ex_compiled, color_by=:var_id) Text(sprint(JuliaLowering.print_ir, ex_compiled))
 
-    ex_expr = JuliaLowering.to_lowered_expr(in_mod, ex_compiled)
+    ex_expr = JuliaLowering.to_lowered_expr(mod, ex_compiled)
     verbose && @info "CodeInfo" ex_expr
 
     if do_eval
-        eval_result = Base.eval(in_mod, ex_expr)
+        eval_result = Base.eval(mod, ex_expr)
         verbose && @info "Eval" eval_result
     else
         eval_result = nothing
