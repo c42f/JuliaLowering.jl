@@ -288,7 +288,7 @@ GC.@preserve a b g() begin
     body
 end
 #---------------------
-MacroExpansionError while expanding (. GC @preserve) in module Main.TestMod:
+MacroExpansionError while expanding (. GC (macro_name preserve)) in module Main.TestMod:
 GC.@preserve a b g() begin
 #                └─┘ ── Preserved variable must be a symbol
     body
@@ -338,7 +338,7 @@ JuxtTest.@emit_juxt
 # Error: Bad arg types to @cfunction
 @cfunction(f, Int, NotATuple)
 #---------------------
-MacroExpansionError while expanding @cfunction in module Main.TestMod:
+MacroExpansionError while expanding (macro_name cfunction) in module Main.TestMod:
 @cfunction(f, Int, NotATuple)
 #                  └───────┘ ── @cfunction argument types must be a literal tuple
 
@@ -428,7 +428,7 @@ end
 # Error: No return annotation on @ccall
 @ccall strlen("foo"::Cstring)
 #---------------------
-MacroExpansionError while expanding @ccall in module Main.TestMod:
+MacroExpansionError while expanding (macro_name ccall) in module Main.TestMod:
 @ccall strlen("foo"::Cstring)
 #                            └ ── Expected a return type annotation `::SomeType`
 
@@ -436,7 +436,7 @@ MacroExpansionError while expanding @ccall in module Main.TestMod:
 # Error: No argument type on @ccall
 @ccall foo("blah"::Cstring, "bad")::Int
 #---------------------
-MacroExpansionError while expanding @ccall in module Main.TestMod:
+MacroExpansionError while expanding (macro_name ccall) in module Main.TestMod:
 @ccall foo("blah"::Cstring, "bad")::Int
 #                           └───┘ ── argument needs a type annotation
 
@@ -444,7 +444,7 @@ MacroExpansionError while expanding @ccall in module Main.TestMod:
 # Error: @ccall varags without one fixed argument
 @ccall foo(; x::Int)::Int
 #---------------------
-MacroExpansionError while expanding @ccall in module Main.TestMod:
+MacroExpansionError while expanding (macro_name ccall) in module Main.TestMod:
 @ccall foo(; x::Int)::Int
 #          └──────┘ ── C ABI prohibits varargs without one required argument
 
@@ -452,7 +452,7 @@ MacroExpansionError while expanding @ccall in module Main.TestMod:
 # Error: Multiple varargs blocks
 @ccall foo(; x::Int; y::Float64)::Int
 #---------------------
-MacroExpansionError while expanding @ccall in module Main.TestMod:
+MacroExpansionError while expanding (macro_name ccall) in module Main.TestMod:
 @ccall foo(; x::Int; y::Float64)::Int
 #                  └──────────┘ ── Multiple parameter blocks not allowed
 
@@ -460,7 +460,7 @@ MacroExpansionError while expanding @ccall in module Main.TestMod:
 # Error: Bad @ccall option
 @ccall foo(x::Int)::Int bad_opt
 #---------------------
-MacroExpansionError while expanding @ccall in module Main.TestMod:
+MacroExpansionError while expanding (macro_name ccall) in module Main.TestMod:
 @ccall foo(x::Int)::Int bad_opt
 #                       └─────┘ ── Bad option to ccall
 
@@ -468,7 +468,7 @@ MacroExpansionError while expanding @ccall in module Main.TestMod:
 # Error: Unknown @ccall option name
 @ccall foo(x::Int)::Int bad_opt=true
 #---------------------
-MacroExpansionError while expanding @ccall in module Main.TestMod:
+MacroExpansionError while expanding (macro_name ccall) in module Main.TestMod:
 @ccall foo(x::Int)::Int bad_opt=true
 #                       └─────┘ ── Unknown option name for ccall
 
@@ -476,7 +476,7 @@ MacroExpansionError while expanding @ccall in module Main.TestMod:
 # Error: Unknown option type
 @ccall foo(x::Int)::Int gc_safe="hi"
 #---------------------
-MacroExpansionError while expanding @ccall in module Main.TestMod:
+MacroExpansionError while expanding (macro_name ccall) in module Main.TestMod:
 @ccall foo(x::Int)::Int gc_safe="hi"
 #                               └──┘ ── gc_safe must be true or false
 
