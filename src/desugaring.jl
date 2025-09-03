@@ -2173,6 +2173,9 @@ function expand_decls(ctx, ex)
             throw(LoweringError(ex, "invalid syntax in variable declaration"))
         end
     end
+    if kind(stmts[end]) in KSet"local global"
+        push!(stmts, @ast ctx ex "nothing"::K"core")
+    end
     makenode(ctx, ex, K"block", stmts)
 end
 

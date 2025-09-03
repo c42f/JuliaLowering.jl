@@ -14,6 +14,10 @@ end
 local x::Int = 1.0
 """) === 1.0
 
+# Decsl in value position without assignment return nothing
+@test JuliaLowering.include_string(test_mod, "global x_no_assign") === nothing
+@test JuliaLowering.include_string(test_mod, "local x_no_assign") === nothing
+
 # Unadorned declarations
 @test JuliaLowering.include_string(test_mod, """
 let

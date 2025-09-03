@@ -18,6 +18,21 @@ local x::T = 1
 14  (return %₂)
 
 ########################################
+# Local declaration in value position without assignment
+local x
+#---------------------
+1   (newvar slot₁/x)
+2   (return core.nothing)
+
+########################################
+# Global declaration in value position without assignment
+global x
+#---------------------
+1   (global TestMod.x)
+2   latestworld
+3   (return core.nothing)
+
+########################################
 # const
 const xx = 10
 #---------------------
