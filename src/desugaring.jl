@@ -4251,51 +4251,25 @@ function expand_module(ctx, ex::SyntaxTree)
     std_defs = if !has_flags(ex, JuliaSyntax.BARE_MODULE_FLAG)
         @ast ctx (@HERE) [
             K"block"
-            [K"using"(@HERE)
+            [K"using"
                 [K"importpath"
                     "Base"           ::K"Identifier"
                 ]
             ]
-            [K"function"(@HERE)
+            [K"const" [K"="
+                "eval"::K"Identifier"
                 [K"call"
-                    "eval"           ::K"Identifier"
-                    "x"              ::K"Identifier"
+                    "EvalInto"::K"core"
+                    modname::K"Identifier"
                 ]
+            ]]
+            [K"const" [K"="
+                "include"::K"Identifier"
                 [K"call"
-                    "eval"           ::K"core"
-                    modname          ::K"Identifier"
-                    "x"              ::K"Identifier"
+                    "IncludeInto"::K"top"
+                    modname::K"Identifier"
                 ]
-            ]
-            [K"function"(@HERE)
-                [K"call"
-                    "include"        ::K"Identifier"
-                    "x"              ::K"Identifier"
-                ]
-                [K"call"
-                    "_call_latest"   ::K"core"
-                    "include"        ::K"top"
-                    modname          ::K"Identifier"
-                    "x"              ::K"Identifier"
-                ]
-            ]
-            [K"function"(@HERE)
-                [K"call"
-                    "include"        ::K"Identifier"
-                    [K"::"
-                        "mapexpr"    ::K"Identifier"
-                        "Function"   ::K"top"
-                    ]
-                    "x"              ::K"Identifier"
-                ]
-                [K"call"
-                    "_call_latest"   ::K"core"
-                    "include"        ::K"top"
-                    "mapexpr"        ::K"Identifier"
-                    modname          ::K"Identifier"
-                    "x"              ::K"Identifier"
-                ]
-            ]
+            ]]
         ]
     end
 
