@@ -169,3 +169,13 @@ function _print_ir(io::IO, ex, indent)
         end
     end
 end
+
+"""
+Wrap a function body in Base.Compiler.@zone for profiling
+"""
+macro fzone(str, f)
+    @assert f isa Expr && f.head === :function && length(f.args) === 2 && str isa String
+    esc(Expr(:function, f.args[1],
+             # Use source of our caller, not of this macro.
+             Expr(:macrocall, :(Base.Compiler.var"@zone"), __source__, str, f.args[2])))
+end
