@@ -4248,30 +4248,7 @@ function expand_module(ctx, ex::SyntaxTree)
     @chk kind(modname_ex) == K"Identifier"
     modname = modname_ex.name_val
 
-    std_defs = if !has_flags(ex, JuliaSyntax.BARE_MODULE_FLAG)
-        @ast ctx (@HERE) [
-            K"block"
-            [K"using"
-                [K"importpath"
-                    "Base"           ::K"Identifier"
-                ]
-            ]
-            [K"const" [K"="
-                "eval"::K"Identifier"
-                [K"call"
-                    "EvalInto"::K"core"
-                    modname::K"Identifier"
-                ]
-            ]]
-            [K"const" [K"="
-                "include"::K"Identifier"
-                [K"call"
-                    "IncludeInto"::K"top"
-                    modname::K"Identifier"
-                ]
-            ]]
-        ]
-    end
+    std_defs = !has_flags(ex, JuliaSyntax.BARE_MODULE_FLAG)
 
     body = ex[2]
     @chk kind(body) == K"block"
@@ -4285,10 +4262,10 @@ function expand_module(ctx, ex::SyntaxTree)
             eval_module           ::K"Value"
             ctx.mod               ::K"Value"
             modname               ::K"String"
+            std_defs              ::K"Bool"
             ctx.expr_compat_mode  ::K"Bool"
             [K"inert"(body)
                 [K"toplevel"
-                    std_defs
                     children(body)...
                 ]
             ]

@@ -189,7 +189,7 @@ module Mod
     stmts
 end
 #---------------------
-1   (call JuliaLowering.eval_module TestMod "Mod" false (inert (toplevel (block (using (importpath Base)) (const (= eval (call core.EvalInto Mod))) (const (= include (call top.IncludeInto Mod)))) body stmts)))
+1   (call JuliaLowering.eval_module TestMod "Mod" true false (inert (toplevel body stmts)))
 2   (return %₁)
 
 ########################################
@@ -199,7 +199,7 @@ baremodule BareMod
     stmts
 end
 #---------------------
-1   (call JuliaLowering.eval_module TestMod "BareMod" false (inert (toplevel body stmts)))
+1   (call JuliaLowering.eval_module TestMod "BareMod" false false (inert (toplevel body stmts)))
 2   (return %₁)
 
 ########################################
