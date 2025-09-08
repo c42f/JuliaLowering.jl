@@ -347,20 +347,12 @@ end
     isglobal_chk(1)
     """) === (false, false, false, false)
 
-    # testset uses :inert, and improper handling will result in 0 tests run.
-    # note that failed tests here will leave ts_result undefined, and will count
-    # against the currently-running JuliaLowering tests.
-    ts_result = JuliaLowering.include_string(test_mod, """
+    # @test appears to be the only macro in base to use :inert
+    test_result = JuliaLowering.include_string(test_mod, """
     using Test
-    some_global = 1
-    @testset "ts" begin
-        let x = 1
-            @test x === x
-            @test x === some_global
-        end
-    end
-    """)
-    @test ts_result.n_passed === 2
+    @test identity(123) === 123
+    """; expr_compat_mode=true)
+    @test test_result.value === true
 end
 
 end
