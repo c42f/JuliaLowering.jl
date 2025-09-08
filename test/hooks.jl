@@ -35,6 +35,19 @@ const JL = JuliaLowering
             @test out isa Module
             @test isdefined(test_mod, :M)
             @test isdefined(test_mod.M, :x)
+
+            # Tricky cases with symbols
+            prog = parseall(Expr, """module M
+                Base.@constprop :aggressive function f(x); x; end
+                const what = ccall(:jl_value_ptr, Ptr{Cvoid}, (Any,), Core.nothing)
+            end""")
+            JL.activate!()
+            out = Core.eval(test_mod, prog)
+            JL.activate!(false)
+            @test out isa Module
+            @test isdefined(test_mod, :M)
+            @test isdefined(test_mod.M, :f)
+            @test isdefined(test_mod.M, :what)
         end
     end
 end
