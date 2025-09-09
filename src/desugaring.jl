@@ -2857,7 +2857,7 @@ function is_invalid_func_name(ex)
     return is_ccall_or_cglobal(name)
 end
 
-function expand_function_def(ctx, ex, docs, rewrite_call=identity, rewrite_body=identity)
+function expand_function_def(ctx, ex, docs, rewrite_call=identity, rewrite_body=identity; doc_only=false)
     @chk numchildren(ex) in (1,2)
     name = ex[1]
     if numchildren(ex) == 1 && is_identifier_like(name)
@@ -3083,10 +3083,36 @@ function expand_function_def(ctx, ex, docs, rewrite_call=identity, rewrite_body=
     push!(method_stmts,
           method_def_expr(ctx, ex, callex, method_table, main_typevar_names, arg_names,
                           arg_types, body, ret_var))
-    if !isnothing(docs)
+    if doc_only
+        # The (doc str (call ...)) form requires method signature lowering, but
+        # does not execute or define any method, so we can't use function_type
+        sig_stmts = SyntaxList(ctx)
+        @assert first_default != 1 && length(arg_types) >= 1
+        last_required = first_default === 0 ? length(arg_types) : first_default - 1
+        for i in last_required:length(arg_types)
+            push!(sig_stmts, @ast(ctx, ex, [K"curly" "Tuple"::K"core" arg_types[2:i]...]))
+        end
+        sig_type = @ast ctx ex [K"curly" "Union"::K"core" sig_stmts...]
+        for tv in typevar_names
+            sig_type = @ast ctx ex [K"call" "UnionAll"::K"core" tv sig_type]
+        end
+        lnn = source_location(LineNumberNode, ex)
+        out = @ast ctx docs [K"block"
+            typevar_stmts...
+            [K"call"
+                bind_static_docs!::K"Value"
+                (kind(name) == K"." ? _resolve_doc_global(ctx.mod, name[1]) : ctx.mod)::K"Value"
+                name_str::K"Symbol"
+                docs[1]
+                lnn::K"Value"
+                sig_type
+            ]
+        ]
+        return expand_forms_2(ctx, out)
+    elseif !isnothing(docs)
         method_stmts[end] = @ast ctx docs [K"block"
             method_metadata := method_stmts[end]
-            @ast ctx docs [K"call"
+            [K"call"
                 bind_docs!::K"Value"
                 doc_obj
                 docs[1]
@@ -4274,6 +4300,40 @@ function expand_module(ctx, ex::SyntaxTree)
 end
 
 #-------------------------------------------------------------------------------
+# Expand docstring-annotated expressions
+
+function _resolve_doc_global(mod, ex)
+    if kind(ex) === K"."
+        newmod = _resolve_doc_global(mod, ex[1])
+        _resolve_doc_global(newmod, ex[2])
+    elseif kind(ex) in (K"Identifier", K"Symbol")
+        invokelatest(getglobal, mod, Symbol(ex.name_val))
+    else
+        throw(LoweringError(ex, "unsupported docstring form"))
+    end
+end
+
+function expand_doc(ctx, ex, docex, mod=ctx.mod)
+    if kind(ex) === K"."
+        expand_doc(ctx, ex[2], docex, _resolve_doc_global(mod, ex[1]))
+    elseif kind(ex) in (K"Identifier", K"Symbol")
+        expand_forms_2(ctx, @ast ctx docex [K"call"
+            bind_static_docs!::K"Value"
+            mod::K"Value"
+            ex.name_val::K"Symbol"
+            docex[1]
+            source_location(LineNumberNode, ex)::K"Value"
+            Union{}::K"Value"
+        ])
+    elseif is_eventually_call(ex)
+        expand_function_def(ctx, @ast(ctx, ex, [K"function" ex [K"block"]]),
+                            docex; doc_only=true)
+    else
+        expand_forms_2(ctx, ex, docex)
+    end
+end
+
+#-------------------------------------------------------------------------------
 # Desugaring's "big switch": expansion of some simple forms; dispatch to other
 # expansion functions for the rest.
 
@@ -4339,7 +4399,7 @@ function expand_forms_2(ctx::DesugaringContext, ex::SyntaxTree, docs=nothing)
         expand_forms_2(ctx, expand_compare_chain(ctx, ex))
     elseif k == K"doc"
         @chk numchildren(ex) == 2
-        sig = expand_forms_2(ctx, ex[2], ex)
+        expand_doc(ctx, ex[2], ex)
     elseif k == K"for"
         expand_forms_2(ctx, expand_for(ctx, ex))
     elseif k == K"comprehension"

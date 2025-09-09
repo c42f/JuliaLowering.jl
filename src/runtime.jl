@@ -315,6 +315,25 @@ function bind_docs!(type::Type, docstr, lineno::LineNumberNode; field_docs=Core.
     Docs.doc!(mod, bind, Base.Docs.docstr(docstr, metadata), Union{})
 end
 
+"""
+Called in the unfortunate cases (K"call", K".", K"Identifier") where docstrings
+change the semantics of the expressions they annotate, no longer requiring the
+expression to execute.
+
+If documenting a call expression, `func_sig` is (types, first_optional_arg_pos),
+where `types` is the function signature including all optional arguments and
+excluding the implicit first function_type argument (which may not be defined).
+"""
+function bind_static_docs!(mod::Module, name::Symbol, docstr, lnn::LineNumberNode, sigtypes::Type)
+    metadata = Dict{Symbol, Any}(
+        :linenumber => lnn.line,
+        :module => mod,
+        :path => something(lnn.file, "none"),
+    )
+    bind = Base.Docs.Binding(mod, name)
+    Docs.doc!(mod, bind, Base.Docs.docstr(docstr, metadata), sigtypes)
+end
+
 #--------------------------------------------------
 # Runtime support infrastructure for `@generated`
 
