@@ -2479,7 +2479,7 @@ function expand_function_generator(ctx, srcref, callex_srcref, func_name, func_n
         # a hack though since the generator ultimately gets attached to the
         # method rather than the CodeInfo which we're putting it inside.
         [K"meta"
-            "generated"::K"Symbol"
+            "generated"::K"Identifier"
             # The following is code to be evaluated at top level and will wrap
             # whatever code comes from the user's generator into an appropriate
             # K"lambda" (+ K"with_static_parameters") suitable for lowering
@@ -2806,7 +2806,7 @@ function keyword_function_defs(ctx, srcref, callex_srcref, name_str, typevar_nam
                     method_def_expr(ctx, srcref, callex_srcref, "nothing"::K"core",
                                     typevar_names, body_arg_names, body_arg_types,
                                     [K"block"
-                                        [K"meta" "nkw"::K"Symbol" numchildren(keywords)::K"Integer"]
+                                        [K"meta" "nkw"::K"Identifier" numchildren(keywords)::K"Integer"]
                                         body
                                     ],
                                     ret_var)

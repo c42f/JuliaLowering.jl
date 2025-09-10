@@ -468,11 +468,9 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
                              :aggressive_constprop, :specialize, :compile, :infer,
                              :nospecializeinfer, :force_compile, :doc)
             # TODO: Some need to be handled in lowering
-            child_exprs[1] = Expr(:quoted_symbol, e.args[1])
         else
             # Can't throw a hard error; it is explicitly tested that meta can take arbitrary keys.
             @error("Unknown meta form at $src: `$e`\n$(sprint(dump, e))")
-            child_exprs[1] = Expr(:quoted_symbol, e.args[1])
         end
     elseif e.head === :scope_layer
         @assert nargs === 2

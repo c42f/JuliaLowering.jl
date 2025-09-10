@@ -639,7 +639,7 @@ end
 29  (call core.svec %₂₆ %₂₇ %₂₈)
 30  --- method core.nothing %₂₉
     slots: [slot₁/#self#(!read) slot₂/x slot₃/#self#(!read) slot₄/y(!read)]
-    1   (meta :nkw 1)
+    1   (meta nkw 1)
     2   TestMod.+
     3   (call core.getfield slot₁/#self# :y)
     4   (call core.isdefined %₃ :contents)

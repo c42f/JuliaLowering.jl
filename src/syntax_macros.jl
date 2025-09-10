@@ -69,7 +69,7 @@ function Base.var"@generated"(__context__::MacroContext, ex)
         [K"if" [K"generated"]
             ex[2]
             [K"block"
-                [K"meta" "generated_only"::K"Symbol"]
+                [K"meta" "generated_only"::K"Identifier"]
                 [K"return"]
             ]
         ]

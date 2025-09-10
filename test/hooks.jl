@@ -45,6 +45,7 @@ const JL = JuliaLowering
             prog = parseall(Expr, """module M
                 Base.@constprop :aggressive function f(x); x; end
                 const what = ccall(:jl_value_ptr, Ptr{Cvoid}, (Any,), Core.nothing)
+                Base.@propagate_inbounds @inline meta_double_quote_issue(x) = x
             end""")
             JL.activate!()
             out = Core.eval(test_mod, prog)
@@ -53,6 +54,7 @@ const JL = JuliaLowering
             @test isdefined(test_mod, :M)
             @test isdefined(test_mod.M, :f)
             @test isdefined(test_mod.M, :what)
+            @test isdefined(test_mod.M, :meta_double_quote_issue)
         end
     end
 end

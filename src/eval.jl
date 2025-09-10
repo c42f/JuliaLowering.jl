@@ -307,10 +307,6 @@ function _to_lowered_expr(ex::SyntaxTree, stmt_offset::Int)
         Expr(:opaque_closure_method, args...)
     elseif k == K"meta"
         args = Any[_to_lowered_expr(e, stmt_offset) for e in children(ex)]
-        # Unpack K"Symbol" QuoteNode as `Expr(:meta)` requires an identifier here.
-        arg1 = args[1]
-        @assert arg1 isa QuoteNode
-        args[1] = arg1.value
         Expr(:meta, args...)
     elseif k == K"static_eval"
         @assert numchildren(ex) == 1
