@@ -252,7 +252,7 @@ end
 catch exc
     sprint(showerror, exc)
 end == """
-MacroExpansionError while expanding @oldstyle_error in module Main.macro_test:
+MacroExpansionError while expanding (macro_name oldstyle_error) in module Main.macro_test:
 @oldstyle_error
 └─────────────┘ ── Error expanding macro
 Caused by:
@@ -312,7 +312,7 @@ end
         sprint(showerror, exc, context=:module=>test_mod)
     end
     @test startswith(err, """
-    MacroExpansionError while expanding @sig_mismatch in module Main.macro_test:
+    MacroExpansionError while expanding (macro_name sig_mismatch) in module Main.macro_test:
     @sig_mismatch(1, 2, 3, 4)
     └───────────────────────┘ ── Error expanding macro
     Caused by:
