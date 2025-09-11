@@ -513,13 +513,6 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
         st_k = K"scope_block"
         st_attrs[:scope_type] = :soft
         child_exprs = e.args[2:end]
-    elseif e.head === :inert
-        @assert nargs === 1
-        st_id = _insert_tree_node(graph, K"inert", src)
-        st_inner, src = _insert_convert_expr(e.args[1], graph, src)
-        setchildren!(graph, st_id, [st_inner])
-        setmeta!(SyntaxTree(graph, st_id); as_Expr=true)
-        return st_id, src
     end
 
     #---------------------------------------------------------------------------

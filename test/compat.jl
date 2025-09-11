@@ -609,6 +609,8 @@ const JL = JuliaLowering
             ]
 
         @test JuliaLowering.expr_to_syntaxtree(Expr(:block, esc(LineNumberNode(1)))) ≈ @ast_ [K"block"]
+        @test JuliaLowering.expr_to_syntaxtree(Expr(:block, QuoteNode(LineNumberNode(1)))) ≈
+            @ast_ [K"block" LineNumberNode(1)::K"Value"]
 
     end
 end
