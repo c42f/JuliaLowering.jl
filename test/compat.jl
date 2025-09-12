@@ -614,8 +614,10 @@ const JL = JuliaLowering
             @ast_ [K"block"]
         @test JuliaLowering.expr_to_syntaxtree(Expr(:block, QuoteNode(LineNumberNode(1)))) ≈
             @ast_ [K"block" LineNumberNode(1)::K"Value"]
+
+        # toplevel (and all other non-block forms) keep LineNumberNodes in value position
         @test JuliaLowering.expr_to_syntaxtree(Expr(:toplevel, esc(LineNumberNode(1)))) ≈
-            @ast_ [K"toplevel"]
+            @ast_ [K"toplevel"  [K"escape" "nothing"::K"core"]]
         @test JuliaLowering.expr_to_syntaxtree(Expr(:toplevel, LineNumberNode(1))) ≈
             @ast_ [K"toplevel" "nothing"::K"core"]
         @test JuliaLowering.expr_to_syntaxtree(Expr(:toplevel, QuoteNode(LineNumberNode(1)))) ≈

@@ -455,12 +455,6 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
         st_k = K"latestworld_if_toplevel"
     elseif e.head === Symbol("hygienic-scope")
         st_k = K"hygienic_scope"
-    elseif e.head === :escape
-        if length(e.args) == 1 && unwrap_esc_(e.args[1]) isa LineNumberNode
-            # escape containing only a LineNumberNode will become empty and
-            # thus must be removed before lowering sees it.
-            st_k = K"TOMBSTONE"
-        end
     elseif e.head === :meta
         # Messy and undocumented.  Only sometimes we want a K"meta".
         @assert e.args[1] isa Symbol
@@ -573,10 +567,11 @@ function _insert_child_exprs(head::Symbol, child_exprs::Vector{Any},
     st_child_ids = NodeId[]
     last_src = src
     for (i, c) in enumerate(child_exprs)
+        c_unwrapped, _ = unwrap_esc(c)
         # If c::LineNumberNode is anywhere in a block OR c is not in tail
         # position, we don't need to insert `nothing` here
-        if c isa LineNumberNode && (head === :block || head === :toplevel && i != length(child_exprs))
-            last_src = c
+        if c_unwrapped isa LineNumberNode && (head === :block || head === :toplevel && i != length(child_exprs))
+            last_src = c_unwrapped
         else
             (c_id, last_src) = _insert_convert_expr(c, graph, last_src)
             if !isnothing(c_id)
