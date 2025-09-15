@@ -212,6 +212,8 @@ function prepare_macro_args(ctx, mctx, raw_args)
     return macro_args
 end
 
+# TODO: Do we need to handle :scope_layer or multiple escapes here?
+# See https://github.com/c42f/JuliaLowering.jl/issues/39
 """
 Insert a hygienic-scope around each arg of K"toplevel" returned from a macro.
 
