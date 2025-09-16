@@ -3025,17 +3025,19 @@ function expand_function_def(ctx, ex, docs, rewrite_call=identity, rewrite_body=
 
     if doc_only
         # The (doc str (call ...)) form requires method signature lowering, but
-        # does not execute or define any method, so we can't use function_type
+        # does not execute or define any method, so we can't use function_type.
+        # This is a bit of a messy case in the docsystem which we'll hopefully
+        # be able to delete at some point.
         sig_stmts = SyntaxList(ctx)
         @assert first_default != 1 && length(arg_types) >= 1
         last_required = first_default === 0 ? length(arg_types) : first_default - 1
         for i in last_required:length(arg_types)
             push!(sig_stmts, @ast(ctx, ex, [K"curly" "Tuple"::K"core" arg_types[2:i]...]))
         end
-        sig_type = @ast ctx ex [K"curly" "Union"::K"core" sig_stmts...]
-        for tv in typevar_names
-            sig_type = @ast ctx ex [K"call" "UnionAll"::K"core" tv sig_type]
-        end
+        sig_type = @ast ctx ex [K"where"
+            [K"curly" "Union"::K"core" sig_stmts...] 
+            [K"_typevars" [K"block" typevar_names...] [K"block"]]
+        ]
         out = @ast ctx docs [K"block"
             typevar_stmts...
             [K"call"

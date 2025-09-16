@@ -147,12 +147,12 @@ end
     # if docsystem storage changes.
     @test d.meta[:results][1].data[:typesig] === Tuple{Int, Any, test_mod.T_exists}
 
-    jeval(test_mod, "\"docstr11\" f11(x::T_exists, y::U, z::T) where T where {U<:Number}")
+    jeval(test_mod, "\"docstr11\" f11(x::T_exists, y::U, z::T) where {T, U<:Number}")
     d = jeval(test_mod, "@doc f11")
     @test d |> string === "docstr11\n"
     @test d.meta[:results][1].data[:typesig] === Tuple{test_mod.T_exists, U, T} where {T, U<:Number}
 
-    jeval(test_mod, "\"docstr12\" f12(x::Int, y::U, z::T=1) where T where {U<:Number}")
+    jeval(test_mod, "\"docstr12\" f12(x::Int, y::U, z::T=1) where {T, U<:Number}")
     d = jeval(test_mod, "@doc f12")
     @test d |> string === "docstr12\n"
     @test d.meta[:results][1].data[:typesig] === Union{Tuple{Int64, U, T}, Tuple{Int64, U}} where {T, U<:Number}
