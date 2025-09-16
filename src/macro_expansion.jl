@@ -108,7 +108,12 @@ function Base.showerror(io::IO, exc::MacroExpansionError)
     print(io, "MacroExpansionError")
     ctx = exc.context
     if !isnothing(ctx)
-        print(io, " while expanding ", ctx.macrocall[1],
+        # Use `Expr` formatting to pretty print the macro name for now -
+        # there's quite a lot of special cases. We could alternatively consider
+        # calling sourcetext() though that won't work well if it's a
+        # synthetically-generated macro name path.
+        macname_str = string(Expr(:macrocall, Expr(ctx.macrocall[1]), nothing))
+        print(io, " while expanding ", macname_str,
               " in module ", ctx.scope_layer.mod)
     end
     print(io, ":\n")

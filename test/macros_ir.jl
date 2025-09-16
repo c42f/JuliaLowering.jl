@@ -145,7 +145,7 @@ end
 # Error: Macros not found
 _never_exist = @m_not_exist 42
 #---------------------
-MacroExpansionError while expanding (macro_name m_not_exist) in module Main.TestMod:
+MacroExpansionError while expanding @m_not_exist in module Main.TestMod:
 _never_exist = @m_not_exist 42
 #              └──────────┘ ── Macro not found
 Caused by:
