@@ -384,16 +384,24 @@ function _eval_module_body(ctx, mod, ex)
 end
 
 function _eval_module(ctx, ex)
-    # Here we just use `eval()` with an Expr to create a module.
-    # TODO: Refactor jl_eval_module_expr() in the runtime so that we can avoid
-    # eval.
     std_defs = !has_flags(ex, JuliaSyntax.BARE_MODULE_FLAG)
     newmod_name = Symbol(ex[1].name_val)
-    Core.eval(current_layer(ctx).mod,
-              Expr(:module, std_defs, newmod_name,
-                   Expr(:block, Expr(:call,
-                                     newmod->_eval_module_body(ctx, newmod, ex),
-                                     newmod_name))))
+    parent = current_layer(ctx).mod
+
+    # Core.eval(parent,
+    #           Expr(:module, std_defs, newmod_name,
+    #                Expr(:block, Expr(:call,
+    #                                  newmod->_eval_module_body(ctx, newmod, ex),
+    #                                  newmod_name))))
+
+    # https://github.com/JuliaLang/julia/pull/59604
+    loc = source_location(LineNumberNode, ex)
+    newmod = @ccall jl_begin_new_module(parent::Any, newmod_name::Symbol, std_defs::Cint,
+                                        loc.file::Cstring, loc.line::Cint)::Module
+    _eval_module_body(ctx, newmod, ex)
+    @ccall jl_end_new_module(newmod::Module)::Cvoid
+
+    return newmod
 end
 
 function _eval(ctx, ex::SyntaxTree)
