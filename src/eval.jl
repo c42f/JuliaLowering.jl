@@ -32,19 +32,23 @@ end
 # We might consider changing at least the second of these choices, depending on
 # how we end up putting this into Base.
 
-struct LoweringIterator{GraphType}
-    ctx::MacroExpansionContext{GraphType}
-    todo::Vector{Tuple{SyntaxTree{GraphType}, Bool, Int}}
+struct LoweringIterator
+    # frontend::JuliaLoweringFrontend  # TODO: world age?
+    ctx::MacroExpansionContext
+    todo::Vector{Tuple{SyntaxTree, Bool, Int}}
+    mapexpr::Any
 end
 
-function lower_init(ex::SyntaxTree, mod::Module, macro_world::UInt; expr_compat_mode::Bool=false)
+function lower_init(mod::Module, ex::SyntaxTree, mapexpr;
+                    expr_compat_mode::Bool=false)
     graph = ensure_macro_attributes(syntax_graph(ex))
-    ctx = MacroExpansionContext(graph, mod, expr_compat_mode, macro_world)
+    dummy_world = zero(UInt)
+    ctx = MacroExpansionContext(graph, mod, expr_compat_mode, dummy_world)
     ex = reparent(ctx, ex)
-    LoweringIterator{typeof(graph)}(ctx, [(ex, false, 0)])
+    LoweringIterator(ctx, [(ex, false, 0)], mapexpr)
 end
 
-function lower_step(iter, push_mod=nothing)
+function lower_step(iter, macro_world, push_mod=nothing)
     if !isnothing(push_mod)
         push_layer!(iter.ctx, push_mod, false)
     end
@@ -64,19 +68,28 @@ function lower_step(iter, push_mod=nothing)
                 pop_layer!(iter.ctx)
                 return Core.svec(:end_module)
             else
-                return lower_step(iter)
+                return lower_step(iter, macro_world)
             end
         end
     end
 
     k = kind(ex)
     if !(k in KSet"toplevel module")
-        ex = expand_forms_1(iter.ctx, ex)
+        if !is_module_body && !isnothing(iter.mapexpr)
+            ex = iter.ctx.expr_compat_mode ?
+                 expr_to_syntaxtree(iter.ctx, iter.mapexpr(Expr(ex))) :
+                 iter.mapexpr(ex)
+        end
+        c = iter.ctx
+        # Copy context in order to update macro_world
+        ctx = MacroExpansionContext(c.graph, c.bindings, c.scope_layers,
+                                    c.scope_layer_stack, c.expr_compat_mode, macro_world)
+        ex = expand_forms_1(ctx, ex)
         k = kind(ex)
     end
     if k == K"toplevel"
         push!(iter.todo, (ex, false, 1))
-        return lower_step(iter)
+        return lower_step(iter, macro_world)
     elseif k == K"module"
         name = ex[1]
         if kind(name) != K"Identifier"
@@ -451,10 +464,8 @@ end
 
 #-------------------------------------------------------------------------------
 # Our version of eval - should be upstreamed though?
-@fzone "JL: eval" function eval(mod::Module, ex::SyntaxTree;
-                                macro_world::UInt=Base.get_world_counter(),
-                                opts...)
-    iter = lower_init(ex, mod, macro_world; opts...)
+@fzone "JL: eval" function eval(mod::Module, ex::SyntaxTree; mapexpr=nothing, opts...)
+    iter = lower_init(mod, ex, mapexpr; opts...)
     _eval(mod, iter)
 end
 
@@ -465,7 +476,7 @@ function _eval(mod, iter)
     new_mod = nothing
     result = nothing
     while true
-        thunk = lower_step(iter, new_mod)::Core.SimpleVector
+        thunk = lower_step(iter, Base.get_world_counter(), new_mod)::Core.SimpleVector
         new_mod = nothing
         type = thunk[1]::Symbol
         if type == :done
@@ -494,7 +505,7 @@ function _eval(mod, iter, new_mod=nothing)
     in_new_mod = !isnothing(new_mod)
     result = nothing
     while true
-        thunk = lower_step(iter, new_mod)::Core.SimpleVector
+        thunk = lower_step(iter, Base.get_world_counter(), new_mod)::Core.SimpleVector
         new_mod = nothing
         type = thunk[1]::Symbol
         if type == :done
@@ -553,7 +564,14 @@ end
 
 Like `include`, except reads code from the given string rather than from a file.
 """
+function include_string(mapexpr::Function, mod::Module,
+                        code::AbstractString, filename::AbstractString="string";
+                        opts...)
+    ex = parseall(SyntaxTree, code; filename=filename)
+    eval(mod, ex; mapexpr=(mapexpr === identity ? nothing : mapexpr), opts...)
+end
+
 function include_string(mod::Module, code::AbstractString, filename::AbstractString="string";
-                        expr_compat_mode=false)
-    eval(mod, parseall(SyntaxTree, code; filename=filename); expr_compat_mode)
+                        opts...)
+    include_string(identity, mod, code, filename; opts...)
 end
