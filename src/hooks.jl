@@ -152,13 +152,13 @@ function simple_eval(mod::Module, iter::TopLevelCodeIterator, new_mod=nothing)
     in_new_mod = !isnothing(new_mod)
     result = nothing
     while true
-        thunk = lower_step(iter, Base.get_world_counter(), new_mod)::Core.SimpleVector
+        thunk = lower_step(iter, Base.get_world_counter(), new_mod)
         new_mod = nothing
         if isnothing(thunk)
             @assert !in_new_mod
             return result
         elseif thunk isa BeginModule
-            file, line = _module_loc(thunk)
+            file, line = _module_loc(thunk.location)
             result = Core.eval(mod,
                 Expr(:module, thunk.standard_defs, thunk.name,
                      Expr(:block, LineNumberNode(line, file),
