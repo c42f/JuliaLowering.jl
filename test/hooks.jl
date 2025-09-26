@@ -59,4 +59,21 @@ const JL = JuliaLowering
             # @test jeval("Base.@propagate_inbounds @inline meta_double_quote_issue(x) = x") isa Function
         end
     end
+
+    @testset "CompilerFrontend" begin
+        _Core = JuliaLowering._Core
+        old_fe = _Core._set_compiler_frontend!(JuliaLowering.JuliaLoweringFrontend())
+        try
+            # Expr works with eval()
+            _Core.eval(test_mod, :(xxx = 6))
+            @test _Core.eval(test_mod, :(xxx / 2)) == 3
+
+            # SyntaxTree works with eval()
+            _Core.eval(test_mod, JuliaLowering.@SyntaxTree :(xxx = 8))
+            @test _Core.eval(test_mod, JuliaLowering.@SyntaxTree :(xxx / 2)) == 4
+
+        finally
+            _Core._set_compiler_frontend!(old_fe)
+        end
+    end
 end
