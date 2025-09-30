@@ -318,10 +318,10 @@ end
 # or K"constdecl".  flisp: emit-assignment-or-setglobal
 function emit_simple_assignment(ctx, srcref, lhs, rhs, op=K"=")
     binfo = lookup_binding(ctx, lhs.var_id)
-    if binfo.kind == :global && op == K"="
+    if binfo.kind == :global
         emit(ctx, @ast ctx srcref [
             K"call"
-            "setglobal!"::K"core"
+            op == K"constdecl" ? "declare_const"::K"core" : "setglobal!"::K"core"
             binfo.mod::K"Value"
             binfo.name::K"Symbol"
             rhs
@@ -614,6 +614,18 @@ function compile(ctx::LinearIRContext, ex, needs_value, in_tail_pos)
         lhs = ex[1]
         res = if kind(lhs) == K"Placeholder"
             compile(ctx, ex[2], needs_value, in_tail_pos)
+        elseif k == K"constdecl" && numchildren(ex) == 1
+            # No RHS - make undefined constant
+            mod, name = if kind(ex[1]) == K"BindingId"
+                binfo = lookup_binding(ctx, ex[1])
+                binfo.mod, binfo.name
+            else
+                @assert kind(ex[1]) == K"Value" && typeof(ex[1].value) === GlobalRef
+                gr = ex[1].value
+                gr.mod, String(gr.name)
+            end
+            emit(ctx, @ast ctx ex [K"call" "declare_const"::K"core"
+                                   mod::K"Value" name::K"Symbol"])
         else
             rhs = compile(ctx, ex[2], true, false)
             # TODO look up arg-map for renaming if lhs was reassigned

@@ -126,6 +126,11 @@ function _register_kinds()
             "captured_local"
             # Causes the linearization pass to conditionally emit a world age increment
             "latestworld_if_toplevel"
+            # This has two forms:
+            #   [K"constdecl" var val] => declare and assign constant
+            #   [K"constdecl" var]     => declare undefined constant
+            #                             var is GlobalRef Value or Identifier
+            "constdecl"
         "END_LOWERING_KINDS"
 
         # The following kinds are emitted by lowering and used in Julia's untyped IR
@@ -139,9 +144,6 @@ function _register_kinds()
             # References/declares a global variable within a module
             "globalref"
             "globaldecl"
-            # Two-argument constant declaration and assignment.
-            # Translated to :const in the IR for now (we use K"const" already in parsing).
-            "constdecl"
             # Unconditional goto
             "goto"
             # Conditional goto

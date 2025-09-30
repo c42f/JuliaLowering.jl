@@ -50,10 +50,12 @@ function _find_scope_vars!(ctx, assignments, locals, destructured_args, globals,
         _insert_if_not_present!(assignments, NameKey(ex[1]), ex)
     elseif k == K"=" || k == K"constdecl"
         v = decl_var(ex[1])
-        if !(kind(v) in KSet"BindingId globalref Placeholder")
+        if !(kind(v) in KSet"BindingId globalref Value Placeholder")
             _insert_if_not_present!(assignments, NameKey(v), v)
         end
-        _find_scope_vars!(ctx, assignments, locals, destructured_args, globals, used_names, used_bindings, ex[2])
+        if k != K"constdecl" || numchildren(ex) == 2
+            _find_scope_vars!(ctx, assignments, locals, destructured_args, globals, used_names, used_bindings, ex[2])
+        end
     elseif k == K"function_decl"
         v = ex[1]
         kv = kind(v)
@@ -720,10 +722,12 @@ function analyze_variables!(ctx, ex)
         end
     elseif k == K"constdecl"
         id = ex[1]
-        if lookup_binding(ctx, id).kind == :local
-            throw(LoweringError(ex, "unsupported `const` declaration on local variable"))
+        if kind(id) == K"BindingId"
+            if lookup_binding(ctx, id).kind == :local
+                throw(LoweringError(ex, "unsupported `const` declaration on local variable"))
+            end
+            update_binding!(ctx, id; is_const=true)
         end
-        update_binding!(ctx, id; is_const=true)
     elseif k == K"call"
         name = ex[1]
         if kind(name) == K"BindingId"

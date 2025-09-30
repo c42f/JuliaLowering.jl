@@ -2219,6 +2219,13 @@ function expand_const_decl(ctx, ex)
         expand_assignment(ctx, ex[1], true)
     elseif k == K"local"
         throw(LoweringError(ex, "unsupported `const local` declaration"))
+    elseif k == K"Identifier" || k == K"Value"
+        # Expr(:const, v) where v is a Symbol or a GlobalRef is an unfortunate
+        # remnant from the days when const-ness was a flag that could be set on
+        # any global.  It creates a binding with kind PARTITION_KIND_UNDEF_CONST.
+        # TODO: deprecate and delete this "feature"
+        @chk numchildren(ex) == 1
+        @ast ctx ex [K"constdecl" ex[1]]
     else
         throw(LoweringError(ex, "expected assignment after `const`"))
     end

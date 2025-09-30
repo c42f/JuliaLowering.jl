@@ -426,7 +426,6 @@ function _to_lowered_expr(ex::SyntaxTree, stmt_offset::Int)
                k == K"splatnew"  ? :splatnew   :
                k == K"="         ? :(=)        :
                k == K"global"    ? :global     :
-               k == K"constdecl" ? :const      :
                k == K"leave"     ? :leave      :
                k == K"isdefined" ? :isdefined  :
                k == K"latestworld"       ? :latestworld       :
