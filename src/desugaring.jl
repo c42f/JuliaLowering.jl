@@ -1218,7 +1218,11 @@ function expand_assignment(ctx, ex, is_const=false)
     lhs = ex[1]
     rhs = ex[2]
     kl = kind(lhs)
-    if kl == K"curly"
+    if kind(ex) == K"function"
+        # `const f() = ...` - The `const` here is inoperative, but the syntax
+        # happened to work in earlier versions, so simply strip `const`.
+        expand_forms_2(ctx, ex[1])
+    elseif kl == K"curly"
         expand_unionall_def(ctx, ex, lhs, rhs, is_const)
     elseif kind(rhs) == K"="
         # Expand chains of assignments
@@ -2198,7 +2202,7 @@ function expand_const_decl(ctx, ex)
     k = kind(ex[1])
     if k == K"global"
         asgn = ex[1][1]
-        @chk (kind(asgn) == K"=") (ex, "expected assignment after `const`")
+        @chk (kind(asgn) == K"=" || kind(asgn) == K"function") (ex, "expected assignment after `const`")
         globals = SyntaxList(ctx)
         foreach_lhs_name(asgn[1]) do x
             push!(globals, @ast ctx ex [K"global" x])
@@ -2207,7 +2211,7 @@ function expand_const_decl(ctx, ex)
             globals...
             expand_assignment(ctx, asgn, true)
         ]
-    elseif k == K"="
+    elseif k == K"=" || k == K"function"
         if numchildren(ex[1]) >= 1 && kind(ex[1][1]) == K"tuple"
             TODO(ex[1][1], "`const` tuple assignment desugaring")
         end
