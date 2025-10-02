@@ -166,7 +166,7 @@ begin
     @islocal(x)
 end
 #---------------------
-1   (global TestMod.x)
+1   (call core.declare_global TestMod :x false)
 2   latestworld
 3   (return false)
 
@@ -179,7 +179,7 @@ begin
 end
 #---------------------
 1   (newvar slot₁/y)
-2   (global TestMod.x)
+2   (call core.declare_global TestMod :x false)
 3   latestworld
 4   (call core.apply_type top.Dict core.Symbol core.Any)
 5   (call %₄)
