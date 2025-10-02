@@ -15,7 +15,8 @@ function DesugaringContext(ctx, expr_compat_mode::Bool)
                               value=Any, name_val=String,
                               scope_type=Symbol, # :hard or :soft
                               var_id=IdTag,
-                              is_toplevel_thunk=Bool)
+                              is_toplevel_thunk=Bool,
+                              toplevel_pure=Bool)
     DesugaringContext(graph,
                       ctx.bindings,
                       ctx.scope_layers,
@@ -2341,7 +2342,7 @@ function method_def_expr(ctx, srcref, callex_srcref, method_table,
         [K"method"
             isnothing(method_table) ? "nothing"::K"core" : method_table
             method_metadata
-            [K"lambda"(body, is_toplevel_thunk=false)
+            [K"lambda"(body, is_toplevel_thunk=false, toplevel_pure=false)
                 [K"block" arg_names...]
                 [K"block" typevar_names...]
                 body
@@ -3253,7 +3254,7 @@ function expand_opaque_closure(ctx, ex)
         nargs::K"Integer"
         is_va::K"Bool"
         ::K"SourceLocation"(func_expr)
-        [K"lambda"(func_expr, is_toplevel_thunk=false)
+        [K"lambda"(func_expr, is_toplevel_thunk=false, toplevel_pure=false)
             [K"block" arg_names...]
             [K"block"]
             [K"block"

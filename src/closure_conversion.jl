@@ -32,7 +32,7 @@ function ClosureConversionCtx(graph::GraphType, bindings::Bindings,
                               lambda_bindings::LambdaBindings) where {GraphType}
     ClosureConversionCtx{GraphType}(
         graph, bindings, mod, closure_bindings, nothing,
-        lambda_bindings, false, false, SyntaxList(graph),
+        lambda_bindings, false, true, SyntaxList(graph),
         Dict{IdTag,ClosureInfo{GraphType}}())
 end
 
@@ -564,8 +564,8 @@ function closure_convert_lambda(ctx, ex)
     end
     ctx2 = ClosureConversionCtx(ctx.graph, ctx.bindings, ctx.mod,
                                 ctx.closure_bindings, cap_rewrite, lambda_bindings,
-                                ex.is_toplevel_thunk, ctx.toplevel_pure, ctx.toplevel_stmts,
-                                ctx.closure_infos)
+                                ex.is_toplevel_thunk, ctx.toplevel_pure && ex.toplevel_pure,
+                                ctx.toplevel_stmts, ctx.closure_infos)
     lambda_children = SyntaxList(ctx)
     args = ex[1]
     push!(lambda_children, args)

@@ -477,7 +477,8 @@ function _resolve_scopes(ctx, ex::SyntaxTree)
         pop!(ctx.scope_stack)
 
         @ast ctx ex [K"lambda"(lambda_bindings=scope.lambda_bindings,
-                               is_toplevel_thunk=is_toplevel_thunk)
+                               is_toplevel_thunk=is_toplevel_thunk,
+                               toplevel_pure=false)
             arg_bindings
             sparm_bindings
             [K"block"
@@ -792,7 +793,7 @@ function resolve_scopes(ctx::ScopeResolutionContext, ex)
     if kind(ex) != K"lambda"
         # Wrap in a top level thunk if we're not already expanding a lambda.
         # (Maybe this should be done elsewhere?)
-        ex = @ast ctx ex [K"lambda"(is_toplevel_thunk=true)
+        ex = @ast ctx ex [K"lambda"(is_toplevel_thunk=true, toplevel_pure=false)
             [K"block"]
             [K"block"]
             ex
