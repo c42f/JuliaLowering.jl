@@ -18,7 +18,7 @@ struct ClosureConversionCtx{GraphType} <: AbstractLoweringContext
     # True if we're in a section of code which preserves top-level sequencing
     # such that closure types can be emitted inline with other code.
     is_toplevel_seq_point::Bool
-    # Ture if this expression should not have toplevel effects, namely, it
+    # True if this expression should not have toplevel effects, namely, it
     # should not declare the globals it references.  This allows generated
     # functions to refer to globals that have already been declared, without
     # triggering the "function body AST not pure" error.
