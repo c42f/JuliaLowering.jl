@@ -2133,7 +2133,10 @@ end
 #   and return (x, (y, z))
 function make_lhs_decls(ctx, stmts, declkind, declmeta, ex, type_decls=true)
     k = kind(ex)
-    if k == K"Identifier"
+    if k == K"Identifier" || k == K"Value" && ex.value isa GlobalRef
+        # TODO: consider removing support for Expr(:global, GlobalRef(...)) and
+        # other Exprs that cannot be produced by the parser (tested by
+        # test/precompile.jl #50538).
         if !isnothing(declmeta)
             push!(stmts, makenode(ctx, ex, declkind, ex; meta=declmeta))
         else
@@ -2172,7 +2175,7 @@ function expand_decls(ctx, ex)
             # expand_assignment will create the type decls
             make_lhs_decls(ctx, stmts, declkind, declmeta, binding[1], false)
             push!(stmts, expand_assignment(ctx, binding))
-        elseif is_sym_decl(binding)
+        elseif is_sym_decl(binding) || kind(binding) == K"Value"
             make_lhs_decls(ctx, stmts, declkind, declmeta, binding, true)
         elseif kind(binding) == K"function"
             make_lhs_decls(ctx, stmts, declkind, declmeta, binding[1], false)

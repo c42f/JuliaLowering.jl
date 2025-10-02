@@ -803,21 +803,6 @@ function compile(ctx::LinearIRContext, ex, needs_value, in_tail_pos)
         end
         emit(ctx, ex)
         nothing
-    elseif k == K"global"
-        emit(ctx, ex)
-        ctx.is_toplevel_thunk && emit_latestworld(ctx, ex)
-        if needs_value
-            if in_tail_pos && ctx.is_toplevel_thunk
-                # Permit "statement-like" globals at top level but potentially
-                # inside blocks.
-                compile(ctx, nothing_(ctx, ex), needs_value, in_tail_pos)
-            else
-                throw(LoweringError(ex,
-                    "global declaration doesn't read the variable and can't return a value"))
-            end
-        else
-            nothing
-        end
     elseif k == K"meta"
         emit(ctx, ex)
         if needs_value
@@ -863,17 +848,6 @@ function compile(ctx::LinearIRContext, ex, needs_value, in_tail_pos)
             # TODO: also exclude deleted vars
             emit(ctx, ex)
         end
-    elseif k == K"globaldecl"
-        if needs_value
-            throw(LoweringError(ex, "misplaced global declaration"))
-        end
-        if numchildren(ex) == 1 || is_identifier_like(ex[2])
-            emit(ctx, ex)
-        else
-            rr = emit_assign_tmp(ctx, ex[2])
-            emit(ctx, @ast ctx ex [K"globaldecl" ex[1] rr])
-        end
-        ctx.is_toplevel_thunk && emit_latestworld(ctx, ex)
     elseif k == K"latestworld"
         if needs_value
             throw(LoweringError(ex, "misplaced latestsworld"))
@@ -881,6 +855,12 @@ function compile(ctx::LinearIRContext, ex, needs_value, in_tail_pos)
         emit_latestworld(ctx, ex)
     elseif k == K"latestworld_if_toplevel"
         ctx.is_toplevel_thunk && emit_latestworld(ctx, ex)
+    elseif k == K"unused_only"
+        if needs_value && !(in_tail_pos && ctx.is_toplevel_thunk)
+            throw(LoweringError(ex,
+                "global declaration doesn't read the variable and can't return a value"))
+        end
+        compile(ctx, ex[1], needs_value, in_tail_pos)
     else
         throw(LoweringError(ex, "Invalid syntax; $(repr(k))"))
     end

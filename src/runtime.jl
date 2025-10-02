@@ -379,6 +379,11 @@ function (g::GeneratedFunctionStub)(world::UInt, source::Method, @nospecialize a
     ctx3, ex3 = resolve_scopes(ctx2, ex2)
 
     # Rest of lowering
+    ctx3 = ClosureConversionCtx(
+        ctx3.graph, ctx3.bindings, ctx3.mod, ctx3.closure_bindings,
+        ctx3.capture_rewriting, ctx3.lambda_bindings, ctx3.is_toplevel_seq_point,
+        true, ctx3.toplevel_stmts, ctx3.closure_infos
+    )
     ctx4, ex4 = convert_closures(ctx3, ex3)
     ctx5, ex5 = linearize_ir(ctx4, ex4)
     ci = to_lowered_expr(ex5)

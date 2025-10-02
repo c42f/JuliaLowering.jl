@@ -131,6 +131,8 @@ function _register_kinds()
             #   [K"constdecl" var]     => declare undefined constant
             #                             var is GlobalRef Value or Identifier
             "constdecl"
+            # Returned from statements that should error if the result is used.
+            "unused_only"
         "END_LOWERING_KINDS"
 
         # The following kinds are emitted by lowering and used in Julia's untyped IR
@@ -143,7 +145,6 @@ function _register_kinds()
             "static_parameter"
             # References/declares a global variable within a module
             "globalref"
-            "globaldecl"
             # Unconditional goto
             "goto"
             # Conditional goto

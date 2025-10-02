@@ -43,7 +43,9 @@ function _find_scope_vars!(ctx, assignments, locals, destructured_args, globals,
             _insert_if_not_present!(locals, NameKey(ex[1]), ex)
         end
     elseif k == K"global"
-        _insert_if_not_present!(globals, NameKey(ex[1]), ex)
+        if !(kind(ex[1]) == K"Value" && ex[1].value isa GlobalRef)
+            _insert_if_not_present!(globals, NameKey(ex[1]), ex)
+        end
     elseif k == K"assign_or_constdecl_if_global"
         # like v = val, except that if `v` turns out global(either implicitly or
         # by explicit `global`), it gains an implicit `const`
