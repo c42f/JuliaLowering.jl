@@ -94,6 +94,15 @@ end
 @test kind(ex[2]) == K"Identifier"
 @test ex[2].name_val == "a"
 
+# Test quoted property access syntax like `Core.:(foo)` and `Core.:(!==)`
+@test JuliaLowering.include_string(test_mod, """
+    x = (a=1, b=2)
+    x.:(a)
+""") == 1
+@test JuliaLowering.include_string(test_mod, """
+    Core.:(!==)
+""") === (!==)
+
 # interpolations at multiple depths
 ex = JuliaLowering.include_string(test_mod, raw"""
 let
