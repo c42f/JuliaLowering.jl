@@ -93,8 +93,7 @@ end
 # Tuple/destructuring assignments
 @test JuliaLowering.include_string(test_mod, "(a0, a1, a2) = [1,2,3]") == [1,2,3]
 
+@test JuliaLowering.include_string(test_mod, "const a,b,c = 1,2,3") === (1, 2, 3)
 
-# Unsupported for now
-@test_throws LoweringError JuliaLowering.include_string(test_mod, "const a,b,c = 1,2,3")
 
 end
