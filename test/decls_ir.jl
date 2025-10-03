@@ -289,3 +289,127 @@ function f()
 #          └────┘ ── type declarations for global variables must be at top level, not inside a function
 end
 
+########################################
+# Global function in let block (short form)
+let x = 42
+    global getx() = x
+end
+#---------------------
+1   42
+2   (= slot₁/x (call core.Box))
+3   slot₁/x
+4   (call core.setfield! %₃ :contents %₁)
+5   (global TestMod.getx)
+6   latestworld
+7   (method TestMod.getx)
+8   latestworld
+9   TestMod.getx
+10  (call core.Typeof %₉)
+11  (call core.svec %₁₀)
+12  (call core.svec)
+13  SourceLocation::2:12
+14  (call core.svec %₁₁ %₁₂ %₁₃)
+15  --- code_info
+    slots: [slot₁/#self#(!read) slot₂/x(!read)]
+    1   (captured_local 1)
+    2   (call core.isdefined %₁ :contents)
+    3   (gotoifnot %₂ label₅)
+    4   (goto label₇)
+    5   (newvar slot₂/x)
+    6   slot₂/x
+    7   (call core.getfield %₁ :contents)
+    8   (return %₇)
+16  slot₁/x
+17  (call core.svec %₁₆)
+18  (call JuliaLowering.replace_captured_locals! %₁₅ %₁₇)
+19  --- method core.nothing %₁₄ %₁₈
+20  latestworld
+21  TestMod.getx
+22  (return %₂₁)
+
+########################################
+# Global function with where clause in let
+let data = [1,2,3]
+    global getdata(::Type{T}) where T = T.(data)
+end
+#---------------------
+1   (call top.vect 1 2 3)
+2   (= slot₁/data (call core.Box))
+3   slot₁/data
+4   (call core.setfield! %₃ :contents %₁)
+5   (global TestMod.getdata)
+6   latestworld
+7   (method TestMod.getdata)
+8   latestworld
+9   (= slot₂/T (call core.TypeVar :T))
+10  TestMod.getdata
+11  (call core.Typeof %₁₀)
+12  TestMod.Type
+13  slot₂/T
+14  (call core.apply_type %₁₂ %₁₃)
+15  (call core.svec %₁₁ %₁₄)
+16  slot₂/T
+17  (call core.svec %₁₆)
+18  SourceLocation::2:12
+19  (call core.svec %₁₅ %₁₇ %₁₈)
+20  --- code_info
+    slots: [slot₁/#self#(!read) slot₂/_(!read) slot₃/data(!read)]
+    1   static_parameter₁
+    2   (captured_local 1)
+    3   (call core.isdefined %₂ :contents)
+    4   (gotoifnot %₃ label₆)
+    5   (goto label₈)
+    6   (newvar slot₃/data)
+    7   slot₃/data
+    8   (call core.getfield %₂ :contents)
+    9   (call top.broadcasted %₁ %₈)
+    10  (call top.materialize %₉)
+    11  (return %₁₀)
+21  slot₁/data
+22  (call core.svec %₂₁)
+23  (call JuliaLowering.replace_captured_locals! %₂₀ %₂₂)
+24  --- method core.nothing %₁₉ %₂₃
+25  latestworld
+26  TestMod.getdata
+27  (return %₂₆)
+
+########################################
+# Local function in let block
+let
+    local f() = 42
+    f()
+end
+#---------------------
+1   (call core.svec)
+2   (call core.svec)
+3   (call JuliaLowering.eval_closure_type TestMod :#f##0 %₁ %₂)
+4   latestworld
+5   TestMod.#f##0
+6   (new %₅)
+7   (= slot₁/f %₆)
+8   TestMod.#f##0
+9   (call core.svec %₈)
+10  (call core.svec)
+11  SourceLocation::2:11
+12  (call core.svec %₉ %₁₀ %₁₁)
+13  --- method core.nothing %₁₂
+    slots: [slot₁/#self#(!read)]
+    1   (return 42)
+14  latestworld
+15  slot₁/f
+16  (call %₁₅)
+17  (return %₁₆)
+
+########################################
+# Error: conflicting local and global declarations
+let
+    local func(x) = x
+    global func(x) = x
+end
+#---------------------
+LoweringError:
+let
+    local func(x) = x
+    global func(x) = x
+#         └──────────┘ ── Variable `func` declared both local and global
+end
