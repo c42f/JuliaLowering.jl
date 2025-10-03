@@ -814,8 +814,8 @@ function compile(ctx::LinearIRContext, ex, needs_value, in_tail_pos)
             for c in children(ex)
                 ctx.meta[Symbol(c.name_val)] = true
             end
-        elseif ex[1].name_val in ("purity",)
-            ctx.meta[Symbol(ex[1].name_val)] = ex[2]
+        elseif ex[1].name_val === "purity"
+            ctx.meta[Symbol(ex[1].name_val)] = ex[2].value::Base.EffectsOverride
         else
             emit(ctx, ex)
         end

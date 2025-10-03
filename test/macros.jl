@@ -364,7 +364,7 @@ end
 
 @testset "macros producing meta forms" begin
     function find_method_ci(thunk)
-        ci::Core.CodeInfo = thunk.args[1]
+        ci = thunk.args[1]::Core.CodeInfo
         m = findfirst(x->(x isa Expr && x.head === :method && length(x.args) === 3), ci.code)
         ci.code[m].args[3]
     end

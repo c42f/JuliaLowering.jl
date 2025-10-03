@@ -281,7 +281,7 @@ function to_code_info(ex::SyntaxTree, slots::Vector{Slot}, meta::CompileHints)
         get(meta, :no_constprop, false) ? 0x02 : 0x00
     purity =
         let eo = get(meta, :purity, nothing)
-            isnothing(eo) ? 0x0000 : Base.encode_effects_override(eo.value)
+            isnothing(eo) ? 0x0000 : Base.encode_effects_override(eo)
         end
 
     # The following CodeInfo fields always get their default values for
