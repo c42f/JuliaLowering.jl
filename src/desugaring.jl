@@ -2180,7 +2180,7 @@ function expand_decls(ctx, ex)
             make_lhs_decls(ctx, stmts, declkind, declmeta, binding, true)
         elseif kind(binding) == K"function"
             make_lhs_decls(ctx, stmts, declkind, declmeta, binding[1], false)
-            push!(stmts, expand_function_def(ctx, binding, nothing))
+            push!(stmts, expand_forms_2(ctx, binding))
         else
             throw(LoweringError(ex, "invalid syntax in variable declaration"))
         end
