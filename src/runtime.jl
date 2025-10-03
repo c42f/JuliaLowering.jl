@@ -189,7 +189,7 @@ function eval_closure_type(mod::Module, closure_type_name::Symbol, field_names, 
                             false,
                             length(field_names))
     Core._setsuper!(type, Core.Function)
-    @ccall jl_set_const(mod::Module, closure_type_name::Symbol, type::Any)::Cvoid
+    Core.declare_const(mod, closure_type_name, type)
     Core._typebody!(false, type, Core.svec(field_types...))
     type
 end
