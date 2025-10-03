@@ -2153,6 +2153,60 @@ function strip_decls!(ctx, stmts, declkind, declmeta, ex)
     end
 end
 
+# Extract the declarable name from a function signature
+# Returns the bare identifier that should be declared, or nothing if the
+# name is qualified (e.g., A.B.f)
+# This follows the same logic as expand_function_def for consistency.
+function extract_decl_name_from_funclike(ex)
+    @assert kind(ex) == K"function"
+    name = ex[1]
+
+    # Strip `where` clauses and type annotation (same as expand_function_def)
+    while kind(name) == K"where" && numchildren(name) >= 1
+        name = name[1]
+    end
+    if kind(name) == K"::"
+        if numchildren(name) == 2
+            name = name[1]
+        else
+            # Invalid signature
+            return nothing
+        end
+    end
+
+    if kind(name) == K"call"
+        name = name[1]
+    elseif kind(name) == K"tuple"
+        # Anonymous function syntax `function (x,y) ... end` (no declaration)
+        return nothing
+    else # Bad function definition
+        return nothing
+    end
+
+    # Extract bare function name
+    if kind(name) == K"::"
+        # Self argument is specified by user: function (f::T)() ...
+        if numchildren(name) == 2
+            # function (f::T)() ... => f is the declarable name
+            return name[1]
+        else
+            # function (::T)() ... => anonymous, no declaration
+            return nothing
+        end
+    elseif kind(name) == K"Placeholder"
+        return nothing # Anonymous function
+    elseif is_invalid_func_name(name)
+        return nothing # Invalid name like `ccall` or `cglobal`
+    elseif is_identifier_like(name)
+        return name # Normal function: function f() ...
+    elseif kind(name) == K"." && numchildren(name) == 2 && kind(name[2]) == K"Symbol"
+        # Qualified name: function A.B.f() ...
+        # Don't add declaration for qualified names
+        return nothing
+    end
+    return nothing
+end
+
 # Separate decls and assignments (which require re-expansion)
 # local x, (y=2), z ==> local x; local z; y = 2
 function expand_decls(ctx, ex)
@@ -2169,6 +2223,16 @@ function expand_decls(ctx, ex)
             push!(stmts, expand_assignment(ctx, @ast ctx binding [kb lhs binding[2]]))
         elseif is_sym_decl(binding)
             strip_decls!(ctx, stmts, declkind, declmeta, binding)
+        elseif kb === K"function"
+            # Handle function definitions within global/local
+            # e.g., `global function f() ... end` or `let x=1; global g()=x; end`
+            name = extract_decl_name_from_funclike(binding)
+            if !isnothing(name) && is_identifier_like(name)
+                # Add the declaration for the name
+                push!(stmts, @ast ctx binding [declkind name])
+            end
+            # Expand the function definition
+            push!(stmts, expand_forms_2(ctx, binding))
         else
             throw(LoweringError(ex, "invalid syntax in variable declaration"))
         end
@@ -3035,7 +3099,7 @@ function expand_function_def(ctx, ex, docs, rewrite_call=identity, rewrite_body=
             push!(sig_stmts, @ast(ctx, ex, [K"curly" "Tuple"::K"core" arg_types[2:i]...]))
         end
         sig_type = @ast ctx ex [K"where"
-            [K"curly" "Union"::K"core" sig_stmts...] 
+            [K"curly" "Union"::K"core" sig_stmts...]
             [K"_typevars" [K"block" typevar_names...] [K"block"]]
         ]
         out = @ast ctx docs [K"block"
