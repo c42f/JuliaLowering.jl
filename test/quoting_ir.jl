@@ -40,6 +40,6 @@ end
 LoweringError:
 quote
     $$x + 1
-#    └┘ ── `$` expression outside string or quote block
+#    └┘ ── `$` expression outside string or quote
 end
 
