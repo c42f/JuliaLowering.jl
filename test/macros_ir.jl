@@ -123,7 +123,7 @@ let
 #   ┌────────────
     macro foo(ex)
     end
-#─────┘ ── macro is only allowed in global scope
+#─────┘ ── macro definition is not allowed in a local scope
 end
 
 ########################################
@@ -138,7 +138,7 @@ function f()
 #   ┌──────────
     macro foo()
     end
-#─────┘ ── macro is only allowed in global scope
+#─────┘ ── macro definition is not allowed in a local scope
 end
 
 ########################################

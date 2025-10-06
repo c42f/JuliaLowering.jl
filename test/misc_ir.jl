@@ -34,7 +34,7 @@ x."b"
 @ast_ [K"." "x"::K"Identifier" "a"::K"Identifier" 3::K"Integer"]
 #---------------------
 LoweringError:
-#= line 1 =# - `.` form requires either one or two children
+#= line 1 =# - invalid syntax: unknown kind `.` or number of arguments (3)
 
 ########################################
 # Error: Placeholder value used
@@ -156,7 +156,7 @@ LoweringError:
 #---------------------
 LoweringError:
 (; a=xs...)
-#    └───┘ ── `...` cannot be used in a value for a named tuple field
+#    └───┘ ── unexpected splat not in `call`, `tuple`, `curly`, or array expression
 
 ########################################
 # Error: Named tuple field invalid lhs
@@ -164,7 +164,7 @@ LoweringError:
 #---------------------
 LoweringError:
 (; a[]=1)
-#  └─┘ ── invalid named tuple field name
+#  └─┘ ── expected identifier, got `ref`
 
 ########################################
 # Error: Named tuple element with weird dot syntax
@@ -209,7 +209,7 @@ function f()
 #   ┌───────
     module C
     end
-#─────┘ ── `module` is only allowed at top level
+#─────┘ ── this syntax is only allowed in top level code
 end
 
 ########################################
@@ -227,7 +227,7 @@ x::T
 #---------------------
 LoweringError:
 ::T
-└─┘ ── `::` must be written `value::type` outside function argument lists
+└─┘ ── invalid syntax: unknown kind `::` or number of arguments (1)
 
 ########################################
 # Error: braces vector syntax
@@ -235,7 +235,7 @@ LoweringError:
 #---------------------
 LoweringError:
 {x, y}
-└────┘ ── { } syntax is reserved for future use
+└────┘ ── `braces` outside of `where` is reserved for future use
 
 ########################################
 # Error: braces matrix syntax
@@ -243,7 +243,7 @@ LoweringError:
 #---------------------
 LoweringError:
 {x y; y z}
-└────────┘ ── { } syntax is reserved for future use
+└────────┘ ── `bracescat` is reserved for future use
 
 ########################################
 # Error: Test AST which has no source form and thus must have been constructed
@@ -251,7 +251,7 @@ LoweringError:
 @ast_ [K"if"]
 #---------------------
 LoweringError:
-#= line 1 =# - expected `numchildren(ex) >= 2`
+#= line 1 =# - invalid syntax: unknown kind `if` or number of arguments (0)
 
 ########################################
 # Error: @atomic in wrong position
@@ -262,7 +262,7 @@ end
 LoweringError:
 let
     @atomic x
-#   └───────┘ ── unimplemented or unsupported atomic declaration
+#   └───────┘ ── unimplemented or unsupported `atomic` declaration
 end
 
 ########################################
@@ -486,7 +486,7 @@ MacroExpansionError while expanding @ccall in module Main.TestMod:
 #---------------------
 LoweringError:
 &x
-└┘ ── invalid syntax
+└┘ ── invalid syntax: unknown kind `&` or number of arguments (1)
 
 ########################################
 # Error: $ outside quote/string
@@ -494,7 +494,7 @@ $x
 #---------------------
 LoweringError:
 $x
-└┘ ── `$` expression outside string or quote block
+└┘ ── `$` expression outside string or quote
 
 ########################################
 # Error: splat outside call
@@ -502,7 +502,7 @@ x...
 #---------------------
 LoweringError:
 x...
-└──┘ ── `...` expression outside call
+└──┘ ── unexpected splat not in `call`, `tuple`, `curly`, or array expression
 
 ########################################
 # `include` should increment world age

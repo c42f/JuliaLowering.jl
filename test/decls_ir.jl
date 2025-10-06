@@ -85,7 +85,7 @@ y = global x
 #---------------------
 LoweringError:
 y = global x
-#          ╙ ── global declaration doesn't read the variable and can't return a value
+#   └──────┘ ── global declaration doesn't read the variable and can't return a value
 
 ########################################
 # const
@@ -224,7 +224,7 @@ const local x = 1
 #---------------------
 LoweringError:
 const local x = 1
-└───────────────┘ ── unsupported `const local` declaration
+#    └──────────┘ ── locals cannot be declarated `const`
 
 ########################################
 # Error: Const not supported on locals
@@ -235,7 +235,7 @@ end
 LoweringError:
 let
     const x = 1
-#        └────┘ ── unsupported `const` declaration on local variable
+#   └─────────┘ ── unsupported `const` declaration on local variable
 end
 
 ########################################

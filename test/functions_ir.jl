@@ -132,7 +132,7 @@ end
 #---------------------
 LoweringError:
 function f(xs..., y)
-#          └───┘ ── `...` may only be used for the last positional argument
+#          └───┘ ── `...` may only be used on the final parameter
     body
 end
 
@@ -390,7 +390,7 @@ end
 #---------------------
 LoweringError:
 function (.+)(x,y)
-#        └───────┘ ── Cannot define function using `.` broadcast syntax
+#        └───────┘ ── cannot define function using `.` broadcast syntax
 end
 
 ########################################
@@ -400,7 +400,7 @@ end
 #---------------------
 LoweringError:
 function f[](x,y)
-#        └─┘ ── Invalid function name
+#        └─┘ ── invalid function name
 end
 
 ########################################
@@ -746,7 +746,7 @@ end
 #---------------------
 LoweringError:
 function f(x=1, ys, z=2)
-#          └─┘ ── optional positional arguments must occur at end
+#               └┘ ── all function parameters after an optional parameter must also be optional
     ys
 end
 
@@ -1469,7 +1469,7 @@ end
 #---------------------
 LoweringError:
 function f_kw_destruct(; (x,y)=10)
-#                        └───┘ ── Invalid keyword name
+#                        └───┘ ── expected identifier or `::`
 end
 
 ########################################
@@ -1479,7 +1479,7 @@ end
 #---------------------
 LoweringError:
 function f_kw_slurp_default(; kws...=def)
-#                             └────────┘ ── keyword argument with `...` cannot have a default value
+#                             └────┘ ── expected identifier or `::`
 end
 
 ########################################
@@ -1499,7 +1499,7 @@ end
 #---------------------
 LoweringError:
 function f_kw_slurp_not_last(; kws..., x=1)
-#                              └────┘ ── `...` may only be used for the last keyword argument
+#                              └────┘ ── `...` may only be used for the last keyword parameter
 end
 
 ########################################
