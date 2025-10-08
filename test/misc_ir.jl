@@ -227,7 +227,7 @@ x::T
 #---------------------
 LoweringError:
 ::T
-└─┘ ── invalid syntax: unknown kind `::` or number of arguments (1)
+└─┘ ── `::` must be written `value::type` outside function argument lists
 
 ########################################
 # Error: braces vector syntax

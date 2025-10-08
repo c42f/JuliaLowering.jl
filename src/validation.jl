@@ -61,10 +61,18 @@ This should serve three purposes:
     produce correct output given `st` (possibly by throwing a LoweringError).
 (3) The place we throw helpful user-facing errors given malformed ASTs.
 
-Only AST structure is checked.  Checking that required attributes exist, that
-leaf-only (or not) kinds are leaves (or not), and that syntax flags are valid
-per kind should be done in a separate pass that doesn't need to consider
-structure.
+Only AST structure is checked.  Roughly, this means "kinds and child counts in
+context".  A tree `t` has valid structure if, given the kinds and child count of
+all its ancestors, and the position within its parent of `t` and all its
+ancestors, we know how to lower `t` to IR.
+
+We don't check some other things:
+- This pass assumes that required attributes exist, that leaf-only (or not)
+  kinds are leaves (or not), and that syntax flags are valid per kind; these can
+  be checked beforehand in a linear pass over the nodes.
+- Scope issues are caught later in lowering, e.g. declaring something local and
+  global.
+
 """
 function valid_st1(st::SyntaxTree)
     vcx = Validation1Context()
@@ -104,8 +112,9 @@ vst1_value(vcx::Validation1Context, st::SyntaxTree; need_value=true) = @stm st b
     (leaf, when=kind(leaf) in KSet"""Identifier Value Symbol Integer Float
         String Char Bool CmdString HexInt OctInt BinInt""") -> true
 
-    # Container nodes that may or may not be values depending on their
-    # contents; callers of vst1_value can specify that they don't need a value.
+    # Container nodes that may or may not be values depending on their contents;
+    # callers of vst1_value can specify that they don't need a value.  Most
+    # other forms are always a value.
     [K"block" _...] -> vst1_block(vcx, st; need_value)
     [K"let" [K"block" decls...] body] -> allv(vst1_symdecl_or_assign, vcx, decls) &
         vst1_block(with(vcx, :in_gscope=>false), body; need_value)
@@ -163,12 +172,7 @@ vst1_value(vcx::Validation1Context, st::SyntaxTree; need_value=true) = @stm st b
         fail(vcx, st, "`comparison` expects n>=3 args and odd n") :
         # TODO: xs[2:2:end] should just be identifier or (. identifier)
         allv(vst1_value, vcx, xs[2:2:end]) & allv(vst1_value, vcx, xs[1:2:end])
-    # docstring-annotated call should have calldecl structure
-    ([K"doc" [K"string" strs...] callex],
-     when=vst1_function_calldecl(with(vcx, :speculative=>true), st[2])) ->
-         allv(vst1_value, vcx, strs)
-    [K"doc" [K"string" strs...] x] ->
-        allv(vst1_value, vcx, strs) & vst1_stmt(vcx, x)
+    [K"doc" [K"string" strs...] x] -> allv(vst1_value, vcx, strs) & vst1_documented(vcx, x)
     [K"<:" x y] -> vst1_value(vcx, x) & vst1_value(vcx, y)
     [K">:" x y] -> vst1_value(vcx, x) & vst1_value(vcx, y)
     [K"-->" x y] -> vst1_value(vcx, x) & vst1_value(vcx, y)
@@ -187,7 +191,8 @@ vst1_value(vcx::Validation1Context, st::SyntaxTree; need_value=true) = @stm st b
     [K"global" [K"=" l r]] ->
         vst1_assign_lhs(vcx, l; disallow_type=!vcx.toplevel) &
         vst1_value(vcx, r)
-    # TODO: local is always OK as a value, but non-assigning should probably not be
+    # syntax TODO: local is always OK as a value, but non-assigning should probably not be
+    # TODO: fail if immediate toplevel?
     [K"local" xs...] -> allv(vst1_symdecl_or_assign, vcx, xs)
 
     # Forms not produced by the parser
@@ -221,6 +226,17 @@ vst1_value(vcx::Validation1Context, st::SyntaxTree; need_value=true) = @stm st b
         vst1_value(vcx, t) & vst1_value(vcx, fptr) & vst1_value(vcx, rt) & vst1_value(vcx, argt_svec)
     [K"scope_block" x] -> vst1_value(vcx, x; need_value)
 
+    # Only from macro expansions producing Expr(:toplevel, ...).  We don't want
+    # to recurse on the contained expression since `K"escape"` can wrap nearly
+    # any node.  This is OK since (1) if we're running `valid_st1`
+    # pre-desugaring, this form is not recognized by desugaring and wrapped in a
+    # `toplevel` anyway, so we'll see the expanded version later.  (2) If we're
+    # running `valid_st0`, macros are not expanded, so this form won't appear.
+    ([K"hygienic_scope" x [K"Value"] [K"Value"]]) ->
+        vcx.unexpanded || fail(vcx, st, "`hygienic_scope` not valid after macro expansion")
+    [K"hygienic_scope" x [K"Value"]] ->
+        vcx.unexpanded || fail(vcx, st, "`hygienic_scope` not valid after macro expansion")
+
     # forms normalized by expand_forms_1, so not valid in st1.  TODO: we should
     # consider doing each of these normalizations before macro expansion rather
     # than after.
@@ -229,10 +245,7 @@ vst1_value(vcx::Validation1Context, st::SyntaxTree; need_value=true) = @stm st b
     ([K"char" [K"Char"]], when=vcx.unexpanded) -> true
     ([K"var" [K"Identifier"]], when=vcx.unexpanded) -> true
 
-    # Invalid forms for which we want to produce detailed errors.
-    # TODO: the number of these cases is unbounded (e.g. bad kind or number of
-    # arguments to any of the kinds above); move them to a separate function to
-    # stop cluttering the grammar?
+    # Invalid forms for which we want to produce detailed errors
     [K"..." _...] -> fail(vcx, st, "unexpected splat not in `call`, `tuple`, `curly`, or array expression")
     [K"parameters" _...] -> fail(vcx, st, "unexpected keyword-separating semicolon outside of call or tuple")
     [K"braces" _...] -> fail(vcx, st, "`braces` outside of `where` is reserved for future use")
@@ -240,6 +253,7 @@ vst1_value(vcx::Validation1Context, st::SyntaxTree; need_value=true) = @stm st b
     [K"do" _...] -> fail(vcx, st, "unexpected `do` outside of `call`")
     [K"Placeholder"] -> fail(vcx, st, "all-underscore identifiers are write-only and their values cannot be used in expressions")
     [K"atomic" _...] -> fail(vcx, st, "unimplemented or unsupported `atomic` declaration")
+    [K"::" x] -> fail(vcx, st, "`::` must be written `value::type` outside function argument lists")
     (_, when=need_value && kind(st) in KSet"symbolic_label symbolic_goto") ->
         fail(vcx, st, "misplaced `$(kind(st))` in value position")
     ([K"global" _...], when=need_value) ->
@@ -267,7 +281,6 @@ vst1_stmt(vcx::Validation1Context, st::SyntaxTree) = @stm st begin
     (_, run=pass_or_err(vst1_value, vcx, st; need_value=false), when=run.known) -> run.pass
     ([K"global" xs...], when=vcx.toplevel) -> allv(vst1_symdecl_or_assign, vcx, xs)
     ([K"global" xs...], when=!vcx.toplevel) -> allv(vst1_inner_global_decl, vcx, xs)
-    [K"local" xs...] -> allv(vst1_symdecl_or_assign, vcx, xs) # TODO: fail if immediate toplevel
     [K"symbolic_label"] -> true
     [K"symbolic_goto"] -> true
 
@@ -831,6 +844,15 @@ vst1_iter(vcx, st) = @stm st begin
     _ -> fail(vcx, st, "malformed `in`")
 end
 
+vst1_documented(vcx, st) = @stm st begin
+    (_, when=kind(st) in KSet"function macro = struct abstract primitive const global Symbol inert module") ->
+        vst1_stmt(vcx, st)
+    # doc-only cases
+    (_, when=kind(st) in KSet". Identifier tuple") -> vst1_stmt(vcx, st)
+    (callex, when=vst1_function_calldecl(with(vcx, :speculative=>true), st)) -> true
+    _ -> fail(vcx, st, "`$(kind(st))` cannot be annotated with a docstring")
+end
+
 """
 For convenience, much of the validation code for st0 (non-macro-expanded trees) is
 shared with that for st1 (macro-expanded trees).  The main differences:
@@ -852,7 +874,7 @@ function valid_st0(st::SyntaxTree)
     return valid
 end
 valid_st0(vcx, st) = @stm st begin
-    _ -> vst1_stmt(vcx, st)
+    _ -> vst1_stmt(with(vcx, :unexpanded=>true), st)
 end
 
 """
@@ -866,7 +888,8 @@ end
 
 vst0_quoted(vcx, st) = @stm st begin
     ([K"$" x], when=vcx.quote_level===1) -> valid_st0(with(vcx, :quote_level=>0), x)
-    [K"quote"] -> vst0_quoted(with(vcx, :quote_level=>vcx.quote_level+1), st)
+    [K"$" x] -> vst0_quoted(with(vcx, :quote_level=>vcx.quote_level-1), x)
+    [K"quote" x] -> vst0_quoted(with(vcx, :quote_level=>vcx.quote_level+1), x)
     _ -> allv(vst0_quoted, vcx, children(st))
 end
 
