@@ -62,7 +62,7 @@ const JL = JuliaLowering
 
     @testset "CompilerFrontend" begin
         _Core = JuliaLowering._Core
-        old_fe = _Core._set_compiler_frontend!(JuliaLowering.JuliaLoweringFrontend())
+        old_fe = _Core._set_compiler_frontend!(JuliaLowering.JuliaLoweringFrontend(false))
         try
             # Expr works with eval()
             _Core.eval(test_mod, :(xxx = 6))

@@ -4,33 +4,48 @@
 
 baremodule _Core
 
+module CompilerFrontend
+
+# Parsing
+export AbstractCompilerFrontend, parsecode, syntaxtree, checkparse
+# Lowering
+export TopLevelCodeIterator, BeginModule, EndModule, LoweredValue, lower_init, lower_step
+
+
 using Base
-using Core: CodeInfo
 
-abstract type CompilerFrontend
-end
-
-_compiler_frontend = nothing
-
-function _set_compiler_frontend!(frontend)
-    global _compiler_frontend
-    old = _compiler_frontend
-    _compiler_frontend = frontend
-    return old
+abstract type AbstractCompilerFrontend
 end
 
 """
-parseall(frontend, text; filename="none")
+    (parse_result, next_index) = parsecode(frontend, rule, code, first_index;
+                                           filename, first_line)
 
-Parse Julia code with the provided Julia compiler `frontend`.
-
-TODO: Generalize to allow:
-* Replacement of `Core._parse` hook
-  - Callable from C runtime code
-  - `Meta.parse()` `parseatom` and `parseall`
-* Compiler diagnostics
+Parse Julia code with the provided Julia compiler `frontend`. `parse_result` is
+a container for the "result of parsing" from which a syntax tree and compiler
+errors / diagnostics may be extracted.
 """
-function parseall
+function parsecode
+end
+
+"""
+tree = syntaxtree(frontend, [tree_type, ] parse_result)
+
+Return a syntax `tree` of type `tree_type` based on the `parse_result` coming
+from `parse_code`. If `tree_type` is absent, return the preferred tree type for
+the frontend as may be passed to `lower_init()`.
+"""
+function syntaxtree
+end
+
+"""
+checkparse(frontend, parse_result)
+
+Check that parsing was successful, throwing an error if not.
+
+TODO: Add support for compiler warnings and other diagnostics here?
+"""
+function checkparse
 end
 
 # Incremental lowering API which can manage toplevel and module expressions via
@@ -69,29 +84,37 @@ end
 function lower_step
 end
 
-#-------------------------------------------------------------------------------
-# TODO: C entry points to make it easier for the runtime to call into parsing
-# and lowering... ??
-#
-# function __parse(text::String, offset::Int, filename::String, rule::Symbol)
-#     ex, off = parse_code(_compiler_frontend, text, filename; rule=rule)
-#     svec(ex, off)
-# end
-#
-# function __parse(text::SimpleVector, offset::Int, filename::String, rule::Symbol)
-#     ?? unsafe_string(text[1], text[2])
-#     ?? SubString(text[1])
-#     ex, off = parse_code(_compiler_frontend, text, filename; rule=rule)
-#     svec(ex, off)
-# end
-#
-# function __lower
-# end
+end # module CompilerFrontend
+
+using .CompilerFrontend
+
+using Core: CodeInfo, svec
 
 #-------------------------------------------------------------------------------
+# Default compiler frontend
+_compiler_frontend = nothing
+
+function _set_compiler_frontend!(frontend)
+    global _compiler_frontend
+    old = _compiler_frontend
+    _compiler_frontend = frontend
+    return old
+end
+
+# Parsing entry point for Julia C runtime code
+function _parsecode(code_ptr::Ptr{UInt8}, code_len::Int, offset::Int, filename::String, first_line::Int, rule::Symbol)
+    code = ccall(:jl_pchar_to_string, Any, (Ptr{UInt8}, UInt #=Csize_t=#), p, len)::String
+    parse_result, index = parsecode(_compiler_frontend, rule, code, offset+1; filename, first_line)
+    ex = syntaxtree(Expr, parse_result)
+    return svec(ex, index-1)
+end
+
+#-------------------------------------------------------------------------------
+# eval implementation
+
 eval(mod::Module, ex; opts...) = eval(_compiler_frontend, mod, ex; opts...)
 
-function eval(frontend::CompilerFrontend, mod::Module, ex; mapexpr=nothing, opts...)
+function eval(frontend::AbstractCompilerFrontend, mod::Module, ex; mapexpr=nothing, opts...)
     iter = lower_init(_compiler_frontend, mod, ex, mapexpr; opts...)
     simple_eval(mod, iter)
 end
@@ -108,6 +131,9 @@ end
 
 # Shim in case we want extend the allowed types of newmod.location
 _module_loc(loc::LineNumberNode) = (loc.file, loc.line)
+
+# Need to figure these types out for bootstrap
+import Base: Base, VERSION, @v_str, >=, Cint, Cstring, Cvoid, @ccall, @assert, push!, pop!
 
 if VERSION >= v"1.13.0-DEV.1199" # https://github.com/JuliaLang/julia/pull/59604
 
@@ -129,8 +155,8 @@ function simple_eval(mod::Module, iter::TopLevelCodeIterator)
     result = nothing
     while true
         thunk = lower_step(iter, Base.get_world_counter(), new_mod)
-        if isnothing(thunk)
-            @assert isempty(modules)
+        if thunk === nothing
+            # @assert isempty(modules)
             return result
         end
         result = simple_eval(mod, thunk)
@@ -187,19 +213,18 @@ end
 
 end
 
-
 #-------------------------------------------------------------------------------
-function include_string(frontend::CompilerFrontend, mod::Module, code::AbstractString;
+function include_string(frontend::AbstractCompilerFrontend, mod::Module, code::AbstractString;
                         filename::AbstractString="string", mapexpr=nothing, opts...)
-    ex = parseall(frontend, code; filename=filename)
+    parse_result, _ = parsecode(frontend, :all, code, 1; filename, first_line=1)
+    checkparse(frontend, parse_result)
+    ex = syntaxtree(frontend, parse_result)
     eval(mod, ex; mapexpr=mapexpr, opts...)
 end
 
 function include_string(mod::Module, code::AbstractString; opts...)
     include_string(_compiler_frontend, mod, code; opts...)
 end
-
-# TODO: Simple include() implementation would also be hooked up here.
 
 end # module _Core
 
@@ -219,33 +244,42 @@ using .._Core
 # end
 
 #-------------------------------------------------------------------------------
+using ._Core.CompilerFrontend
+
 # Julia's builtin flisp-based compiler frontend
-struct FlispCompilerFrontend <: _Core.CompilerFrontend
+struct FlispCompilerFrontend <: AbstractCompilerFrontend
 end
 
-function fl_lower(ex, mod::Module, filename::Union{String,Ptr{UInt8}}="none",
-                  lineno=0, world::Unsigned=typemax(Csize_t), warn::Bool=false)
-    warn = warn ? 1 : 0
-    ccall(:jl_fl_lower, Any, (Any, Any, Ptr{UInt8}, Csize_t, Csize_t, Cint),
-          ex, mod, filename, lineno, world, warn)
-end
-
-function fl_parse(text::Union{Core.SimpleVector,String},
-                  filename::String, lineno, offset, options)
-    if text isa Core.SimpleVector
-        # Will be generated by C entry points jl_parse_string etc
-        text, text_len = text
-    else
-        text_len = sizeof(text)
-    end
+function fl_parse(code::String,
+                  filename::String, first_line, offset, options)
     ccall(:jl_fl_parse, Any, (Ptr{UInt8}, Csize_t, Any, Csize_t, Csize_t, Any),
-          text, text_len, filename, lineno, offset, options)
+          code, sizeof(code), filename, first_line, offset, options)
 end
 
-function _Core.parseall(frontend::FlispCompilerFrontend, code::AbstractString;
-                        filename="none")
-    ex, _ = fl_parse(code, filename, 1, 0, :all)
+function CompilerFrontend.parsecode(frontend::FlispCompilerFrontend, rule::Symbol, code, first_index;
+                         filename::String="none", first_line::Int=1)
+    fl_parse(code, filename, first_line, first_index-1, rule)
+end
+
+function CompilerFrontend.syntaxtree(frontend::FlispCompilerFrontend, ex)
+    syntaxtree(frontend, Expr, ex)
+end
+
+function CompilerFrontend.syntaxtree(frontend::FlispCompilerFrontend, ::Type{Expr}, ex)
     return ex
+end
+
+function CompilerFrontend.checkparse(frontend::FlispCompilerFrontend, ex)
+    if !(ex isa Expr)
+        return
+    end
+    h = ex.head
+    if h === :toplevel && !isempty(ex.args)
+        checkparse(frontend, last(ex.args))
+    elseif h === :error || h === :incomplete
+        throw(Meta.ParseError(ex))
+    end
+    return
 end
 
 mutable struct FlispLoweringIterator <: _Core.TopLevelCodeIterator
@@ -255,16 +289,19 @@ mutable struct FlispLoweringIterator <: _Core.TopLevelCodeIterator
     mapexpr::Any
 end
 
-function _Core.lower_init(::FlispCompilerFrontend, mod::Module, ex, mapexpr; filename="none",
-                          lineno=0, warn=false, opts...)
-    FlispLoweringIterator(LineNumberNode(lineno, filename), warn, [(mod, ex, false, 0)], mapexpr)
+function CompilerFrontend.lower_init(::FlispCompilerFrontend, mod::Module, ex, mapexpr;
+                                      filename="none", first_line=0, warn=false, opts...)
+    FlispLoweringIterator(LineNumberNode(first_line, filename), warn, [(mod, ex, false, 0)], mapexpr)
 end
 
-using ._Core: lower_step, BeginModule, EndModule, LoweredValue
+function fl_lower(ex, mod::Module, filename::Union{String,Ptr{UInt8}}="none",
+                  first_line=0, world::Unsigned=typemax(Csize_t), warn::Bool=false)
+    warn = warn ? 1 : 0
+    ccall(:jl_fl_lower, Any, (Any, Any, Ptr{UInt8}, Csize_t, Csize_t, Cint),
+          ex, mod, filename, first_line, world, warn)
+end
 
-_expr_head(ex) = ex isa Expr ? ex.head : :none
-
-function _Core.lower_step(iter::FlispLoweringIterator, macro_world, push_mod=nothing)
+function CompilerFrontend.lower_step(iter::FlispLoweringIterator, macro_world, push_mod=nothing)
     if isempty(iter.todo)
         return nothing
     end
@@ -296,20 +333,20 @@ function _Core.lower_step(iter::FlispLoweringIterator, macro_world, push_mod=not
         end
     end
 
-    k = _expr_head(ex)
-    if !(k in (:toplevel, :module))
+    h = ex isa Expr ? ex.head : :none
+    if !(h in (:toplevel, :module))
         if !is_module_body && !isnothing(iter.mapexpr)
             ex = iter.mapexpr(ex)
         end
         # Expand macros so that we may consume :toplevel from macro expansions
         # used at top level.
         ex = macroexpand(mod, ex)
-        k = _expr_head(ex)
+        h = ex isa Expr ? ex.head : :none
     end
-    if k == :toplevel
+    if h == :toplevel
         push!(iter.todo, (mod, ex, false, 1))
         return lower_step(iter, macro_world)
-    elseif k == :module
+    elseif h == :module
         if length(ex.args) != 3
             error("syntax: malformed module expression")
         end
@@ -350,20 +387,65 @@ function _Core.lower_step(iter::FlispLoweringIterator, macro_world, push_mod=not
 end
 
 #-------------------------------------------------------------------------------
-# Current default frontend: Core._parse hook for parsing plus flisp lowering
-# implementation
+# Current default frontend: JuliaSyntax for parsing plus flisp lowering
+# implementation. (Possibly can go into JuliaSyntax?)
 
-struct DefaultCompilerFrontend <: _Core.CompilerFrontend
+using JuliaSyntax
+
+struct DefaultCompilerFrontend <: AbstractCompilerFrontend
 end
 
-function _Core.parseall(::DefaultCompilerFrontend, code::AbstractString; filename="none")
-    ex, _ = Core._parse(code, filename, 1, 0, :all)
+struct JuliaSyntaxParseResult
+    stream::JuliaSyntax.ParseStream
+    rule::Symbol
+    filename::String
+    first_line::Int
+end
+
+function CompilerFrontend.parsecode(::DefaultCompilerFrontend, rule::Symbol, code::AbstractString,
+                                    first_index::Integer; filename="none", first_line=1)
+    stream = JuliaSyntax.ParseStream(code, first_index, version=VERSION)
+    JuliaSyntax.parse!(stream; rule=rule, incremental=true)
+    next_byte = JuliaSyntax.last_byte(stream) + 1
+    return (JuliaSyntaxParseResult(stream, rule, filename, first_line), next_byte)
+end
+
+function CompilerFrontend.syntaxtree(frontend::DefaultCompilerFrontend,
+                                     res::JuliaSyntaxParseResult)
+    syntaxtree(frontend, Expr, res)
+end
+
+function CompilerFrontend.syntaxtree(::AbstractCompilerFrontend, ::Type{Expr},
+                                     res::JuliaSyntaxParseResult)
+    stream = res.stream
+    ex = JuliaSyntax.all_trivia(stream) ? nothing :
+         JuliaSyntax.build_base_compat_expr(stream, res.rule;
+                                            filename=res.filename, first_line=res.first_line)
     return ex
 end
 
-function _Core.lower_init(::DefaultCompilerFrontend, mod::Module, ex, mapexpr;
-                          filename="none", lineno=0, warn=false, opts...)
-    FlispLoweringIterator(LineNumberNode(lineno, filename), warn, [(mod, ex, false, 0)], mapexpr)
+function CompilerFrontend.syntaxtree(::AbstractCompilerFrontend, ::Type{T},
+                                     res::JuliaSyntaxParseResult) where {T}
+    stream = res.stream
+    ex = JuliaSyntax.all_trivia(stream) ? nothing :
+        JuliaSyntax.build_tree(T, stream; filename=res.filename, first_line=res.first_line)
+    return ex
+end
+
+function CompilerFrontend.checkparse(::AbstractCompilerFrontend, res::JuliaSyntaxParseResult;
+                                     do_warn=false)
+    stream = res.stream
+    if JuliaSyntax.any_error(stream)
+        throw(JuliaSyntax.ParseError(stream; filename=res.filename, first_line=res.first_line))
+    end
+    # TODO: Show warnings to logger instead of stdout
+    JuliaSyntax.show_diagnostics(stdout, stream)
+    nothing
+end
+
+function CompilerFrontend.lower_init(::DefaultCompilerFrontend, mod::Module, ex, mapexpr;
+                          filename="none", first_line=0, warn=false, opts...)
+    FlispLoweringIterator(LineNumberNode(first_line, filename), warn, [(mod, ex, false, 0)], mapexpr)
 end
 
 #-------------------------------------------------------------------------------
@@ -420,23 +502,35 @@ end # module _Base
 
 
 #-------------------------------------------------------------------------------
-struct JuliaLoweringFrontend <: _Core.CompilerFrontend
+using ._Core.CompilerFrontend
+using ._Base: JuliaSyntaxParseResult
+
+struct JuliaLoweringFrontend <: AbstractCompilerFrontend
+    expr_compat_mode::Bool  # Default compat mode
     # world::UInt # TODO: fixed world age for frontend
 end
 
-function _Core.parseall(::JuliaLoweringFrontend, code::AbstractString; filename="none")
-    JuliaSyntax.parseall(SyntaxTree, code; filename=filename, ignore_warnings=true)
+function CompilerFrontend.parsecode(::JuliaLoweringFrontend, rule::Symbol, code::AbstractString,
+                                    first_index::Integer; filename="none", first_line=1)
+    stream = JuliaSyntax.ParseStream(code, first_index, version=VERSION)
+    JuliaSyntax.parse!(stream; rule=rule, incremental=true)
+    next_byte = JuliaSyntax.last_byte(stream) + 1
+    return (JuliaSyntaxParseResult(stream, rule, filename, first_line), next_byte)
 end
 
-struct LoweringIterator <: _Core.TopLevelCodeIterator
+function CompilerFrontend.syntaxtree(frontend::JuliaLoweringFrontend, parse_result::JuliaSyntaxParseResult)
+    syntaxtree(frontend, SyntaxTree, parse_result)
+end
+
+struct LoweringIterator <: TopLevelCodeIterator
     # frontend::JuliaLoweringFrontend  # TODO: world age?
     ctx::MacroExpansionContext
     todo::Vector{Tuple{SyntaxTree, Bool, Int}}
     mapexpr::Any
 end
 
-function _Core.lower_init(::JuliaLoweringFrontend, mod::Module, ex, mapexpr;
-                          expr_compat_mode::Bool=false)
+function CompilerFrontend.lower_init(frontend::JuliaLoweringFrontend, mod::Module, ex, mapexpr;
+                                     expr_compat_mode::Bool=frontend.expr_compat_mode)
     if !(ex isa SyntaxTree)
         ex = expr_to_syntaxtree(ex)
     else
@@ -449,9 +543,7 @@ function _Core.lower_init(::JuliaLoweringFrontend, mod::Module, ex, mapexpr;
     LoweringIterator(ctx, [(ex, false, 0)], mapexpr)
 end
 
-using ._Core: lower_step, BeginModule, EndModule
-
-function _Core.lower_step(iter::LoweringIterator, macro_world, push_mod=nothing)
+function CompilerFrontend.lower_step(iter::LoweringIterator, macro_world, push_mod=nothing)
     if !isnothing(push_mod)
         push_layer!(iter.ctx, push_mod, false)
     end
@@ -480,8 +572,8 @@ function _Core.lower_step(iter::LoweringIterator, macro_world, push_mod=nothing)
     if !(k in KSet"toplevel module")
         if !is_module_body && !isnothing(iter.mapexpr)
             # TODO: `mapexpr` is a pretty niche tool and in principle could be
-            # generically implemented on top of expression iteration if we had
-            # an option to do that without macro expansion.
+            # implemented more generally on top of expression iteration if we
+            # had an option to do that without macro expansion.
             ex = iter.ctx.expr_compat_mode ?
                  expr_to_syntaxtree(iter.ctx, iter.mapexpr(Expr(ex))) :
                  iter.mapexpr(ex)
@@ -522,6 +614,7 @@ function _Core.lower_step(iter::LoweringIterator, macro_world, push_mod=nothing)
 end
 
 
+#-------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------
 # Simple lowering hook. Can be removed once we complete the frontend API above.
 """
@@ -579,7 +672,7 @@ end
 
 #-------------------------------------------------------------------------------
 
-_Core._set_compiler_frontend!(JuliaLoweringFrontend())
+_Core._set_compiler_frontend!(JuliaLoweringFrontend(false))
 
 # Pull implementations from _Base/_Core into JuliaLowering for now
 # (Assumes frontend is in _Core not Core.)
