@@ -489,9 +489,11 @@ end
                   "; _=1, __=2"
                   "; _..."
                   "; _=1, __..."]
+    local i = 0
     for req in params_req, opt in params_opt, va in params_va, kw in params_kw
         arg_str = join(filter(!isempty, (req, opt, va, kw)), ", ")
-        f_str = "function f_placeholders($arg_str); end"
+        f_str = "function f_placeholders$i($arg_str); end"
+        i += 1
         @testset "$f_str" begin
             @test JuliaLowering.include_string(test_mod, f_str) isa Function
         end
