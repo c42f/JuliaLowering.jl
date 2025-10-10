@@ -275,7 +275,13 @@ function expand_macro(ctx, ex)
     # age changes concurrently.
     #
     # TODO: Allow this to be passed in
-    if hasmethod(macfunc, Tuple{typeof(mctx), typeof.(raw_args)...}; world=ctx.macro_world)
+    # TODO: hasmethod always returns false for our `typemax(UInt)` meaning
+    # "latest world," which we shouldn't be using.
+    has_new_macro = ctx.macro_world === typemax(UInt) ?
+        hasmethod(macfunc, Tuple{typeof(mctx), typeof.(raw_args)...}) :
+        hasmethod(macfunc, Tuple{typeof(mctx), typeof.(raw_args)...}; world=ctx.macro_world)
+
+    if has_new_macro
         macro_args = prepare_macro_args(ctx, mctx, raw_args)
         expanded = try
             Base.invoke_in_world(ctx.macro_world, macfunc, macro_args...)
