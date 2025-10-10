@@ -88,13 +88,16 @@ end
 @test test_mod.ccall_with_sparams(Float64) === 1.0
 
 # Test that ccall can be passed static parameters in the function name
+# Note that this only works with `@generated` functions from 1.13 onwards,
+# where the function name can be evaluated at code generation time.
 JuliaLowering.include_string(test_mod, raw"""
 # In principle, may add other strlen-like functions here for different string
 # types
 ccallable_sptest_name(::Type{String}) = :strlen
 
-function ccall_with_sparams_in_name(s::T) where {T}
-    ccall(ccallable_sptest_name(T), Csize_t, (Cstring,), s)
+@generated function ccall_with_sparams_in_name(s::T) where {T}
+    name = QuoteNode(ccallable_sptest_name(T))
+    :(ccall($name, Csize_t, (Cstring,), s))
 end
 """)
 @test test_mod.ccall_with_sparams_in_name("hii") == 3
