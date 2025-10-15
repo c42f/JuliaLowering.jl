@@ -148,7 +148,7 @@ LoweringError:
 #---------------------
 LoweringError:
 (a=1; b=2, c=3)
-#   └────────┘ ── unexpected semicolon in tuple - use `,` to separate tuple elements
+#   └────────┘ ── cannot mix tuple `(a,b,c)` and named tuple `(;a,b,c)` syntax
 
 ########################################
 # Error: Named tuple field dots in rhs

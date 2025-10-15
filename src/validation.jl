@@ -131,7 +131,7 @@ vst1_value(vcx::Validation1Context, st::SyntaxTree; need_value=true) = @stm st b
     [K".="   l r] -> vst1_dotassign_lhs(vcx, l) & vst1_value(vcx, r)
     [K".op=" l op r] -> vst1_dotassign_lhs(vcx, l) & vst1_ident(vcx, op) & vst1_value(vcx, r)
 
-    [K"function" _...] -> !vcx.inner_cond || vcx.toplevel ? vst1_function(vcx, st) :
+    [K"function" _...] -> !vcx.inner_cond ? vst1_function(vcx, st) :
         fail(vcx, st, "conditional inner method definitions are not supported; use `()->()` syntax instead")
     [K"call" _...] -> vst1_call(vcx, st)
     [K"dotcall" _...] -> vst1_dotcall(vcx, st)
@@ -155,12 +155,10 @@ vst1_value(vcx::Validation1Context, st::SyntaxTree; need_value=true) = @stm st b
     [K"quote" x] -> vcx.unexpanded ? vst0_quoted(with(vcx, :quote_level=>1), x) :
         fail(vcx, st, "interpolating quote not valid in AST after macro expansion")
     [K"$" x] -> fail(vcx, st, raw"`$` expression outside string or quote")
-    [K"tuple" xs... [K"parameters" kws...]] ->
-        allv(vst1_splat_or_val, vcx, xs) & allv(vst1_call_arg, vcx, kws)
-    [K"tuple" xs...] -> allv(vst1_splat_or_val, vcx, xs)
+    [K"tuple" _...] -> vst1_value_tuple(vcx, st)
     [K"." x y] -> vst1_value(vcx, x) & vst1_dot_rhs(vcx, y)
     [K"." x] -> vst1_value(vcx, x)
-    [K":"] -> true # ast TODO: this doesn't need to be a kind.  note a:b is a call, this is a[:] or just :
+    [K":"] -> true # ast TODO: `a:b` is identifier, lone `:` should be identifier, `a[:]` should be this kind
     [K"curly" t xs...] -> vst1_value(vcx, t) & allv(vst1_value_curly_typevar, vcx, xs)
     [K"where" lhs rhs] -> vst1_value(vcx, lhs) & vst1_where_rhs(vcx, rhs)
     [K"string" xs...] -> allv(vst1_value, vcx, xs)
@@ -216,15 +214,18 @@ vst1_value(vcx::Validation1Context, st::SyntaxTree; need_value=true) = @stm st b
         allv(vst1_ident, vcx, b1) &
         allv(vst1_ident, vcx, b2) &
         vst1_lam(vcx, st[3])
-    [K"generated"] -> true
-    ([K"foreigncall" f [K"static_eval" rt] [K"static_eval" argt_svec] args...],
-     when=kind(f) in (K"Symbol", K"Identifier")) ->
-        vst1_value(vcx, rt) & vst1_value(vcx, argt_svec) & allv(vst1_value, vcx, args)
-    [K"cfunction" t [K"static_eval" fptr] [K"static_eval" rt] [K"static_eval" argt_svec] [K"Symbol"]] ->
-        vst1_value(vcx, t) & vst1_value(vcx, fptr) & vst1_value(vcx, rt) & vst1_value(vcx, argt_svec)
-    [K"cfunction" t fptr [K"static_eval" rt] [K"static_eval" argt_svec] [K"Symbol"]] ->
-        vst1_value(vcx, t) & vst1_value(vcx, fptr) & vst1_value(vcx, rt) & vst1_value(vcx, argt_svec)
     [K"scope_block" x] -> vst1_value(vcx, x; need_value)
+    [K"generated"] -> true
+    # TODO: could probably be validated more
+    [K"foreigncall" f [K"static_eval" rt] [K"static_eval" argt_svec] args...] ->
+        vst1_foreigncall_fname(vcx, f) & vst1_value(vcx, rt) &
+        vst1_value(vcx, argt_svec) & allv(vst1_value, vcx, args)
+    [K"cfunction" t [K"static_eval" fptr] [K"static_eval" rt] [K"static_eval" argt_svec] [K"Symbol"]] ->
+        vst1_value(vcx, t) & vst1_value(vcx, fptr) &
+        vst1_value(vcx, rt) & vst1_value(vcx, argt_svec)
+    [K"cfunction" t fptr [K"static_eval" rt] [K"static_eval" argt_svec] [K"Symbol"]] ->
+        vst1_value(vcx, t) & vst1_value(vcx, fptr) &
+        vst1_value(vcx, rt) & vst1_value(vcx, argt_svec)
 
     # Only from macro expansions producing Expr(:toplevel, ...).  We don't want
     # to recurse on the contained expression since `K"escape"` can wrap nearly
@@ -283,6 +284,7 @@ vst1_stmt(vcx::Validation1Context, st::SyntaxTree) = @stm st begin
     ([K"global" xs...], when=!vcx.toplevel) -> allv(vst1_inner_global_decl, vcx, xs)
     [K"symbolic_label"] -> true
     [K"symbolic_goto"] -> true
+    [K"latestworld_if_toplevel"] -> true
 
     (_, run=pass_or_err(vst1_toplevel_only_stmt, vcx, st), when=run.known) ->
         run.pass && (vcx.toplevel || fail(vcx, st, "this syntax is only allowed in top level code"))
@@ -312,7 +314,6 @@ vst1_toplevel_only_stmt(vcx::Validation1Context, st::SyntaxTree) = @stm st begin
     [K"public" xs...] -> allv(vst1_ident, vcx, xs)
     [K"export" xs...] -> allv(vst1_ident, vcx, xs)
     [K"latestworld"] -> true
-    [K"latestworld_if_toplevel"] -> true
     _ -> false
 end
 
@@ -347,6 +348,14 @@ function vst1_importpath(vcx, st; dots_ok)
     return ok && seen_first
 end
 
+vst1_value_tuple(vcx, st) = @stm st begin
+    [K"tuple" [K"parameters" kws...]] -> allv(vst1_call_arg, vcx, kws)
+    [K"tuple" _ _... [K"parameters" _ _...]] ->
+        fail(vcx, st[end], "cannot mix tuple `(a,b,c)` and named tuple `(;a,b,c)` syntax")
+    [K"tuple" xs...] -> allv(vst1_splat_or_val, vcx, xs)
+    _ -> fail(vcx, st, "malformed tuple")
+end
+
 vst1_block(vcx, st; need_value=true) = @stm st begin
     [K"block"] -> true
     ([K"block" xs...], when=!need_value) -> allv(vst1_stmt, vcx, xs)
@@ -354,14 +363,18 @@ vst1_block(vcx, st; need_value=true) = @stm st begin
     _ -> fail(vcx, st, "expected `block`")
 end
 
+# Usually block-wrapped, but not always.
 vst1_else(vcx, st; need_value) = @stm st begin
-    [K"block" _...] -> vst1_block(vcx, st; need_value)
-    [K"elseif" cond t f] ->
-        vst1_value(vcx, cond) & vst1_block(vcx, t; need_value) & vst1_else(vcx, f; need_value)
+    [K"elseif" cond t] -> vst1_value(vcx, cond) & vst1_value(vcx, t; need_value)
+    [K"elseif" cond t f] -> vst1_value(vcx, cond) &
+        vst1_value(vcx, t; need_value) & vst1_else(vcx, f; need_value)
     _ -> vst1_value(vcx, st; need_value)
 end
 
 # TODO: catch and else are in value position
+# ast TODO: While the AST is more readable than Expr's try-catch, it's difficult
+# enough to unpack that we should consider changing it, especially if we intend
+# to support multiple catch-blocks at some point
 vst1_try(vcx, st) = @stm st begin
     [K"try" _] -> fail(vcx, st, "try without catch or finally")
     [K"try" b1 [K"catch" err body2...]] ->
@@ -517,8 +530,7 @@ end
 # assignments (interpreted as kwargs) must have a simple LHS, and splat is OK.
 vst1_call_arg(vcx, st) = @stm st begin
     [K"=" id val] -> vst1_ident(vcx, id) & vst1_value(vcx, val)
-    [K"..." x] -> vst1_value(vcx, x) # complex assignment in here is OK
-    _ -> vst1_value(vcx, st)
+    _ -> vst1_splat_or_val(vcx, st) # complex assignment in `...` is OK
 end
 
 # Arg to `parameters` (post-semicolon) in a call (not function decl) can be:
@@ -673,6 +685,7 @@ vst1_param_req_or_tuple(vcx, st) = @stm st begin
 end
 
 vst1_simple_tuple_lhs(vcx, st) = @stm st begin
+    [K"tuple" [K"parameters" kws...]] -> allv(vst1_ident_lhs, vcx, kws)
     [K"tuple" xs...] -> allv(vst1_simple_tuple_lhs, vcx, xs)
     _ -> vst1_ident_lhs(vcx, st)
 end
@@ -748,6 +761,16 @@ vst1_struct_field(vcx, st) = @stm st begin
     _ -> vst1_stmt(vcx, st)
 end
 
+# TODO count(kind(x)===k for x in xs)
+# working around a revise bug that fails with anonymous functions
+function _num_of_kind(xs, k)
+    n = 0
+    for x in xs
+        kind(x) === k && (n += 1)
+    end
+    return n
+end
+
 # syntax TODO: (local/global (= lhs rhs)) forms should probably reject the same lhss as const (ref and .)
 # TODO: We can do some destructuring checks here (e.g. fail `(a,b,c) = (1,2)`)
 # compat:
@@ -758,7 +781,7 @@ vst1_assign_lhs(vcx, st; in_const=false, in_tuple=false, disallow_type=false) = 
     [K"tuple" [K"parameters" xs...]] -> allv(vst1_symdecl, vcx, xs)
     [K"tuple" xs...] ->
         allv(vst1_assign_lhs, vcx, xs; in_const, in_tuple=true) &
-        (count(kind(x)===K"..." for x in xs) <= 1 ||
+        (_num_of_kind(xs, K"...") <= 1 ||
         fail(vcx, st, "multiple `...` in destructuring assignment are ambiguous"))
     # Parser produces this in too many places
     # [K"call" _...] ->
@@ -815,9 +838,8 @@ vst1_arraylike(vcx, st) = @stm st begin
     _ -> false
 end
 
-# TODO: Are there things we can rule out from appearing in `...`?
 vst1_splat_or_val(vcx, st) = @stm st begin
-    [K"..." x] -> vst1_value(vcx, x)
+    [K"..." x] -> vst1_splat_or_val(vcx, x)
     [K"..." _...] -> fail("expected one argument to `...`")
     _ -> vst1_value(vcx, st)
 end
@@ -851,6 +873,14 @@ vst1_documented(vcx, st) = @stm st begin
     (_, when=kind(st) in KSet". Identifier tuple") -> vst1_stmt(vcx, st)
     (callex, when=vst1_function_calldecl(with(vcx, :speculative=>true), st)) -> true
     _ -> fail(vcx, st, "`$(kind(st))` cannot be annotated with a docstring")
+end
+
+vst1_foreigncall_fname(vcx, st) = @stm st begin
+    [K"Symbol"] -> true
+    [K"Identifier"] -> true
+    [K"static_eval" x] -> vst1_foreigncall_fname(vcx, x)
+    [K"tuple" xs...] -> allv(vst1_value, vcx, xs) # TODO
+    _ -> fail(vcx, st, "invalid foreigncall function name")
 end
 
 """
