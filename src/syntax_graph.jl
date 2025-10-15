@@ -865,9 +865,8 @@ may check for some form of tree equivalence in a future implementation.
 ## Extra conditions: `when`, `run`
 
 Like an escape hatch to the structure-matching mechanism.  `when=cond` requires
-`cond`'s value be `true` for this pattern to match.  `run=code` evaluates
-`code`, usually to bind variables.  For convenience, the value of `code` is
-bound to the local `run`, which can be opted out of by quoting `run`.
+`cond`'s value be `true` for this pattern to match.  `run=code` simply evaluates
+`code`, usually to bind variables or debug the matching process.
 
 `when` and `run` clauses may appear multiple times in any order after the
 pattern.  They are executed left-to-right, stopping if any `when=cond` evaluates
@@ -891,8 +890,8 @@ julia> JuliaLowering.@stm st begin
         "zero-method function $fname"
     [K"function" [K"call" fname args...] body] ->
         "normal function $fname"
-    ([K"=" [K"call" _...] _...], run=if_valid_get_args(st[1]), when=!isnothing(run)) ->
-        "deprecated call-equals form with args $run"
+    ([K"=" [K"call" _...] _...], when=(args=if_valid_get_args(st[1]); !isnothing(args))) ->
+        "deprecated call-equals form with args $args"
     (_, run=show("printf debugging is great")) -> "something else"
     _ -> "something else"
 end
@@ -923,8 +922,7 @@ function _stm(line::LineNumberNode, st, pats; debug=false)
         # needs to live in the first argument of :if with the extra conditions.
         e_check = Expr(:&&)
         for (ek, ev) in extras
-            push!(e_check.args, ek === :when ? ev :
-                Expr(:block, ek === :run ? :(local run = $ev) : ev, true))
+            push!(e_check.args, ek === :when ? ev : Expr(:block, ev, true))
         end
         # final arg to e_check: successful match
         push!(e_check.args, Expr(:block, line, :($result_gs = $result), true))
@@ -1033,7 +1031,7 @@ function _stm_check_usage(pats)
         if Meta.isexpr(per.args[1], :tuple)
             @assert length(per.args[1].args) >= 2 "Unnecessary tuple in $(per.args[1])"
             for e in per.args[1].args[2:end]
-                @assert(Meta.isexpr(e, :(=), 2) && e.args[1] in (:when, :run, QuoteNode(:run)),
+                @assert(Meta.isexpr(e, :(=), 2) && e.args[1] in (:when, :run),
                         "Expected `when=<cond>` or `run=<stmts>`, got $e")
             end
             p = per.args[1].args[1]
