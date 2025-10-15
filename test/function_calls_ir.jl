@@ -650,4 +650,4 @@ tuple(((xs...)...)...)
 #---------------------
 LoweringError:
 (xs...)
-#└───┘ ── `...` expression outside call
+#└───┘ ── unexpected splat not in `call`, `tuple`, `curly`, or array expression
