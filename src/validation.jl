@@ -5,50 +5,47 @@ end
 ValidationDiagnostic(st::SyntaxTree, msg::String) =
     ValidationDiagnostic(SyntaxList(syntax_graph(st), NodeId[st._id]), msg)
 
-# This could probably be one or several scoped values instead.
 """
-Error vector (shared per invocation of valid_st1) and flags.
-
-Flags are mainly to avoid keyword argument spam for parameters that are updated
-rarely, but apply recursively, usually to remember the kinds of structures we're
-in (e.g. vcx.toplevel becomes false in any function).
+This context contains:
+- The error vector (shared per invocation of valid_st1)
+- Recursive flags that would otherwise require keyword arguments to all
+  validation functions, usually to remember the kinds of structures we're in.
 
 By default, assume we are validating a usual lowering input (top-level) that has
 been macroexpanded.
 """
-struct Validation1Context
-    _flags::Base.PersistentDict{Symbol, Any}
-    errors::Vector{ValidationDiagnostic}
+Base.@kwdef struct Validation1Context
+    errors::Vector{ValidationDiagnostic}=ValidationDiagnostic[]
     # warnings::Vector{ValidationDiagnostic}
+    speculative::Bool=false # match not required; disable errors and return a bool
+    toplevel::Bool=true     # not in any lambda body
+    in_gscope::Bool=true    # not in any scope; implies toplevel
+    in_loop::Bool=false     # break/continue allowed
+    inner_cond::Bool=false  # inner methods not allowed.  true in ? (args 2-3), &&, and ||
+    return_ok::Bool=true    # yes usually (even outside of functions), no in comprehensions/generators
+                            # syntax TODO: no return in finally? type declarations?
+    # We currently always parse to K"=", but Expr(:kw) is valid here and Expr(:(=)) is not
+    # :assign_ok => true    # no in vect, curly, [typed_]h/v/ncat
+    # :beginend_ok => false # once this is different from the identifier
+
+    # vst0 shares this context type since macro expansion doesn't recurse
+    # into some forms, and most parts of the AST are the same.
+    unexpanded::Bool=false
+    quote_level::Int=0
 end
-Validation1Context() = Validation1Context(
-    Base.PersistentDict{Symbol, Any}(
-        :speculative => false, # match not required; disable errors and return a bool
-        :toplevel => true, # not in any lambda body
-        :in_gscope => true, # not in any scope; implies toplevel
-        :in_loop => false, # break/continue allowed
-        :inner_cond => false, # inner methods not allowed.  true in ? (args 2-3), &&, and ||
-        :return_ok => true, # yes usually (even outside of functions), no in comprehensions/generators
-        # syntax TODO: no return in finally? type declarations?
 
-        # We currently always parse to K"=", but Expr(:kw) is valid here and Expr(:(=)) is not
-        # :assign_ok => true, # no in vect, curly, [typed_]h/v/ncat
-        # :beginend_ok => false # once this is different from the identifier
-
-        # vst0 shares this context type since macro expansion doesn't recurse
-        # into some forms, and most parts of the AST are the same.
-        :unexpanded => false,
-        :quote_level => 0,
-    ), ValidationDiagnostic[])
-
-with(vcx::Validation1Context, p1, pairs...) =
-    Validation1Context(Base.PersistentDict{Symbol, Any}(vcx._flags, p1), vcx.errors)
-with(vcx::Validation1Context, p1, p2, pairs...) = with(with(vcx, p1), p2, pairs...)
-
-function Base.getproperty(vcx::Validation1Context, param::Symbol)
-    param in (:errors, :warnings, :_flags) ?
-        getfield(vcx, param) :
-        get(getfield(vcx, :_flags), param, nothing)
+function with(vcx::Validation1Context;
+              errors       =vcx.errors,
+              speculative  =vcx.speculative,
+              toplevel     =vcx.toplevel,
+              in_gscope    =vcx.in_gscope,
+              in_loop      =vcx.in_loop,
+              inner_cond   =vcx.inner_cond,
+              return_ok    =vcx.return_ok,
+              unexpanded   =vcx.unexpanded,
+              quote_level  =vcx.quote_level)
+    Validation1Context(errors, speculative, toplevel, in_gscope, in_loop,
+        inner_cond, return_ok, unexpanded, quote_level)
 end
 
 """
@@ -117,12 +114,12 @@ vst1_value(vcx::Validation1Context, st::SyntaxTree; need_value=true) = @stm st b
     # other forms are always a value.
     [K"block" _...] -> vst1_block(vcx, st; need_value)
     [K"let" [K"block" decls...] body] -> allv(vst1_symdecl_or_assign, vcx, decls) &
-        vst1_block(with(vcx, :in_gscope=>false), body; need_value)
+        vst1_block(with(vcx; in_gscope=false), body; need_value)
     [K"if" cond t] -> vst1_value(vcx, cond) &
-        vst1_value(vcx.toplevel ? vcx : with(vcx, :inner_cond=>true), t; need_value)
+        vst1_value(vcx.toplevel ? vcx : with(vcx; inner_cond=true), t; need_value)
     [K"if" cond t f] -> vst1_value(vcx, cond) &
-        vst1_value(vcx.toplevel ? vcx : with(vcx, :inner_cond=>true), t; need_value) &
-        vst1_else(vcx.toplevel ? vcx : with(vcx, :inner_cond=>true), f; need_value)
+        vst1_value(vcx.toplevel ? vcx : with(vcx; inner_cond=true), t; need_value) &
+        vst1_else(vcx.toplevel ? vcx : with(vcx; inner_cond=true), f; need_value)
 
     # op-assign will perform the op, but fail to assign with a bad lhs, so we
     # disallow it here
@@ -141,18 +138,18 @@ vst1_value(vcx::Validation1Context, st::SyntaxTree; need_value=true) = @stm st b
     [K"continue"] -> vcx.in_loop || fail(vcx, st, "`continue` must be used inside a `while` or `for` loop")
     [K"break"] -> vcx.in_loop || fail(vcx, st, "`break` must be used inside a `while` or `for` loop")
     [K"?" cond t f] -> vst1_value(vcx, cond) &
-        vst1_value(vcx.toplevel ? vcx : with(vcx, :inner_cond=>true), t) &
-        vst1_value(vcx.toplevel ? vcx : with(vcx, :inner_cond=>true), f)
+        vst1_value(vcx.toplevel ? vcx : with(vcx; inner_cond=true), t) &
+        vst1_value(vcx.toplevel ? vcx : with(vcx; inner_cond=true), f)
     [K"for" [K"iteration" is...] [K"block" body...]] ->
         allv(vst1_iter, vcx, is) &
-        allv(vst1_stmt, with(vcx, :in_loop=>true, :in_gscope=>false), body)
+        allv(vst1_stmt, with(vcx; in_loop=true, in_gscope=false), body)
     [K"while" cond [K"block" body...]] ->
         vst1_value(vcx, cond) &
-        allv(vst1_stmt, with(vcx, :in_loop=>true, :in_gscope=>false), body)
+        allv(vst1_stmt, with(vcx; in_loop=true, in_gscope=false), body)
     [K"try" _...] -> vst1_try(vcx, st)
     [K"macrocall" _...] -> vcx.unexpanded ? vst0_macrocall(vcx, st) :
         fail(vcx, st, "macrocall not valid in AST after macro expansion")
-    [K"quote" x] -> vcx.unexpanded ? vst0_quoted(with(vcx, :quote_level=>1), x) :
+    [K"quote" x] -> vcx.unexpanded ? vst0_quoted(with(vcx; quote_level=1), x) :
         fail(vcx, st, "interpolating quote not valid in AST after macro expansion")
     [K"$" x] -> fail(vcx, st, raw"`$` expression outside string or quote")
     [K"tuple" _...] -> vst1_value_tuple(vcx, st)
@@ -165,7 +162,7 @@ vst1_value(vcx::Validation1Context, st::SyntaxTree; need_value=true) = @stm st b
     [K"->" _...] -> vst1_lam(vcx, st)
     [K"generator" _...] -> vst1_generator(vcx, st)
     [K"comprehension" g] -> vst1_generator(vcx, g)
-    [K"typed_comprehension" t g] -> vst1_value(with(vcx, :return_ok=>false), t) & vst1_generator(vcx, g)
+    [K"typed_comprehension" t g] -> vst1_value(with(vcx; return_ok=false), t) & vst1_generator(vcx, g)
     [K"comparison" xs...] -> length(xs) < 3 || iseven(length(xs)) ?
         fail(vcx, st, "`comparison` expects n>=3 args and odd n") :
         # TODO: xs[2:2:end] should just be identifier or (. identifier)
@@ -179,7 +176,7 @@ vst1_value(vcx::Validation1Context, st::SyntaxTree; need_value=true) = @stm st b
     [K"||" xs...] -> allv(vst1_value, vcx, xs)
     [K".&&" x y] -> vst1_value(vcx, x) & vst1_value(vcx, y)
     [K".||" x y] -> vst1_value(vcx, x) & vst1_value(vcx, y)
-    (_, run=pass_or_err(vst1_arraylike, vcx, st), when=run.known) -> run.pass
+    (_, when=(kp=pass_or_err(vst1_arraylike, vcx, st); kp.known)) -> kp.pass
     # value-producing const, global-=
     [K"const" [K"global" x]] -> vst1_const_assign(vcx, x)
     [K"global" [K"const" x]] -> vst1_const_assign(vcx, x)
@@ -201,7 +198,7 @@ vst1_value(vcx::Validation1Context, st::SyntaxTree; need_value=true) = @stm st b
     [K"extension" [K"Symbol"] _...] ->
         (st[1].name_val in ("locals", "islocal", "isglobal") || fail(vcx, st, "unknown extension kind"))
     [K"toplevel" xs...] -> # contents will be unexpanded
-        allv(valid_st0, with(vcx, :toplevel=>true, :in_gscope=>true), xs)
+        allv(valid_st0, with(vcx; toplevel=true, in_gscope=true), xs)
     [K"opaque_closure" argt lb ub [K"Bool"] lam] ->
         allv(vst1_value, vcx, [argt, lb, ub]) & vst1_lam(vcx, lam)
     [K"gc_preserve" x ids...] -> vst1_value(vcx, x) & allv(vst1_ident, vcx, ids)
@@ -260,14 +257,14 @@ vst1_value(vcx::Validation1Context, st::SyntaxTree; need_value=true) = @stm st b
     ([K"global" _...], when=need_value) ->
         fail(vcx, st, "global declaration doesn't read the variable and can't return a value")
 
-    (_, run=pass_or_err(vst1_toplevel_only_value, vcx, st), when=run.known) ->
-        run.pass && (vcx.toplevel || fail(vcx, st, "this syntax is only allowed in top level code"))
+    (_, when=(kp=pass_or_err(vst1_toplevel_only_value, vcx, st); kp.known)) ->
+        kp.pass && (vcx.toplevel || fail(vcx, st, "this syntax is only allowed in top level code"))
     _ -> false
 end
 
 vst1_toplevel_only_value(vcx::Validation1Context, st::SyntaxTree) = @stm st begin
     [K"module" name [K"block" xs...]] -> (
-        vst1_ident(vcx, name) & allv(valid_st0, with(vcx, :toplevel=>true, :in_gscope=>true), xs))
+        vst1_ident(vcx, name) & allv(valid_st0, with(vcx; toplevel=true, in_gscope=true), xs))
     [K"macro" _...] -> vst1_macro(vcx, st)
     # The following return nothing, but are allowed as values
     [K"struct" sig [K"block" body...]] -> vst1_typesig(vcx, sig) &
@@ -279,15 +276,15 @@ vst1_toplevel_only_value(vcx::Validation1Context, st::SyntaxTree) = @stm st begi
 end
 
 vst1_stmt(vcx::Validation1Context, st::SyntaxTree) = @stm st begin
-    (_, run=pass_or_err(vst1_value, vcx, st; need_value=false), when=run.known) -> run.pass
+    (_, when=(kp=pass_or_err(vst1_value, vcx, st; need_value=false); kp.known)) -> kp.pass
     ([K"global" xs...], when=vcx.toplevel) -> allv(vst1_symdecl_or_assign, vcx, xs)
     ([K"global" xs...], when=!vcx.toplevel) -> allv(vst1_inner_global_decl, vcx, xs)
     [K"symbolic_label"] -> true
     [K"symbolic_goto"] -> true
     [K"latestworld_if_toplevel"] -> true
 
-    (_, run=pass_or_err(vst1_toplevel_only_stmt, vcx, st), when=run.known) ->
-        run.pass && (vcx.toplevel || fail(vcx, st, "this syntax is only allowed in top level code"))
+    (_, when=(kp=pass_or_err(vst1_toplevel_only_stmt, vcx, st); kp.known)) ->
+        kp.pass && (vcx.toplevel || fail(vcx, st, "this syntax is only allowed in top level code"))
     _ -> fail(vcx, st, "invalid syntax: unknown kind `$(kind(st))` or number of arguments ($(numchildren(st)))")
 end
 
@@ -321,7 +318,7 @@ end
 # one of:
 # (as (importpath . . . x y z) ident)
 #     (importpath . . . x y z)
-# where y, z may be quoted for no reason (do we need to allow this?)
+# where y, z may be quoted (syntax TODO: require var"" for odd identifiers?)
 function vst1_importpath(vcx, st; dots_ok)
     ok = true
     path_components = @stm st begin
@@ -550,8 +547,8 @@ end
 
 vst1_lam(vcx, st) = @stm st begin
     [K"->" l r] ->
-        vst1_lam_lhs(with(vcx, :return_ok=>false, :toplevel=>false, :in_gscope=>false), l) &
-        vst1_stmt(with(vcx, :return_ok=>true, :toplevel=>false, :in_gscope=>false), r)
+        vst1_lam_lhs(with(vcx; return_ok=false, toplevel=false, in_gscope=false), l) &
+        vst1_stmt(with(vcx; return_ok=true, toplevel=false, in_gscope=false), r)
     _ -> false
 end
 
@@ -567,18 +564,18 @@ end
 
 vst1_do(vcx, st) = @stm st begin
     [K"do" [K"tuple" ps...] b] ->
-        allv(vst1_param_req, with(vcx, :return_ok=>false, :toplevel=>false, :in_gscope=>false), ps) &
-        vst1_block(with(vcx, :return_ok=>true, :toplevel=>false, :in_gscope=>false), b)
+        allv(vst1_param_req, with(vcx; return_ok=false, toplevel=false, in_gscope=false), ps) &
+        vst1_block(with(vcx; return_ok=true, toplevel=false, in_gscope=false), b)
     _ -> fail(vcx, st, "malformed `do` expression")
 end
 
 vst1_function(vcx, st) = @stm st begin
     [K"function" name] -> vst1_ident(vcx, name)
     [K"function" callex body] ->
-        vst1_function_calldecl(with(vcx, :return_ok=>false, :toplevel=>false, :in_gscope=>false), callex) &
+        vst1_function_calldecl(with(vcx; return_ok=false, toplevel=false, in_gscope=false), callex) &
         # usually a block, but not in the function-= case
         # TODO: should body be a value?
-        vst1_stmt(with(vcx, :return_ok=>true, :toplevel=>false, :in_gscope=>false), body)
+        vst1_stmt(with(vcx; return_ok=true, toplevel=false, in_gscope=false), body)
     _ -> fail(vcx, st, "malformed `function`")
 end
 
@@ -617,10 +614,10 @@ vst1_macro(vcx, st) = @stm st begin
     [K"macro" [K"call" _... [K"parameters" _...]] _...] ->
         fail(vcx, st[1][end], "macros cannot accept keyword arguments")
     [K"macro" [K"call" m ps...] body] ->
-        let vcx = with(vcx, :return_ok=>false, :toplevel=>false, :in_gscope=>false)
+        let vcx = with(vcx; return_ok=false, toplevel=false, in_gscope=false)
             vst1_macro_calldecl_name(vcx, m) &
                 _calldecl_positionals(vcx, ps) &
-                vst1_block(with(vcx, :return_ok=>true), body)
+                vst1_block(with(vcx; return_ok=true), body)
         end
 end
 
@@ -691,7 +688,7 @@ vst1_simple_tuple_lhs(vcx, st) = @stm st begin
 end
 
 vst1_param_req(vcx, st) = @stm st begin
-    (_, when=vst1_ident_lhs(with(vcx, :speculative=>true), st)) -> true
+    (_, when=vst1_ident_lhs(with(vcx; speculative=true), st)) -> true
     [K"::" x t] -> vst1_ident_lhs(vcx, x) & vst1_value(vcx, t)
     [K"::" t] -> vst1_value(vcx, t)
     _ -> fail(vcx, st, "malformed positional param; expected identifier or `::`")
@@ -709,7 +706,7 @@ vst1_calldecl_kws(vcx, st) = @stm st begin
 end
 
 vst1_param_kw(vcx, st) = @stm st begin
-    (_, when=vst1_symdecl(with(vcx, :speculative=>true), st)) -> true
+    (_, when=vst1_symdecl(with(vcx; speculative=true), st)) -> true
     [K"=" id val] -> vst1_symdecl(vcx, id) & vst1_value(vcx, val)
     [K"..." _...] -> fail(vcx, st, "`...` may only be used for the last keyword parameter")
     _ -> fail(vcx, st, "malformed keyword parameter; expected identifier, `=`, or `::`")
@@ -791,7 +788,7 @@ vst1_assign_lhs(vcx, st; in_const=false, in_tuple=false, disallow_type=false) = 
     _ -> vst1_assign_lhs_nontuple(vcx, st; in_const, in_tuple)
 end
 vst1_assign_lhs_nontuple(vcx, st; in_const=false, in_tuple=false, disallow_type=false) = @stm st begin
-    (_, when=vst1_ident_lhs(with(vcx, :speculative=>true), st)) -> true
+    (_, when=vst1_ident_lhs(with(vcx; speculative=true), st)) -> true
     (_, when=(in_const && kind(st) in (K".", K"ref"))) ->
         fail(vcx, st, "cannot declare this form constant")
     ([K"Value"], when=st.value isa GlobalRef) -> true
@@ -821,7 +818,7 @@ end
 
 # dot-assign with placeholders in an arraylike lhs throws a syntax error
 vst1_dotassign_lhs(vcx, st) =
-    vst1_arraylike(with(vcx, :speculative=>true), st) || vst1_assign_lhs(vcx, st)
+    vst1_arraylike(with(vcx; speculative=true), st) || vst1_assign_lhs(vcx, st)
 
 vst1_arraylike(vcx, st) = @stm st begin
     # TODO: more validation is possible here, e.g. when row/nrow can/can't show up in ncat
@@ -845,7 +842,7 @@ vst1_splat_or_val(vcx, st) = @stm st begin
 end
 
 function vst1_generator(vcx, st)
-    vcx = with(vcx, :return_ok=>false, :toplevel=>false, :in_gscope=>false)
+    vcx = with(vcx; return_ok=false, toplevel=false, in_gscope=false)
     return @stm st begin
         [K"generator" val its...] ->
             vst1_value(vcx, val) &
@@ -871,7 +868,7 @@ vst1_documented(vcx, st) = @stm st begin
         vst1_stmt(vcx, st)
     # doc-only cases
     (_, when=kind(st) in KSet". Identifier tuple") -> vst1_stmt(vcx, st)
-    (callex, when=vst1_function_calldecl(with(vcx, :speculative=>true), st)) -> true
+    (callex, when=vst1_function_calldecl(with(vcx; speculative=true), st)) -> true
     _ -> fail(vcx, st, "`$(kind(st))` cannot be annotated with a docstring")
 end
 
@@ -894,7 +891,7 @@ Even though st0 should usually be limited to parser output, `valid_st0` allows a
 superset of `vst1_stmt` to allow for validation of partially-expanded trees.
 """
 function valid_st0(st::SyntaxTree)
-    vcx = with(Validation1Context(), :unexpanded=>true)
+    vcx = with(Validation1Context(), unexpanded=true)
     valid = vst1_stmt(vcx, st)
     for e in vcx.errors
         showerror(stdout, LoweringError(e.sts[1], e.msg))
@@ -904,7 +901,7 @@ function valid_st0(st::SyntaxTree)
     return valid
 end
 valid_st0(vcx, st) = @stm st begin
-    _ -> vst1_stmt(with(vcx, :unexpanded=>true), st)
+    _ -> vst1_stmt(with(vcx; unexpanded=true), st)
 end
 
 """
@@ -917,9 +914,9 @@ vst0_macrocall(vcx, st) = @stm st begin
 end
 
 vst0_quoted(vcx, st) = @stm st begin
-    ([K"$" x], when=vcx.quote_level===1) -> valid_st0(with(vcx, :quote_level=>0), x)
-    [K"$" x] -> vst0_quoted(with(vcx, :quote_level=>vcx.quote_level-1), x)
-    [K"quote" x] -> vst0_quoted(with(vcx, :quote_level=>vcx.quote_level+1), x)
+    ([K"$" x], when=vcx.quote_level===1) -> valid_st0(with(vcx; quote_level=0), x)
+    [K"$" x] -> vst0_quoted(with(vcx; quote_level=vcx.quote_level-1), x)
+    [K"quote" x] -> vst0_quoted(with(vcx; quote_level=vcx.quote_level+1), x)
     _ -> allv(vst0_quoted, vcx, children(st))
 end
 
@@ -944,7 +941,7 @@ end
 # `known` is true if validation passes or knows what's wrong; false otherwise.
 # Allows for a "match if `vst1_foo` knows what this is supposed to be" pattern:
 #
-#     (_, run=pass_or_err(vst1_foo, vcx, st), when=run.known) -> run.pass
+#     (_, when=(kp=pass_or_err(vst1_foo, vcx, st); kp.known)) -> kp.pass
 #
 # which is similar to splicing in all cases from `vst1_foo` that either pass or
 # produce an error (i.e. `_ -> false` cases are ignored).
