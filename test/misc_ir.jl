@@ -396,7 +396,7 @@ end
 24  (return %₂₃)
 
 ########################################
-# @ccall lowering with varargs and gc_safe
+# @ccall lowering with gc_safe
 @ccall foo(x::X; y::Y)::R gc_safe=true
 #---------------------
 1   JuliaLowering.Base
@@ -423,6 +423,44 @@ end
 22  slot₂/arg2
 23  (foreigncall :foo (static_eval TestMod.R) (static_eval (call core.svec TestMod.X TestMod.Y)) 1 :($(QuoteNode((:ccall, 0x0000, true)))) %₁₅ %₂₀ %₂₁ %₂₂)
 24  (return %₂₃)
+
+########################################
+# non-macro ccall with vararg in signature
+ccall(:fcntl, Cint, (RawFD, Cint, Cint...), s, F_GETFL, 111, 222, 333)
+#---------------------
+1   TestMod.RawFD
+2   TestMod.Cint
+3   TestMod.Cint
+4   TestMod.s
+5   (call top.cconvert %₁ %₄)
+6   TestMod.F_GETFL
+7   (call top.cconvert %₂ %₆)
+8   (call top.cconvert %₃ 111)
+9   (call top.cconvert %₃ 222)
+10  (call top.cconvert %₃ 333)
+11  (call top.unsafe_convert %₁ %₅)
+12  (call top.unsafe_convert %₂ %₇)
+13  (call top.unsafe_convert %₃ %₈)
+14  (call top.unsafe_convert %₃ %₉)
+15  (call top.unsafe_convert %₃ %₁₀)
+16  (foreigncall :fcntl (static_eval TestMod.Cint) (static_eval (call core.svec TestMod.RawFD TestMod.Cint TestMod.Cint TestMod.Cint TestMod.Cint)) 2 :ccall %₁₁ %₁₂ %₁₃ %₁₄ %₁₅ %₅ %₇ %₈ %₉ %₁₀)
+17  (return %₁₆)
+
+########################################
+# non-macro ccall with vararg in signature, but none provided
+ccall(:fcntl, Cint, (RawFD, Cint, Cint...), s, F_GETFL)
+#---------------------
+1   TestMod.RawFD
+2   TestMod.Cint
+3   TestMod.Cint
+4   TestMod.s
+5   (call top.cconvert %₁ %₄)
+6   TestMod.F_GETFL
+7   (call top.cconvert %₂ %₆)
+8   (call top.unsafe_convert %₁ %₅)
+9   (call top.unsafe_convert %₂ %₇)
+10  (foreigncall :fcntl (static_eval TestMod.Cint) (static_eval (call core.svec TestMod.RawFD TestMod.Cint TestMod.Cint)) 2 :ccall %₈ %₉ %₅ %₇)
+11  (return %₁₀)
 
 ########################################
 # Error: No return annotation on @ccall
