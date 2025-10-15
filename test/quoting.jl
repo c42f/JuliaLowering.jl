@@ -103,6 +103,24 @@ end
     Core.:(!==)
 """) === (!==)
 
+# Test quoted operator function definitions (issue #20)
+@test JuliaLowering.include_string(test_mod, """
+begin
+    struct Issue20
+        x::Int
+    end
+    Base.:(==)(a::Issue20, b::Issue20) = a.x == b.x
+    Issue20(1) == Issue20(1)
+end
+""") === true
+
+@test JuliaLowering.include_string(test_mod, """
+begin
+    Base.:(<)(a::Issue20, b::Issue20) = a.x < b.x
+    Issue20(1) < Issue20(2)
+end
+""") === true
+
 # interpolations at multiple depths
 ex = JuliaLowering.include_string(test_mod, raw"""
 let

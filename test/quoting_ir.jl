@@ -73,3 +73,26 @@ end
 5   slot₁/x
 6   (call top.getproperty %₅ :a)
 7   (return %₆)
+
+########################################
+# Quoted operator function definition (issue #20)
+function Base.:(==)(a::Issue20, b::Issue20)
+    a === b
+end
+#---------------------
+1   TestMod.Base
+2   (call top.getproperty %₁ :==)
+3   (call core.Typeof %₂)
+4   TestMod.Issue20
+5   TestMod.Issue20
+6   (call core.svec %₃ %₄ %₅)
+7   (call core.svec)
+8   SourceLocation::1:10
+9   (call core.svec %₆ %₇ %₈)
+10  --- method core.nothing %₉
+    slots: [slot₁/#self#(!read) slot₂/a slot₃/b]
+    1   TestMod.===
+    2   (call %₁ slot₂/a slot₃/b)
+    3   (return %₂)
+11  latestworld
+12  (return core.nothing)
