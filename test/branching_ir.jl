@@ -236,5 +236,5 @@ x = @label foo
 #---------------------
 LoweringError:
 x = @label foo
-#          └─┘ ── misplaced label in value position
+#          └─┘ ── misplaced `symbolic_label` in value position
 
