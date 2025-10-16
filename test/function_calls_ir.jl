@@ -594,7 +594,7 @@ end
 #---------------------
 LoweringError:
 function A.ccall()
-#          └───┘ ── `(. a b)` requires symbol `b` after macro-expansion, or identifier before
+#          └───┘ ── this is a reserved identifier
 end
 
 ########################################
