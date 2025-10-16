@@ -129,7 +129,10 @@ vst1_value(vcx::Validation1Context, st::SyntaxTree; need_value=true) = @stm st b
     [K".op=" l op r] -> vst1_dotassign_lhs(vcx, l) & vst1_ident(vcx, op) & vst1_value(vcx, r)
 
     [K"function" _...] -> !vcx.inner_cond ? vst1_function(vcx, st) :
-        fail(vcx, st, "conditional inner method definitions are not supported; use `()->()` syntax instead")
+        # fail(vcx, st, "conditional inner method definitions are not supported; use `()->()` syntax instead")
+        # lowering TODO: conditional nested function definitions are known to be
+        # broken, but are not disallowed, and can be found in stdlibs.
+        vst1_function(vcx, st)
     [K"call" _...] -> vst1_call(vcx, st)
     [K"dotcall" _...] -> vst1_dotcall(vcx, st)
     [K"return"] -> vcx.return_ok || fail(vcx, st, "`return` not allowed inside comprehension or generator")
@@ -223,6 +226,9 @@ vst1_value(vcx::Validation1Context, st::SyntaxTree; need_value=true) = @stm st b
     [K"cfunction" t fptr [K"static_eval" rt] [K"static_eval" argt_svec] [K"Symbol"]] ->
         vst1_value(vcx, t) & vst1_value(vcx, fptr) &
         vst1_value(vcx, rt) & vst1_value(vcx, argt_svec)
+    # syntax TODO: lowering-internal form used to remove scope from try blocks.
+    # probably shouldn't be allowed.
+    [K"tryfinally" t f _...] -> vst1_value(vcx, t) & vst1_value(vcx, f)
 
     # Only from macro expansions producing Expr(:toplevel, ...).  We don't want
     # to recurse on the contained expression since `K"escape"` can wrap nearly
@@ -376,7 +382,7 @@ vst1_try(vcx, st) = @stm st begin
     [K"try" _] -> fail(vcx, st, "try without catch or finally")
     [K"try" b1 [K"catch" err body2...]] ->
         vst1_block(vcx, b1) &
-        vst1_ident_lhs(vcx, err) &
+        vst1_ident(vcx, err; lhs=true) &
         allv(vst1_stmt, vcx, body2)
     [K"try" b1 [K"else" body3...]] ->
         fail(vcx, st, "try without catch or finally")
@@ -385,12 +391,12 @@ vst1_try(vcx, st) = @stm st begin
         allv(vst1_stmt, vcx, body4)
     [K"try" b1 [K"catch" err body2...] [K"else" body3...]] ->
         vst1_block(vcx, b1) &
-        vst1_ident_lhs(vcx, err) &
+        vst1_ident(vcx, err; lhs=true) &
         allv(vst1_stmt, vcx, body2) &
         allv(vst1_stmt, vcx, body3)
     [K"try" b1 [K"catch" err body2...] [K"finally" body4...]] ->
         vst1_block(vcx, b1) &
-        vst1_ident_lhs(vcx, err) &
+        vst1_ident(vcx, err; lhs=true) &
         allv(vst1_stmt, vcx, body2) &
         allv(vst1_stmt, vcx, body4)
     [K"try" b1 [K"else" body3...] [K"finally" body4...]] ->
@@ -398,7 +404,7 @@ vst1_try(vcx, st) = @stm st begin
         allv(vst1_stmt, vcx, body4)
     [K"try" b1 [K"catch" err body2...] [K"else" body3...] [K"finally" body4...]] ->
         vst1_block(vcx, b1) &
-        vst1_ident_lhs(vcx, err) &
+        vst1_ident(vcx, err; lhs=true) &
         allv(vst1_stmt, vcx, body2) &
         allv(vst1_stmt, vcx, body3) &
         allv(vst1_stmt, vcx, body4)
@@ -428,10 +434,15 @@ vst1_dotpath(vcx, st) = @stm st begin
     lhs -> vst1_ident(vcx, lhs)
 end
 
-vst1_dot_rhs(vcx, st) = (vcx.unexpanded ?
-    kind(st) === K"Identifier" : kind(st) === K"Symbol") ||
-    kind(st) === K"string" || # syntax TODO: disallow
-    fail(vcx, st, "`(. a b)` requires symbol `b` after macro-expansion, or identifier before")
+# syntax TODO: all-underscore variables may be read from with dot syntax
+vst1_dot_rhs(vcx, st; lhs=false) = @stm st begin
+    [K"Symbol"] -> true
+    [K"Identifier"] -> vcx.unexpanded ||
+        fail(vcx, st, "Identifier not valid on dot rhs after macro expansion")
+    [K"string" _...] -> true # syntax TODO: disallow
+    [K"core"] -> fail(vcx, st, "this is a reserved identifier")
+    _ -> fail(vcx, st, "`a.b` requires symbol `b`")
+end
 
 cst1_assign(vcx, st) = @stm st begin
     [K"=" l r] -> vst1_assign_lhs(vcx, l) & vst1_value(vcx, r)
@@ -443,8 +454,8 @@ end
 vst1_symdecl_or_assign(vcx, st) = cst1_assign(vcx, st) || vst1_symdecl(vcx, st)
 
 vst1_symdecl(vcx, st) = @stm st begin
-    (_, when=cst1_ident(vcx, st)) -> true
-    [K"::" [K"Identifier"] t] -> vst1_value(vcx, t)
+    (_, when=cst1_ident(vcx, st; lhs=true)) -> true
+    [K"::" id t] -> vst1_ident(vcx, t; lhs=true) & vst1_value(vcx, t)
     _ -> fail(vcx, st, "expected identifier or `::`")
 end
 
@@ -452,18 +463,15 @@ end
 # delete these entirely and just match [K"Identifier"] instead.
 # TODO: A K"Value" globalref is often OK in place of an identifier; check usage
 # of this function
-vst1_ident(vcx, st) =
-    cst1_ident(vcx, st) || fail(vcx, st, "expected identifier, got `$(kind(st))`")
-cst1_ident(vcx, st) = @stm st begin
+vst1_ident(vcx, st; lhs=false) =
+    cst1_ident(vcx, st; lhs) || fail(vcx, st, "expected identifier, got `$(kind(st))`")
+cst1_ident(vcx, st; lhs=false) = @stm st begin
     [K"Identifier"] -> true
     [K"var" [K"Identifier"]] -> vcx.unexpanded ? true :
         fail(vcx, st, "`var` container not valid after macro expansion")
+    [K"Placeholder"] -> lhs ||
+        fail(vcx, st, "all-underscore identifiers are write-only and their values cannot be used in expressions")
     _ -> false
-end
-
-vst1_ident_lhs(vcx, st) = @stm st begin
-    [K"Placeholder"] -> true
-    _ -> vst1_ident(vcx, st)
 end
 
 # no kws in macrocalls, but `do` is OK.
@@ -619,6 +627,8 @@ vst1_macro(vcx, st) = @stm st begin
                 _calldecl_positionals(vcx, ps) &
                 vst1_block(with(vcx; return_ok=true), body)
         end
+    [K"macro" [K"where" _...] _...] ->
+        fail(vcx, st[1], "`where` not allowed in macro signatures")
 end
 
 vst1_macro_calldecl_name(vcx, st) = @stm st begin
@@ -682,21 +692,21 @@ vst1_param_req_or_tuple(vcx, st) = @stm st begin
 end
 
 vst1_simple_tuple_lhs(vcx, st) = @stm st begin
-    [K"tuple" [K"parameters" kws...]] -> allv(vst1_ident_lhs, vcx, kws)
+    [K"tuple" [K"parameters" kws...]] -> allv(vst1_ident, vcx, kws; lhs=true)
     [K"tuple" xs...] -> allv(vst1_simple_tuple_lhs, vcx, xs)
-    _ -> vst1_ident_lhs(vcx, st)
+    _ -> vst1_ident(vcx, st; lhs=true)
 end
 
 vst1_param_req(vcx, st) = @stm st begin
-    (_, when=vst1_ident_lhs(with(vcx; speculative=true), st)) -> true
-    [K"::" x t] -> vst1_ident_lhs(vcx, x) & vst1_value(vcx, t)
+    (_, when=vst1_ident(with(vcx; speculative=true), st; lhs=true)) -> true
+    [K"::" x t] -> vst1_ident(vcx, x; lhs=true) & vst1_value(vcx, t)
     [K"::" t] -> vst1_value(vcx, t)
-    _ -> fail(vcx, st, "malformed positional param; expected identifier or `::`")
+    _ -> fail(vcx, st, "expected identifier or `::`")
 end
 
 vst1_param_opt(vcx, st) = @stm st begin
     [K"=" id val] -> vst1_param_req_or_tuple(vcx, id) & vst1_value(vcx, val)
-    _ -> fail(vcx, st, "malformed optional positional param; expected `=`")
+    _ -> fail(vcx, st, "malformed optional positional parameter; expected `=`")
 end
 
 vst1_calldecl_kws(vcx, st) = @stm st begin
@@ -706,8 +716,8 @@ vst1_calldecl_kws(vcx, st) = @stm st begin
 end
 
 vst1_param_kw(vcx, st) = @stm st begin
-    (_, when=vst1_symdecl(with(vcx; speculative=true), st)) -> true
-    [K"=" id val] -> vst1_symdecl(vcx, id) & vst1_value(vcx, val)
+    [K"=" id val] -> vst1_param_req(vcx, id) & vst1_value(vcx, val)
+    (_, when=vst1_param_req(with(vcx; speculative=true), st)) -> true
     [K"..." _...] -> fail(vcx, st, "`...` may only be used for the last keyword parameter")
     _ -> fail(vcx, st, "malformed keyword parameter; expected identifier, `=`, or `::`")
 end
@@ -788,7 +798,7 @@ vst1_assign_lhs(vcx, st; in_const=false, in_tuple=false, disallow_type=false) = 
     _ -> vst1_assign_lhs_nontuple(vcx, st; in_const, in_tuple)
 end
 vst1_assign_lhs_nontuple(vcx, st; in_const=false, in_tuple=false, disallow_type=false) = @stm st begin
-    (_, when=vst1_ident_lhs(with(vcx; speculative=true), st)) -> true
+    (_, when=vst1_ident(with(vcx; speculative=true), st; lhs=true)) -> true
     (_, when=(in_const && kind(st) in (K".", K"ref"))) ->
         fail(vcx, st, "cannot declare this form constant")
     ([K"Value"], when=st.value isa GlobalRef) -> true
@@ -801,7 +811,7 @@ vst1_assign_lhs_nontuple(vcx, st; in_const=false, in_tuple=false, disallow_type=
         vst1_assign_lhs(vcx, x; in_const, in_tuple)
     [K"ref" x is...] -> vst1_assign_lhs_nontuple(vcx, x; in_const, in_tuple) &
         allv(vst1_splat_or_val, vcx, is)
-    [K"curly" t tvs...] -> vst1_ident_lhs(vcx, t) &
+    [K"curly" t tvs...] -> vst1_ident(vcx, t; lhs=true) &
         allv(vst1_typevar_decl, vcx, tvs)
 
     # errors
