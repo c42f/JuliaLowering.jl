@@ -517,6 +517,10 @@ function expand_forms_1(ctx::MacroExpansionContext, ex::SyntaxTree)
                 (expand_forms_1(ctx, a) for a in args)...
             ]
         end
+    elseif k === K"expr_syntax"
+        throw(LoweringError(ex, "malformed Expr outside of macrocall or quote: \
+              check for macros producing unlowerable forms, \
+              or missing cases in `expr_to_syntaxtree`"))
     elseif is_leaf(ex)
         ex
     elseif k == K"<:" || k == K">:" || k == K"-->"
