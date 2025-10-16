@@ -360,6 +360,19 @@ end
     """; expr_compat_mode=true)
     @test test_mod.SOME_ENUM <: Enum
     @test test_mod.X1 isa Enum
+
+    # Completely unknown expr heads are OK to produce from macro expansions as
+    # long as another macro cleans it up
+    Base.include_string(test_mod, """
+    macro unbungle(x)
+        :(1)
+    end
+
+    macro bungle()
+        esc(Expr(:macrocall, :var"@unbungle", @__LINE__, Expr(Symbol("what???"), 1, 2, 3)))
+    end""")
+
+    @test JuliaLowering.include_string(test_mod, "@bungle()"; expr_compat_mode=true) === 1
 end
 
 @testset "macros producing meta forms" begin

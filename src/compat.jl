@@ -11,13 +11,15 @@ end
 
 """
 An Expr -> SyntaxTree transformation that should preserve semantics, but will
-have low-quality provenance info (namely, each tree node will be associated with
-the last seen LineNumberNode in the pre-order expr traversal).
+produce low-quality provenance info (namely, each tree node will be associated
+with the last seen LineNumberNode in the pre-order expr traversal).
 
 Last-resort option so that, for example, we can lower the output of old
 Expr-producing macros.  Always prefer re-parsing source text over using this.
 
-Supports parsed and/or macro-expanded exprs, but not lowered exprs
+Supports parsed and/or macro-expanded exprs, but not lowered exprs.  Since
+macrocall and quote may occur in this tree, we can't throw errors for malformed
+syntax; we can only convert known-good exprs that have a SyntaxTree equivalent.
 """
 function expr_to_syntaxtree(@nospecialize(e), lnn::Union{LineNumberNode, Nothing}=nothing)
     graph = ensure_attributes!(
@@ -46,22 +48,22 @@ end
     return out
 end
 
-function _expr_replace!(@nospecialize(e), replace_pred::Function, replacer!::Function,
+function _expr_replace(@nospecialize(e), replace_pred::Function, replacer::Function,
                         recurse_pred=(@nospecialize e)->true)
     if replace_pred(e)
-        replacer!(e)
-    end
-    if e isa Expr && recurse_pred(e)
-        for a in e.args
-            _expr_replace!(a, replace_pred, replacer!, recurse_pred)
-        end
+        replacer(e)
+    elseif e isa Expr && recurse_pred(e)
+        Expr(e.head, [_expr_replace(a, replace_pred, replacer, recurse_pred) for a in e.args]...)
     end
 end
 
 function _to_iterspec(exs::Vector, is_generator::Bool)
     if length(exs) === 1 && exs[1].head === :filter
-        @assert length(exs[1].args) >= 2
-        return Expr(:filter, _to_iterspec(exs[1].args[2:end], true), exs[1].args[1])
+        return if length(exs[1].args) >= 2
+            Expr(:filter, _to_iterspec(exs[1].args[2:end], true), exs[1].args[1])
+        else # invalid
+            Expr(:filter, exs[1].args[1])
+        end
     end
     outex = Expr(:iteration)
     for e in exs
@@ -71,7 +73,7 @@ function _to_iterspec(exs::Vector, is_generator::Bool)
             end
         elseif e.head === :(=)
             push!(outex.args, Expr(:in, e.args...))
-        else
+        else # invalid.  TODO: at least find something that round-trips.
             @assert false "unknown iterspec in $e"
         end
     end
@@ -253,14 +255,14 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
     elseif e.head === :comparison
         for i = 2:2:length(child_exprs)
             op,op_esc = unwrap_esc(child_exprs[i])
-            @assert op isa Symbol
-            op_s = string(op)
-            if is_dotted_operator(op_s)
-                child_exprs[i] = Expr(:., op_esc(Symbol(op_s[2:end])))
+            if op isa Symbol
+                op_s = string(op)
+                if is_dotted_operator(op_s)
+                    child_exprs[i] = Expr(:., op_esc(Symbol(op_s[2:end])))
+                end
             end
         end
-    elseif e.head === :macrocall
-        @assert nargs >= 2
+    elseif e.head === :macrocall && nargs >= 2
         a1,a1_esc = unwrap_esc(e.args[1])
         child_exprs = collect_expr_parameters(e, 3)
         if child_exprs[2] isa LineNumberNode
@@ -289,8 +291,7 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
             elseif a1.name === Symbol("@big_str")
             end
         end
-    elseif e.head === Symbol("'")
-        @assert nargs === 1
+    elseif e.head === Symbol("'") && nargs === 1
         st_k = K"call"
         child_exprs = Any[e.head, e.args[1]]
     elseif e.head === :. && nargs === 2
@@ -302,11 +303,9 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
         elseif a2 isa QuoteNode
             child_exprs[2] = a2_esc(a2.value)
         end
-    elseif e.head === :for
-        @assert nargs === 2
+    elseif e.head === :for && nargs === 2
         child_exprs = Any[_to_iterspec(Any[e.args[1]], false), e.args[2]]
-    elseif e.head === :where
-        @assert nargs >= 2
+    elseif e.head === :where && nargs >= 2
         e2,_ = unwrap_esc(e.args[2])
         if !(e2 isa Expr && e2.head === :braces)
             child_exprs = Any[e.args[1], Expr(:braces, e.args[2:end]...)]
@@ -315,7 +314,7 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
         child_exprs = collect_expr_parameters(e, 1)
     elseif e.head in (:curly, :ref)
         child_exprs = collect_expr_parameters(e, 2)
-    elseif e.head === :try
+    elseif e.head === :try && nargs >= 3
         child_exprs = Any[e.args[1]]
         # Expr:
         # (try (block ...) var       (block ...) [block ...] [block ...])
@@ -343,22 +342,21 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
         st_k = K"generator"
         child_exprs = Any[]
         next = e
-        while next.head === :flatten
-            @assert next.args[1].head === :generator
+        while next.head === :flatten && length(next.args) >= 1 && next.args[1].head === :generator
             push!(child_exprs, _to_iterspec(next.args[1].args[2:end], true))
             next = next.args[1].args[1]
         end
-        @assert next.head === :generator
-        push!(child_exprs, _to_iterspec(next.args[2:end], true))
-        pushfirst!(child_exprs, next.args[1])
+        if next.head === :generator
+            push!(child_exprs, _to_iterspec(next.args[2:end], true))
+            pushfirst!(child_exprs, next.args[1])
+        end
     elseif e.head === :ncat || e.head === :nrow
         dim = unwrap_esc_(popfirst!(child_exprs))
         st_flags |= JS.set_numeric_flags(dim)
     elseif e.head === :typed_ncat
         st_flags |= JS.set_numeric_flags(unwrap_esc_(e.args[2]))
         deleteat!(child_exprs, 2)
-    elseif e.head === :(->)
-        @assert nargs === 2
+    elseif e.head === :(->) && nargs === 2
         a1, a1_esc = unwrap_esc(e.args[1])
         if a1 isa Expr && a1.head === :block
             # Expr parsing fails to make :parameters here...
@@ -397,13 +395,12 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
             src = maybe_extract_lnn(e.args[2], src)
             child_exprs[2] = maybe_unwrap_arg(e.args[2])
         end
-    elseif e.head === :module
-        @assert nargs === 3
-        if !e.args[1]
+    elseif e.head === :module && nargs === 3
+        if e.args[1] === false
             st_flags |= JS.BARE_MODULE_FLAG
         end
         child_exprs = Any[e.args[2], e.args[3]]
-    elseif e.head === :do
+    elseif e.head === :do && nargs === 2
         # Expr:
         # (do (call f args...) (-> (tuple lam_args...) (block ...)))
         # SyntaxTree:
@@ -421,21 +418,19 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
             st_k = K"call"
         end
         child_exprs = Any[callargs..., Expr(:do_lambda, e.args[2].args...)]
-    elseif e.head === :let
-        if nargs >= 1
-            a1,_ = unwrap_esc(e.args[1])
-            if !(a1 isa Expr && a1.head === :block)
-                child_exprs[1] = Expr(:block, e.args[1])
-            end
+    elseif e.head === :let && nargs >= 1
+        a1,_ = unwrap_esc(e.args[1])
+        if !(a1 isa Expr && a1.head === :block)
+            child_exprs[1] = Expr(:block, e.args[1])
         end
-    elseif e.head === :struct
+    elseif e.head === :struct && nargs >= 1
         e.args[1] && (st_flags |= JS.MUTABLE_FLAG)
         child_exprs = child_exprs[2:end]
         # TODO handle docstrings after refactor
     elseif (e.head === :using || e.head === :import)
-        _expr_replace!(e,
-                       (e)->(e isa Expr && e.head === :.),
-                       (e)->(e.head = :importpath))
+        e2 = _expr_replace(e, (e)->(e isa Expr && e.head === :.),
+                           (e)->Expr(:importpath, e.args...))
+        child_exprs = e2.args
     elseif e.head === :kw
         st_k = K"="
     elseif e.head in (:local, :global) && nargs > 1
@@ -463,36 +458,37 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
         if e.args[1] isa Expr && e.args[1].head === :purity
             st_k = K"meta"
             child_exprs = [Expr(:quoted_symbol, :purity), Base.EffectsOverride(e.args[1].args...)]
-        else
-            @assert e.args[1] isa Symbol
-            if e.args[1] === :nospecialize
-                if nargs > 2
-                    st_k = K"block"
-                    # Kick the can down the road (should only be simple atoms?)
-                    child_exprs = map(c->Expr(:meta, :nospecialize, c), child_exprs[2:end])
-                else
-                    st_id, src = _insert_convert_expr(e.args[2], graph, src)
-                    setmeta!(SyntaxTree(graph, st_id); nospecialize=true)
-                    return st_id, src
-                end
-            elseif e.args[1] in (:inline, :noinline, :generated, :generated_only,
-                                 :max_methods, :optlevel, :toplevel, :push_loc, :pop_loc,
-                                 :no_constprop, :aggressive_constprop, :specialize, :compile, :infer,
-                                 :nospecializeinfer, :force_compile, :propagate_inbounds, :doc)
-                # TODO: Some need to be handled in lowering
-                for (i, ma) in enumerate(e.args)
-                    if ma isa Symbol
-                        # @propagate_inbounds becomes (meta inline
-                        # propagate_inbounds), but usually(?) only args[1] is
-                        # converted here
-                        child_exprs[i] = Expr(:quoted_symbol, e.args[i])
-                    end
-                end
+        elseif nargs === 0
+            # pass
+        elseif e.args[1] === :nospecialize
+            if nargs > 2
+                st_k = K"block"
+                # Kick the can down the road (should only be simple atoms?)
+                child_exprs = map(c->Expr(:meta, :nospecialize, c), child_exprs[2:end])
             else
-                # Can't throw a hard error; it is explicitly tested that meta can take arbitrary keys.
-                @error("Unknown meta form at $src: `$e`\n$(sprint(dump, e))")
-                child_exprs[1] = Expr(:quoted_symbol, e.args[1])
+                st_id, src = _insert_convert_expr(e.args[2], graph, src)
+                setmeta!(SyntaxTree(graph, st_id); nospecialize=true)
+                return st_id, src
             end
+        elseif e.args[1] in (:inline, :noinline, :generated, :generated_only,
+                             :max_methods, :optlevel, :toplevel, :push_loc, :pop_loc,
+                             :no_constprop, :aggressive_constprop, :specialize, :compile, :infer,
+                             :nospecializeinfer, :force_compile, :propagate_inbounds, :doc)
+            # TODO: Some need to be handled in lowering
+            for (i, ma) in enumerate(e.args)
+                if ma isa Symbol
+                    # @propagate_inbounds becomes (meta inline
+                    # propagate_inbounds), but usually(?) only args[1] is
+                    # converted here
+                    child_exprs[i] = Expr(:quoted_symbol, e.args[i])
+                end
+            end
+        else
+            # Can't throw a hard error; it is explicitly tested that meta can
+            # take arbitrary keys.
+            @error("Unknown meta form at $src: `$e`\n$(sprint(dump, e))")
+            st_k = K"meta"
+            child_exprs[1] = Expr(:quoted_symbol, e.args[1])
         end
     elseif e.head === :scope_layer
         @assert nargs === 2
@@ -501,27 +497,22 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
         st_id, src = _insert_convert_expr(e.args[1], graph, src)
         setattr!(graph, st_id, scope_layer=e.args[2])
         return st_id, src
-    elseif e.head === :symbolicgoto || e.head === :symboliclabel
-        @assert nargs === 1
+    elseif e.head === :symbolicgoto || e.head === :symboliclabel && nargs === 1
         st_k = e.head === :symbolicgoto ? K"symbolic_label" : K"symbolic_goto"
         st_attrs[:name_val] = string(e.args[1])
         child_exprs = nothing
-    elseif e.head in (:inline, :noinline)
-        @assert nargs === 1 && e.args[1] isa Bool
+    elseif e.head in (:inline, :noinline) && nargs === 1 && e.args[1] isa Bool
         # TODO: JuliaLowering doesn't accept this (non-:meta) form yet
         st_k = K"TOMBSTONE"
         child_exprs = nothing
-    elseif e.head === :inbounds
-        @assert nargs === 1 && typeof(e.args[1]) in (Symbol, Bool)
+    elseif e.head === :inbounds && nargs === 1 && typeof(e.args[1]) in (Symbol, Bool)
         # TODO: JuliaLowering doesn't accept this form yet
         st_k = K"TOMBSTONE"
         child_exprs = nothing
-    elseif e.head === :core
-        @assert nargs === 1
-        @assert e.args[1] isa Symbol
+    elseif e.head === :core && nargs === 1 && e.args[1] isa Symbol
         st_attrs[:name_val] = string(e.args[1])
         child_exprs = nothing
-    elseif e.head === :islocal || e.head === :isglobal
+    elseif (e.head === :islocal || e.head === :isglobal) && nargs === 1
         st_k = K"extension"
         child_exprs = [Expr(:quoted_symbol, e.head), e.args[1]]
     elseif e.head === :block && nargs >= 1 &&
@@ -563,10 +554,12 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
     end
 
     #---------------------------------------------------------------------------
-    # Throw if this function isn't complete.  Finally, insert a new node into the
-    # graph and recurse on child_exprs
+    # Omit tombstones.  Unrecognized expr heads become K"expr_syntax".  Finally,
+    # insert a new node into the graph and recurse on child_exprs
     if st_k === K"None"
-        error("Unknown expr head at $src: `$(e.head)`\n$(sprint(dump, e))")
+        st_k = K"expr_syntax"
+        st_attrs[:value] = e
+        child_exprs = nothing
     elseif st_k === K"TOMBSTONE"
         return nothing, src
     end
