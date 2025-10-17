@@ -5,6 +5,7 @@ function lower(mod::Module, ex0; expr_compat_mode=false, world=Base.get_world_co
     ctx1, ex1 = expand_forms_1(  mod,  ex0, expr_compat_mode, world)
     ctx2, ex2 = expand_forms_2(  ctx1, ex1)
     ctx3, ex3 = resolve_scopes(  ctx2, ex2)
+    ex3 = optimize_loop_var_copies(ctx3, ex3)
     ctx4, ex4 = convert_closures(ctx3, ex3)
     ctx5, ex5 = linearize_ir(    ctx4, ex4)
     ex5
@@ -95,6 +96,7 @@ function lower_step(iter, push_mod=nothing)
         # Non macro expansion parts of lowering
         ctx2, ex2 = expand_forms_2(iter.ctx, ex)
         ctx3, ex3 = resolve_scopes(ctx2, ex2)
+        ex3 = optimize_loop_var_copies(ctx3, ex3)
         ctx4, ex4 = convert_closures(ctx3, ex3)
         ctx5, ex5 = linearize_ir(ctx4, ex4)
         thunk = to_lowered_expr(ex5)

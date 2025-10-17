@@ -521,8 +521,8 @@ function _resolve_scopes(ctx, ex::SyntaxTree)
                     [K"call"
                         "apply_type"::K"core"
                         "Dict"::K"top"
-                        "Symbol"::K"core" 
-                        "Any"::K"core" 
+                        "Symbol"::K"core"
+                        "Any"::K"core"
                     ]
                 ]
             ])
@@ -578,7 +578,7 @@ function _resolve_scopes(ctx, ex::SyntaxTree)
             if bk == :argument
                 throw(LoweringError(name, "Cannot add method to a function argument"))
             elseif bk == :global && !ctx.scope_stack[end].in_toplevel_thunk
-                throw(LoweringError(name, 
+                throw(LoweringError(name,
                     "Global method definition needs to be placed at the top level, or use `eval()`"))
             end
         end
@@ -818,4 +818,102 @@ enclosing lambda form and information about variables captured by closures.
     ctx3 = VariableAnalysisContext(ctx2.graph, ctx2.bindings, ctx2.mod, ex2.lambda_bindings)
     analyze_variables!(ctx3, ex2)
     ctx3, ex2
+end
+
+#-------------------------------------------------------------------------------
+# Optimization: Remove unnecessary loop variable copies
+
+"""
+Optimize loop variable copies by removing unnecessary copies.
+
+For multi-iterator for loops like `for i = 1:10, j = 1:i`, the loop variable
+`i` is copied at the start of the inner loop to protect the iteration variable
+from user assignments. However, if the user never assigns to `i`, this copy is
+unnecessary and can be safely removed.
+
+This optimization identifies copy variables by finding assignments marked with
+the `loop_var_copy=true` attribute and checks if the copy variable has
+`n_assigned == 1` (only the copy assignment itself), indicating the user never
+reassigns it.
+"""
+function optimize_loop_var_copies(ctx, ex)
+    @assert kind(ex) == K"lambda"
+    copy_mappings = find_removable_copies(ctx, ex, ex.lambda_bindings)
+    if isempty(copy_mappings)
+        return ex
+    end
+    return replace_copy_bindings(ctx, ex, copy_mappings)
+end
+
+function find_removable_copies(ctx, ex, lambda_bindings)
+    copy_mappings = Dict{IdTag, IdTag}()  # copy_id => original_id
+    find_removable_copies!(copy_mappings, ctx, lambda_bindings, ex)
+    return copy_mappings
+end
+function find_removable_copies!(copy_mappings, ctx, lambda_bindings, ex)
+    if is_leaf(ex)
+    elseif kind(ex) === K"="
+        # Check if this assignment has loop_var_copy=true in its provenance chain
+        if has_loop_var_copy_in_provenance(ex)
+            # This is a loop variable copy assignment: copy = original
+            lhs = ex[1]
+            rhs = ex[2]
+            if kind(lhs) === K"BindingId" && kind(rhs) === K"BindingId"
+                copy_id = lhs.var_id
+                original_id = rhs.var_id
+                binfo = lookup_binding(ctx, copy_id)
+                # Only remove the copy if it's only assigned once (n_assigned == 1),
+                # indicating the user never reassigns the variable
+                if binfo.n_assigned == 1
+                    copy_mappings[copy_id] = original_id
+                end
+            end
+        end
+    else
+        for child in children(ex)
+            find_removable_copies!(copy_mappings, ctx, lambda_bindings, child)
+        end
+    end
+    return copy_mappings
+end
+
+function has_loop_var_copy_in_provenance(ex)
+    for prov in provenance(ex)
+        if prov isa SyntaxTree && kind(prov) === K"="
+            if get(prov, :loop_var_copy, false)
+                return true
+            elseif has_loop_var_copy_in_provenance(prov)
+                return true
+            end
+        end
+    end
+    return false
+end
+
+function replace_copy_bindings(ctx, ex, copy_mappings)
+    if is_leaf(ex)
+        if kind(ex) === K"BindingId" && haskey(copy_mappings, ex.var_id)
+            return binding_ex(ctx, copy_mappings[ex.var_id])
+        end
+        return ex
+    end
+
+    # Remove the copy assignment entirely if it's marked as removable
+    if kind(ex) === K"=" && has_loop_var_copy_in_provenance(ex)
+        lhs = ex[1]
+        if kind(lhs) === K"BindingId" && haskey(copy_mappings, lhs.var_id)
+            # Replace assignment with TOMBSTONE
+            return makeleaf(ctx, ex, K"TOMBSTONE")
+        end
+    elseif kind(ex) === K"local" && numchildren(ex) ≥ 1
+        var = ex[1]
+        if kind(var) === K"BindingId" && haskey(copy_mappings, var.var_id)
+            # Replace declaration with TOMBSTONE
+            return makeleaf(ctx, ex, K"TOMBSTONE")
+        end
+    end
+
+    return mapchildren(ctx, ex) do child
+        replace_copy_bindings(ctx, child, copy_mappings)
+    end
 end

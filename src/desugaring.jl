@@ -16,7 +16,8 @@ function DesugaringContext(ctx, expr_compat_mode::Bool)
                               scope_type=Symbol, # :hard or :soft
                               var_id=IdTag,
                               is_toplevel_thunk=Bool,
-                              toplevel_pure=Bool)
+                              toplevel_pure=Bool,
+                              loop_var_copy=Bool)
     DesugaringContext(graph,
                       ctx.bindings,
                       ctx.scope_layers,
@@ -1983,7 +1984,7 @@ function expand_for(ctx, ex)
         lhs = iterspec[1]
         if kind(lhs) != K"outer"
             foreach_lhs_name(lhs) do var
-                push!(copied_vars, @ast ctx var [K"=" var var])
+                push!(copied_vars, @ast ctx var [K"="(loop_var_copy=true) var var])
             end
         end
     end
@@ -3073,7 +3074,7 @@ function expand_function_def(ctx, ex, docs, rewrite_call=identity, rewrite_body=
             push!(sig_stmts, @ast(ctx, ex, [K"curly" "Tuple"::K"core" arg_types[2:i]...]))
         end
         sig_type = @ast ctx ex [K"where"
-            [K"curly" "Union"::K"core" sig_stmts...] 
+            [K"curly" "Union"::K"core" sig_stmts...]
             [K"_typevars" [K"block" typevar_names...] [K"block"]]
         ]
         out = @ast ctx docs [K"block"
