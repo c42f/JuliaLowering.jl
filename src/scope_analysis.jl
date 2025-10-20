@@ -521,8 +521,8 @@ function _resolve_scopes(ctx, ex::SyntaxTree)
                     [K"call"
                         "apply_type"::K"core"
                         "Dict"::K"top"
-                        "Symbol"::K"core" 
-                        "Any"::K"core" 
+                        "Symbol"::K"core"
+                        "Any"::K"core"
                     ]
                 ]
             ])
@@ -578,7 +578,7 @@ function _resolve_scopes(ctx, ex::SyntaxTree)
             if bk == :argument
                 throw(LoweringError(name, "Cannot add method to a function argument"))
             elseif bk == :global && !ctx.scope_stack[end].in_toplevel_thunk
-                throw(LoweringError(name, 
+                throw(LoweringError(name,
                     "Global method definition needs to be placed at the top level, or use `eval()`"))
             end
         end

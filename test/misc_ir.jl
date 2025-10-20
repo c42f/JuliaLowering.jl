@@ -306,7 +306,7 @@ end
 ########################################
 # Juxtaposition - check the juxtapose multiply is resolved to `JuxtuposeTest.*` when
 # emitted by the macro in the JuxtuposeTest module.
-# 
+#
 # This is consistent with Julia's existing system but it's not entirely clear
 # this is good - perhaps we should resolve to Base.* instead? Resolving to the
 # module-local version makes it exactly equivalent to `*`. But one might argue
@@ -541,4 +541,3 @@ T{U}, (x::Float64, g()) = [Bool, (1, 2)]
 LoweringError:
 T{U}, (x::Float64, g()) = [Bool, (1, 2)]
 #                  └─┘ ── invalid assignment location
-

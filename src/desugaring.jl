@@ -3073,7 +3073,7 @@ function expand_function_def(ctx, ex, docs, rewrite_call=identity, rewrite_body=
             push!(sig_stmts, @ast(ctx, ex, [K"curly" "Tuple"::K"core" arg_types[2:i]...]))
         end
         sig_type = @ast ctx ex [K"where"
-            [K"curly" "Union"::K"core" sig_stmts...] 
+            [K"curly" "Union"::K"core" sig_stmts...]
             [K"_typevars" [K"block" typevar_names...] [K"block"]]
         ]
         out = @ast ctx docs [K"block"
