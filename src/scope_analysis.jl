@@ -81,7 +81,7 @@ end
 # Find names of all identifiers used in the given expression, grouping them
 # into sets by type of usage.
 #
-# NB: This only works propery after desugaring
+# NB: This only works properly after desugaring
 function find_scope_vars(ctx, ex)
     ExT = typeof(ex)
     assignments = Dict{NameKey,ExT}()
