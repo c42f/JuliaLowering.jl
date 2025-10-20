@@ -51,19 +51,9 @@ _interp_makenode(ctx::ExprInterpolationContext, ex, args) = Expr((ex::Expr).head
 _to_syntax_tree(ex::SyntaxTree) = ex
 _to_syntax_tree(@nospecialize(ex)) = expr_to_syntaxtree(ex)
 
-
-function _contains_active_interp(ex, depth)
-    k = _interp_kind(ex)
-    if k == K"$" && depth == 0
-        return true
-    elseif _numchildren(ex) == 0
-        return false
-    end
-    inner_depth = k == K"quote" ? depth + 1 :
-                  k == K"$"     ? depth - 1 :
-                  depth
-    return any(_contains_active_interp(c, inner_depth) for c in _children(ex))
-end
+_is_leaf(ex::SyntaxTree) = is_leaf(ex)
+_is_leaf(ex::Expr) = false
+_is_leaf(@nospecialize(ex)) = true
 
 # Produce interpolated node for `$x` syntax
 function _interpolated_value(ctx::InterpolationContext, srcref, ex)
@@ -86,22 +76,13 @@ function _interpolated_value(::ExprInterpolationContext, _, ex)
     ex
 end
 
-function copy_ast(::ExprInterpolationContext, @nospecialize(ex))
-    @ccall(jl_copy_ast(ex::Any)::Any)
-end
+function _interpolate_ast(ctx, @nospecialize(ex), depth)
+    _is_leaf(ex) && return ex
 
-function _interpolate_ast(ctx, ex, depth)
-    if ctx.current_index[] > length(ctx.values) || !_contains_active_interp(ex, depth)
-        return ex
-    end
-
-    # We have an interpolation deeper in the tree somewhere - expand to an
-    # expression which performs the interpolation.
     k = _interp_kind(ex)
     inner_depth = k == K"quote" ? depth + 1 :
                   k == K"$"     ? depth - 1 :
                   depth
-
     expanded_children = _syntax_list(ctx)
 
     for e in _children(ex)
@@ -151,9 +132,9 @@ end
 function interpolate_ast(::Type{T}, ex, values...) where {T}
     ctx = _setup_interpolation(T, ex, values)
 
-    # We must copy the AST into our context to use it as the source reference
-    # of generated expressions (and in the Expr case at least, to avoid mutation)
-    ex1 = copy_ast(ctx, ex)
+    # We must copy the AST into our context to use it as the source reference of
+    # generated expressions.
+    ex1 = ex isa SyntaxTree ? copy_ast(ctx, ex) : ex
     if _interp_kind(ex1) == K"$"
         @assert length(values) == 1
         vs = values[1]

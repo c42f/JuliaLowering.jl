@@ -27,7 +27,8 @@ end
 @test sprint(io->showprov(io, ex[1][3], tree=true)) == raw"""
     (call g z)
     ├─ (call g z)
-    │  └─ @ string:3
+    │  └─ (call g z)
+    │     └─ @ string:3
     └─ ($ y)
        └─ @ string:5
     """
