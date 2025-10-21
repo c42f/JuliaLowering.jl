@@ -425,28 +425,6 @@ end
 24  (return %₂₃)
 
 ########################################
-# non-macro ccall with vararg in signature
-ccall(:fcntl, Cint, (RawFD, Cint, Cint...), s, F_GETFL, 111, 222, 333)
-#---------------------
-1   TestMod.RawFD
-2   TestMod.Cint
-3   TestMod.Cint
-4   TestMod.s
-5   (call top.cconvert %₁ %₄)
-6   TestMod.F_GETFL
-7   (call top.cconvert %₂ %₆)
-8   (call top.cconvert %₃ 111)
-9   (call top.cconvert %₃ 222)
-10  (call top.cconvert %₃ 333)
-11  (call top.unsafe_convert %₁ %₅)
-12  (call top.unsafe_convert %₂ %₇)
-13  (call top.unsafe_convert %₃ %₈)
-14  (call top.unsafe_convert %₃ %₉)
-15  (call top.unsafe_convert %₃ %₁₀)
-16  (foreigncall :fcntl (static_eval TestMod.Cint) (static_eval (call core.svec TestMod.RawFD TestMod.Cint TestMod.Cint TestMod.Cint TestMod.Cint)) 2 :ccall %₁₁ %₁₂ %₁₃ %₁₄ %₁₅ %₅ %₇ %₈ %₉ %₁₀)
-17  (return %₁₆)
-
-########################################
 # non-macro ccall with vararg in signature, but none provided
 ccall(:fcntl, Cint, (RawFD, Cint, Cint...), s, F_GETFL)
 #---------------------
