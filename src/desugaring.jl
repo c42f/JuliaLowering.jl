@@ -1357,7 +1357,9 @@ function expand_assignment(ctx, ex, is_const=false)
             # Identifier in lhs[1] is a variable type declaration, eg
             # x::T = rhs
             @ast ctx ex [K"block"
-                kind(x) === K"Placeholder" ? nothing : [K"decl" x T]
+                if kind(x) !== K"Placeholder"
+                     [K"decl" x T]
+                end
                 is_const ? [K"const" [K"=" x rhs]] : [K"=" x rhs]
             ]
         else
@@ -2172,8 +2174,12 @@ function make_lhs_decls(ctx, stmts, declkind, declmeta, ex, type_decls=true)
             if kind(name) == K"Identifier"
                 push!(stmts, makenode(ctx, ex, K"decl", name, ex[2]))
             else
-                # Setting the global type of underscores is likely undesired.
-                # Locals are debatable, though that isn't known here.
+                # TODO: Currently, this treats both globals and locals the same
+                # way by ignoring the LHS in `_::T = val`.  For locals, we
+                # should probably do one of the following:
+                # - Throw a LoweringError if that's not too breaking
+                # - `convert(T, rhs)::T` and discard the result which is what
+                #   `x::T = rhs` would do if x is never used again.
                 @chk kind(name) == K"Placeholder"
                 return
             end
@@ -2316,11 +2322,14 @@ function expand_function_arg(ctx, body_stmts, arg, is_last_arg, is_kw, arg_id)
             [K"=" ex name]
         ])
     elseif k == K"Placeholder"
-        # The user shouldn't be able to access this name, but lowering should be
-        # able to use it as an rvalue internally, e.g. for kw method dispatch.
-        # Duplicate positional placeholder names should be allowed.
-        name_str = is_kw ? "#kw$(ex.name_val)#" : "#arg$(string(arg_id))#"
-        name = @ast ctx ex name_str::K"Identifier"
+        # Lowering should be able to use placeholder args as rvalues internally,
+        # e.g. for kw method dispatch.  Duplicate positional placeholder names
+        # should be allowed.
+        name = if is_kw
+            @ast ctx ex ex=>K"Identifier"
+        else
+            new_local_binding(ctx, ex, "#arg$(string(arg_id))#"; kind=:argument)
+        end
     elseif k == K"Identifier"
         name = ex
     else
