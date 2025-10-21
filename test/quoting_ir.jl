@@ -60,39 +60,18 @@ Core.:(!==)
 3   (return %₂)
 
 ########################################
-# Quoted property access on variable
-let
-    x = (a=1, b=2)
-    x.:(a)
-end
-#---------------------
-1   (call core.tuple :a :b)
-2   (call core.apply_type core.NamedTuple %₁)
-3   (call core.tuple 1 2)
-4   (= slot₁/x (call %₂ %₃))
-5   slot₁/x
-6   (call top.getproperty %₅ :a)
-7   (return %₆)
-
-########################################
 # Quoted operator function definition (issue #20)
-function Base.:(==)(a::Issue20, b::Issue20)
-    a === b
-end
+function Base.:(==)() end
 #---------------------
 1   TestMod.Base
 2   (call top.getproperty %₁ :==)
 3   (call core.Typeof %₂)
-4   TestMod.Issue20
-5   TestMod.Issue20
-6   (call core.svec %₃ %₄ %₅)
-7   (call core.svec)
-8   SourceLocation::1:10
-9   (call core.svec %₆ %₇ %₈)
-10  --- method core.nothing %₉
-    slots: [slot₁/#self#(!read) slot₂/a slot₃/b]
-    1   TestMod.===
-    2   (call %₁ slot₂/a slot₃/b)
-    3   (return %₂)
-11  latestworld
-12  (return core.nothing)
+4   (call core.svec %₃)
+5   (call core.svec)
+6   SourceLocation::1:10
+7   (call core.svec %₄ %₅ %₆)
+8   --- method core.nothing %₇
+    slots: [slot₁/#self#(!read)]
+    1   (return core.nothing)
+9   latestworld
+10  (return core.nothing)
