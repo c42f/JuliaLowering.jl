@@ -247,6 +247,13 @@ end
     end
     exs
     """, expr_compat_mode=true) == Any[Expr(:call, :f, :x, :y, :z), Expr(:call, :f, :x, :y, :z)]
+
+    # Test interpolation into QuoteNode
+    @test JuliaLowering.include_string(test_mod, raw"""
+    let x = :push!
+        @eval Base.$x
+    end
+    """; expr_compat_mode=true) == Base.push!
 end
 
 end
