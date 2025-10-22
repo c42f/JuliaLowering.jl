@@ -2174,9 +2174,8 @@ function make_lhs_decls(ctx, stmts, declkind, declmeta, ex, type_decls=true)
             if kind(name) == K"Identifier"
                 push!(stmts, makenode(ctx, ex, K"decl", name, ex[2]))
             else
-                # TODO: Currently, this treats both globals and locals the same
-                # way by ignoring the LHS in `_::T = val`.  For locals, we
-                # should probably do one of the following:
+                # TODO: Currently, this ignores the LHS in `_::T = val`.
+                # We should probably do one of the following:
                 # - Throw a LoweringError if that's not too breaking
                 # - `convert(T, rhs)::T` and discard the result which is what
                 #   `x::T = rhs` would do if x is never used again.
