@@ -139,10 +139,16 @@ end
 
 function interpolate_ast(::Type{Expr}, @nospecialize(ex), values...)
     ctx = ExprInterpolationContext(values, Ref(1))
-    out = _interpolate_ast(ctx, Expr(:block, ex), 0)
-    length(out.args) === 1 || throw(
-        LoweringError(expr_to_syntaxtree(ex), "More than one value in bare `\$` expression"))
-    return only(out.args)
+    if ex isa Expr && ex.head === :$
+        @assert length(values) === 1
+        if length(ex.args) !== 1
+            throw(LoweringError(
+                expr_to_syntaxtree(ex), "More than one value in bare `\$` expression"))
+        end
+        only(values[1])
+    else
+        _interpolate_ast(ctx, ex, 0)
+    end
 end
 
 #--------------------------------------------------
