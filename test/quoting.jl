@@ -185,7 +185,31 @@ let
     :(:($$(args...)))
 end
 """)
-@test_throws LoweringError JuliaLowering.eval(test_mod, multi_interp_ex)
+@test try
+    JuliaLowering.eval(test_mod, multi_interp_ex)
+    nothing
+catch exc
+    @test exc isa LoweringError
+    sprint(io->Base.showerror(io, exc, show_detail=false))
+end == raw"""
+LoweringError:
+let
+    args = (:(x), :(y))
+    :(:($$(args...)))
+#       └─────────┘ ── More than one value in bare `$` expression
+end"""
+
+@test try
+    JuliaLowering.eval(test_mod, multi_interp_ex, expr_compat_mode=true)
+    nothing
+catch exc
+    @test exc isa LoweringError
+    sprint(io->Base.showerror(io, exc, show_detail=false))
+end == raw"""
+LoweringError:
+No source for expression
+└ ── More than one value in bare `$` expression"""
+# ^ TODO: Improve error messages involving expr_to_syntaxtree!
 
 # Interpolation of SyntaxTree Identifier vs plain Symbol
 symbol_interp = JuliaLowering.include_string(test_mod, raw"""
