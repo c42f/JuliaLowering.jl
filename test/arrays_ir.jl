@@ -34,7 +34,7 @@
 #---------------------
 LoweringError:
 [10, 20; 30]
-#      └──┘ ── unexpected semicolon in array expression
+#      └──┘ ── unexpected keyword-separating semicolon outside of call or tuple
 
 ########################################
 # Error: vect syntax with embedded assignments
@@ -390,7 +390,7 @@ a[i, j; w=1]
 #---------------------
 LoweringError:
 a[i, j; w=1]
-#     └───┘ ── unexpected semicolon in array expression
+#     └───┘ ── unexpected keyword-separating semicolon outside of call or tuple
 
 ########################################
 # simple setindex!
