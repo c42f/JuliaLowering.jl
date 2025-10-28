@@ -406,4 +406,46 @@ end
 
 end
 
+@testset "scope layers for normally-inert ASTs" begin
+    # Right hand side of `.`
+    @test JuliaLowering.include_string(test_mod, raw"""
+    let x = :(hi)
+        :(A.$x)
+    end
+    """) ≈ @ast_ [K"."
+        "A"::K"Identifier"
+        "hi"::K"Identifier"
+    ]
+    # module
+    @test JuliaLowering.include_string(test_mod, raw"""
+    let x = :(AA)
+        :(module $x
+        end
+        )
+    end
+    """) ≈ @ast_ [K"module"
+        "AA"::K"Identifier"
+        [K"block"
+        ]
+    ]
+
+    # In macro expansion, require that expressions passed in as macro
+    # *arguments* get the lexical scope of the calling context, even for the
+    # `x` in `M.$x` where the right hand side of `.` is normally quoted.
+    @test JuliaLowering.include_string(test_mod, raw"""
+        let x = :(someglobal)
+            @eval M.$x
+        end
+    """) == "global in module M"
+
+    JuliaLowering.include_string(test_mod, raw"""
+        let y = 101
+            @eval module AA
+                x = $y
+            end
+        end
+    """)
+    @test test_mod.AA.x == 101
+end
+
 end
