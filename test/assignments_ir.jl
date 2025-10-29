@@ -169,7 +169,7 @@ a.(b) = rhs
 #---------------------
 LoweringError:
 a.(b) = rhs
-└───┘ ── invalid dot call syntax on left hand side of assignment
+└───┘ ── invalid `dotcall` on left side of assignment
 
 ########################################
 # Error: Invalid lhs in `=`
@@ -177,7 +177,7 @@ T[x y] = rhs
 #---------------------
 LoweringError:
 T[x y] = rhs
-└────┘ ── invalid spacing in left side of indexed assignment
+└────┘ ── invalid spacing on left side of indexed assignment
 
 ########################################
 # Error: Invalid lhs in `=`
@@ -233,7 +233,7 @@ LoweringError:
 #---------------------
 LoweringError:
 1 = rhs
-╙ ── invalid assignment location
+╙ ── invalid `Integer` on left side of assignment
 
 ########################################
 # Basic updating assignment
@@ -358,4 +358,4 @@ f() += y
 #---------------------
 LoweringError:
 (if false end, b) += 2
-└───────────────┘ ── invalid multiple assignment location
+#└──────────┘ ── invalid `if` on left side of assignment

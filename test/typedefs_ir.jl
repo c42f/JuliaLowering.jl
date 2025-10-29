@@ -92,7 +92,7 @@ A where X < Y < Z
 #---------------------
 LoweringError:
 A where X < Y < Z
-#       └───────┘ ── invalid type bounds
+#       └───────┘ ── expected `lb <: type_name <: ub` or `ub >: type_name >: lb`
 
 ########################################
 # Error: bad type bounds
@@ -100,7 +100,7 @@ A where X <: f() <: Z
 #---------------------
 LoweringError:
 A where X <: f() <: Z
-#            └─┘ ── expected type name
+#       └───────────┘ ── expected `lb <: type_name <: ub` or `ub >: type_name >: lb`
 
 ########################################
 # Error: bad type bounds
@@ -173,7 +173,7 @@ X{S, T; W}
 #---------------------
 LoweringError:
 X{S, T; W}
-#     └─┘ ── unexpected semicolon in type parameter list
+#     └─┘ ── unexpected keyword-separating semicolon outside of call or tuple
 
 ########################################
 # Error: assignment in type application
@@ -269,7 +269,7 @@ abstract type A(){T} end
 #---------------------
 LoweringError:
 abstract type A(){T} end
-#             └────┘ ── invalid type signature
+#             └─┘ ── expected identifier, got `call`
 
 ########################################
 # Error: Abstract type definition with bad signature
@@ -277,7 +277,7 @@ abstract type A() <: B end
 #---------------------
 LoweringError:
 abstract type A() <: B end
-#            └───────┘ ── invalid type signature
+#             └─┘ ── expected identifier, got `call`
 
 ########################################
 # Error: Abstract type definition in function scope
