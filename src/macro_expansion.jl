@@ -450,8 +450,10 @@ function expand_forms_1(ctx::MacroExpansionContext, ex::SyntaxTree)
         expand_macro(ctx, ex)
     elseif k == K"module" || k == K"toplevel" || k == K"inert"
         # Remove scope layer information from any inert syntax which survives
-        # macro expansion so that it doesn't contaminate any future lowering
-        # passes which are later run against the quoted code.
+        # macro expansion so that it doesn't contaminate lowering passes which
+        # are later run against the quoted code. TODO: This works as a first
+        # approximation but is incorrect in general. We need to revisit such
+        # "deferred hygiene" situations (see https://github.com/c42f/JuliaLowering.jl/issues/111)
         remove_scope_layer(ctx, ex)
     elseif k == K"." && numchildren(ex) == 2
         # Handle quoted property access like `x.:(foo)` or `Core.:(!==)`

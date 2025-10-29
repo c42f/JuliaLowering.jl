@@ -1,6 +1,8 @@
 @testset "macro tests" begin
 
 test_mod = Module(:macro_test)
+Base.eval(test_mod, :(const var"@ast" = $(JuliaLowering.var"@ast")))
+Base.eval(test_mod, :(const var"@K_str" = $(JuliaLowering.var"@K_str")))
 
 JuliaLowering.include_string(test_mod, raw"""
 module M
@@ -446,6 +448,34 @@ end
         end
     """)
     @test test_mod.AA.x == 101
+
+    # "Deferred hygiene" in macros which emit quoted code currently doesn't
+    # work as might be expected.
+    #
+    # The old macro system also doesn't handle this - here's the equivalent
+    # implementation
+    # macro make_quoted_code(init, y)
+    #     QuoteNode(:(let
+    #         x = "inner x"
+    #         $(esc(init))
+    #         ($(esc(y)), x)
+    #     end))
+    # end
+    #
+    # TODO: The following should throw an error rather than producing a
+    # surprising value, or work "as expected" whatever that is!
+    JuliaLowering.include_string(test_mod, raw"""
+    macro make_quoted_code(init, y)
+        q = :(let
+            x = "inner x"
+            $init
+            ($y, x)
+        end)
+        @ast q q [K"inert" q]
+    end
+    """)
+    code = JuliaLowering.include_string(test_mod, """@make_quoted_code(x="outer x", x)""")
+    @test_broken JuliaLowering.eval(test_mod, code) == ("outer x", "inner x")
 end
 
 end
