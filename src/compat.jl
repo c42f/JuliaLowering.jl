@@ -82,7 +82,7 @@ end
 
 """
 Return `e.args`, but with any parameters in SyntaxTree (flattened, source) order.
-Parameters are expected to be as `e.args[pos]`.
+Parameters are expected to be at `e.args[pos]`.
 
 e.g. orderings of (a,b,c;d;e;f):
   Expr:       (tuple (parameters (parameters (parameters f) e) d) a b c)
@@ -461,11 +461,13 @@ function _insert_convert_expr(@nospecialize(e), graph::SyntaxGraph, src::SourceA
         elseif nargs === 0
             # pass
         elseif e.args[1] === :nospecialize
-            if nargs > 2
+            if nargs === 1
+                child_exprs[1] = Expr(:quoted_symbol, :nospecialize)
+            elseif nargs > 2
                 st_k = K"block"
                 # Kick the can down the road (should only be simple atoms?)
                 child_exprs = map(c->Expr(:meta, :nospecialize, c), child_exprs[2:end])
-            else
+            elseif nargs === 2
                 st_id, src = _insert_convert_expr(e.args[2], graph, src)
                 setmeta!(SyntaxTree(graph, st_id); nospecialize=true)
                 return st_id, src
