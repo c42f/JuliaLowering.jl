@@ -8,18 +8,18 @@ let
     end
 end
 #---------------------
-1   (= slot₂/x (call core.Box))
+1   (= slot₁/x (call core.Box))
 2   1
-3   slot₂/x
+3   slot₁/x
 4   (call core.setfield! %₃ :contents %₂)
 5   (call core.svec :x)
 6   (call core.svec true)
 7   (call JuliaLowering.eval_closure_type TestMod :#f##0 %₅ %₆)
 8   latestworld
 9   TestMod.#f##0
-10  slot₂/x
+10  slot₁/x
 11  (new %₉ %₁₀)
-12  (= slot₁/f %₁₁)
+12  (= slot₂/f %₁₁)
 13  TestMod.#f##0
 14  (call core.svec %₁₃ core.Any)
 15  (call core.svec)
@@ -38,7 +38,7 @@ end
     9   (call %₁ %₈ slot₂/y)
     10  (return %₉)
 19  latestworld
-20  slot₁/f
+20  slot₂/f
 21  (return %₂₀)
 
 ########################################
@@ -68,18 +68,18 @@ let
     end
 end
 #---------------------
-1   (= slot₂/x (call core.Box))
+1   (= slot₁/x (call core.Box))
 2   1
-3   slot₂/x
+3   slot₁/x
 4   (call core.setfield! %₃ :contents %₂)
 5   (call core.svec :x)
 6   (call core.svec true)
 7   (call JuliaLowering.eval_closure_type TestMod :#f##1 %₅ %₆)
 8   latestworld
 9   TestMod.#f##1
-10  slot₂/x
+10  slot₁/x
 11  (new %₉ %₁₀)
-12  (= slot₁/f %₁₁)
+12  (= slot₂/f %₁₁)
 13  TestMod.#f##1
 14  (call core.svec %₁₃ core.Any)
 15  (call core.svec)
@@ -92,7 +92,7 @@ end
     3   (call core.setfield! %₂ :contents %₁)
     4   (return %₁)
 19  latestworld
-20  slot₁/f
+20  slot₂/f
 21  (return %₂₀)
 
 ########################################
@@ -182,14 +182,14 @@ end
 18  SourceLocation::1:10
 19  (call core.svec %₁₆ %₁₇ %₁₈)
 20  --- method core.nothing %₁₉
-    slots: [slot₁/#self#(!read) slot₂/x slot₃/g slot₄/z(!read)]
+    slots: [slot₁/#self#(!read) slot₂/x slot₃/z(!read) slot₄/g]
     1   TestMod.#f#g##1
     2   (call core.typeof slot₂/x)
     3   (call core.apply_type %₁ %₂)
     4   (new %₃ slot₂/x)
-    5   (= slot₃/g %₄)
+    5   (= slot₄/g %₄)
     6   slot₂/x
-    7   (= slot₄/z %₆)
+    7   (= slot₃/z %₆)
     8   (return %₆)
 21  latestworld
 22  TestMod.f
@@ -289,18 +289,18 @@ end
 18  SourceLocation::1:10
 19  (call core.svec %₁₆ %₁₇ %₁₈)
 20  --- method core.nothing %₁₉
-    slots: [slot₁/#self#(!read) slot₂/x slot₃/g slot₄/y]
-    1   (= slot₄/y (call core.Box))
+    slots: [slot₁/#self#(!read) slot₂/x slot₃/y slot₄/g]
+    1   (= slot₃/y (call core.Box))
     2   TestMod.#f#g##3
     3   (call core.typeof slot₂/x)
     4   (call core.apply_type %₂ %₃)
-    5   slot₄/y
+    5   slot₃/y
     6   (new %₄ slot₂/x %₅)
-    7   (= slot₃/g %₆)
+    7   (= slot₄/g %₆)
     8   2
-    9   slot₄/y
+    9   slot₃/y
     10  (call core.setfield! %₉ :contents %₈)
-    11  slot₄/y
+    11  slot₃/y
     12  (call core.isdefined %₁₁ :contents)
     13  (call core.tuple %₁₂ true)
     14  (return %₁₃)

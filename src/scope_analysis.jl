@@ -20,7 +20,8 @@ end
 #-------------------------------------------------------------------------------
 _insert_if_not_present!(dict, key, val) = get!(dict, key, val)
 
-function _find_scope_vars!(ctx, assignments, locals, destructured_args, globals, used_names, used_bindings, ex)
+function _find_scope_vars!(ctx, assignments, locals, destructured_args, globals,
+                           consts, used_names, used_bindings, ex, in_toplevel_thunk)
     k = kind(ex)
     if k == K"Identifier"
         _insert_if_not_present!(used_names, NameKey(ex), ex)
@@ -43,19 +44,28 @@ function _find_scope_vars!(ctx, assignments, locals, destructured_args, globals,
         # like v = val, except that if `v` turns out global(either implicitly or
         # by explicit `global`), it gains an implicit `const`
         _insert_if_not_present!(assignments, NameKey(ex[1]), ex)
-    elseif k == K"=" || k == K"constdecl"
+    elseif k == K"constdecl"
+        if !(kind(ex[1]) in KSet"BindingId globalref Value Placeholder")
+            _insert_if_not_present!(consts, NameKey(ex[1]), ex[1])
+        end
+        if numchildren(ex) == 2
+            _find_scope_vars!(
+                ctx, assignments, locals, destructured_args, globals,
+                consts, used_names, used_bindings, ex[2], in_toplevel_thunk)
+        end
+    elseif k == K"="
         v = decl_var(ex[1])
         if !(kind(v) in KSet"BindingId globalref Value Placeholder")
             _insert_if_not_present!(assignments, NameKey(v), v)
         end
-        if k != K"constdecl" || numchildren(ex) == 2
-            _find_scope_vars!(ctx, assignments, locals, destructured_args, globals, used_names, used_bindings, ex[2])
-        end
+        _find_scope_vars!(
+            ctx, assignments, locals, destructured_args, globals,
+            consts, used_names, used_bindings, ex[2], in_toplevel_thunk)
     elseif k == K"function_decl"
         v = ex[1]
         kv = kind(v)
         if kv == K"Identifier"
-            _insert_if_not_present!(assignments, NameKey(v), v)
+            _insert_if_not_present!(consts, NameKey(v), v)
         elseif kv == K"BindingId"
             binfo = lookup_binding(ctx, v)
             if !binfo.is_ssa && binfo.kind != :global
@@ -66,7 +76,9 @@ function _find_scope_vars!(ctx, assignments, locals, destructured_args, globals,
         end
     else
         for e in children(ex)
-            _find_scope_vars!(ctx, assignments, locals, destructured_args, globals, used_names, used_bindings, e)
+            _find_scope_vars!(
+                ctx, assignments, locals, destructured_args, globals,
+                consts, used_names, used_bindings, e, in_toplevel_thunk)
         end
     end
 end
@@ -75,26 +87,31 @@ end
 # into sets by type of usage.
 #
 # NB: This only works properly after desugaring
-function find_scope_vars(ctx, ex)
+function find_scope_vars(ctx, ex, in_toplevel_thunk)
     ExT = typeof(ex)
     assignments = Dict{NameKey,ExT}()
     locals = Dict{NameKey,ExT}()
     destructured_args = Vector{ExT}()
     globals = Dict{NameKey,ExT}()
+    consts = Dict{NameKey,ExT}()
     used_names = Dict{NameKey,ExT}()
     used_bindings = Set{IdTag}()
     for e in children(ex)
-        _find_scope_vars!(ctx, assignments, locals, destructured_args, globals, used_names, used_bindings, e)
+        _find_scope_vars!(
+            ctx, assignments, locals, destructured_args, globals, consts,
+            used_names, used_bindings, e, in_toplevel_thunk)
     end
 
     # Sort by key so that id generation is deterministic
     assignments = sort!(collect(pairs(assignments)), by=first)
     locals      = sort!(collect(pairs(locals)),      by=first)
     globals     = sort!(collect(pairs(globals)),     by=first)
+    consts      = sort!(collect(pairs(consts)),     by=first)
     used_names  = sort!(collect(pairs(used_names)),  by=first)
     used_bindings = sort!(collect(used_bindings))
 
-    return assignments, locals, destructured_args, globals, used_names, used_bindings
+    # @info find_scope_vars ex in_toplevel_thunk assignments locals destructured_args globals consts used_names used_bindings
+    return assignments, locals, destructured_args, globals, consts, used_names, used_bindings
 end
 
 struct ScopeInfo
@@ -213,8 +230,8 @@ function analyze_scope(ctx, ex, scope_type, is_toplevel_global_scope=false,
     in_toplevel_thunk = is_toplevel_global_scope ||
         (!is_outer_lambda_scope && parentscope.in_toplevel_thunk)
 
-    assignments, locals, destructured_args, globals,
-        used_names, used_bindings = find_scope_vars(ctx, ex)
+    assignments, locals, destructured_args, globals, consts,
+        used_names, used_bindings = find_scope_vars(ctx, ex, in_toplevel_thunk)
 
     # Construct a mapping from identifiers to bindings
     #
@@ -323,6 +340,22 @@ function analyze_scope(ctx, ex, scope_type, is_toplevel_global_scope=false,
                                            is_ambiguous_local=is_ambiguous_local)
         end
     end
+
+    # Constants and function decls are like assignments, but don't become local
+    # in soft scopes or macro expansions
+    for (varkey,e) in consts
+        vk = haskey(var_ids, varkey) ?
+            lookup_binding(ctx, var_ids[varkey]).kind :
+            var_kind(ctx, varkey, true)
+        if vk === :static_parameter
+            throw(LoweringError(e, "local variable name `$(varkey.name)` conflicts with a static parameter"))
+        elseif vk === nothing && (is_toplevel_global_scope || is_soft_scope)
+            var_ids[varkey] = init_binding(ctx, e, varkey, :global)
+        else
+            var_ids[varkey] = init_binding(ctx, e, varkey, something(vk, :local))
+        end
+    end
+
 
     #--------------------------------------------------
     # At this point we've discovered all the bindings defined in this scope and
