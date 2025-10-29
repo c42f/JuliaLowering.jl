@@ -133,6 +133,11 @@ function _register_kinds()
             "constdecl"
             # Returned from statements that should error if the result is used.
             "unused_only"
+            # Leaf kind denoting unquoted AST where `.value` is an Expr. Only
+            # used for compatibility with old-style macros called with arguments
+            # that have no other representation in SyntaxTree (e.g. head mapping
+            # to no kind, interpolations in strange places, etc).
+            "expr_syntax"
         "END_LOWERING_KINDS"
 
         # The following kinds are emitted by lowering and used in Julia's untyped IR
