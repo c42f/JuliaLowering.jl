@@ -77,4 +77,50 @@ JuliaLowering.eval(test_mod, wrapscope(assign_z_2, :hard))
 JuliaLowering.eval(test_mod, wrapscope(wrapscope(assign_z_2, :neutral), :soft))
 @test test_mod.z == 2
 
+@testset "top-level function defs aren't local to soft scopes" begin
+    def = parsestmt(SyntaxTree, "function f_softscope_test(); 1; end", filename="foo.jl")
+    JuliaLowering.eval(test_mod, wrapscope(def, :hard))
+    @test !isdefined(test_mod, :f_softscope_test)
+    JuliaLowering.eval(test_mod, wrapscope(def, :neutral))
+    @test !isdefined(test_mod, :f_softscope_test)
+    JuliaLowering.eval(test_mod, wrapscope(def, :soft))
+    @test isdefined(test_mod, :f_softscope_test)
+
+    JuliaLowering.include_string(test_mod, """
+    for i in 1
+        fdecl_in_loop() = 1
+    end
+    """)
+    @test !isdefined(test_mod, :fdecl_in_loop)
+end
+
+@testset "constdecls OK in soft scopes" begin
+    def = parsestmt(SyntaxTree, "const c_softscope_test = 1", filename="foo.jl")
+    @test_throws LoweringError JuliaLowering.eval(test_mod, wrapscope(def, :hard))
+    @test_throws LoweringError JuliaLowering.eval(test_mod, wrapscope(def, :neutral))
+    JuliaLowering.eval(test_mod, wrapscope(def, :soft))
+    @test isdefined(test_mod, :c_softscope_test)
+end
+
+@eval test_mod module macro_mod
+    macro m(x); x; end
+    macro mesc(x); esc(x); end
+end
+
+# Difference from flisp, where top-level functions are unmangled and declared in
+# the expansion module (not the calling one)
+@testset "functions and consts are local to macro expansions" begin
+    JuliaLowering.include_string(test_mod, "macro_mod.@m function f_local_1(); 1; end")
+    @test !isdefined(test_mod.macro_mod, :f_local_1)
+    JuliaLowering.include_string(test_mod, "macro_mod.@mesc function f_nonlocal_2(); 1; end")
+    @test isdefined(test_mod, :f_nonlocal_2)
+    # An unescaped const is local to a macro expansion
+    @test_throws LoweringError JuliaLowering.include_string(test_mod, "macro_mod.@m const c_local_1 = 1")
+    # The const may be escaped into test_mod
+    JuliaLowering.include_string(test_mod, "macro_mod.@mesc const c_nonlocal_2 = 1")
+    @test isdefined(test_mod, :c_nonlocal_2)
+    JuliaLowering.include_string(test_mod, "macro_mod.@mesc const c_nonlocal_3 = 1"; expr_compat_mode=true)
+    @test isdefined(test_mod, :c_nonlocal_3)
+end
+
 end
