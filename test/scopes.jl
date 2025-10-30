@@ -107,20 +107,20 @@ end
     macro mesc(x); esc(x); end
 end
 
-@testset "top-level function defs aren't local in macro expansions" begin
-    JuliaLowering.include_string(test_mod, "macro_mod.@m function f_nonlocal_1(); 1; end")
-    @test isdefined(test_mod.macro_mod, :f_nonlocal_1)
+# Difference from flisp, where top-level functions are unmangled and declared in
+# the expansion module (not the calling one)
+@testset "functions and consts are local to macro expansions" begin
+    JuliaLowering.include_string(test_mod, "macro_mod.@m function f_local_1(); 1; end")
+    @test !isdefined(test_mod.macro_mod, :f_local_1)
     JuliaLowering.include_string(test_mod, "macro_mod.@mesc function f_nonlocal_2(); 1; end")
     @test isdefined(test_mod, :f_nonlocal_2)
-    # Note: for the particular case of an unescaped top-level const declaration,
-    # flisp makes it macro-local (i.e. mangles the name), but this isn't the
-    # case for other globals (top-level functions decls, global decls, types) so
-    # it might be a bug.
-    JuliaLowering.include_string(test_mod, "macro_mod.@m const c_nonlocal_1 = 1")
-    @test isdefined(test_mod.macro_mod, :c_nonlocal_1)
-    # Our behaviour is the same when the const is escaped
+    # An unescaped const is local to a macro expansion
+    @test_throws LoweringError JuliaLowering.include_string(test_mod, "macro_mod.@m const c_local_1 = 1")
+    # The const may be escaped into test_mod
     JuliaLowering.include_string(test_mod, "macro_mod.@mesc const c_nonlocal_2 = 1")
     @test isdefined(test_mod, :c_nonlocal_2)
+    JuliaLowering.include_string(test_mod, "macro_mod.@mesc const c_nonlocal_3 = 1"; expr_compat_mode=true)
+    @test isdefined(test_mod, :c_nonlocal_3)
 end
 
 end

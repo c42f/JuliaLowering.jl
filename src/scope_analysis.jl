@@ -106,11 +106,10 @@ function find_scope_vars(ctx, ex, in_toplevel_thunk)
     assignments = sort!(collect(pairs(assignments)), by=first)
     locals      = sort!(collect(pairs(locals)),      by=first)
     globals     = sort!(collect(pairs(globals)),     by=first)
-    consts      = sort!(collect(pairs(consts)),     by=first)
+    consts      = sort!(collect(pairs(consts)),      by=first)
     used_names  = sort!(collect(pairs(used_names)),  by=first)
     used_bindings = sort!(collect(used_bindings))
 
-    # @info find_scope_vars ex in_toplevel_thunk assignments locals destructured_args globals consts used_names used_bindings
     return assignments, locals, destructured_args, globals, consts, used_names, used_bindings
 end
 
@@ -341,15 +340,16 @@ function analyze_scope(ctx, ex, scope_type, is_toplevel_global_scope=false,
         end
     end
 
-    # Constants and function decls are like assignments, but don't become local
-    # in soft scopes or macro expansions
+    # Constants and function decls are like assignments, except when
+    # (in_soft_scope && not_in_macro_expansion), where they are globals.
     for (varkey,e) in consts
         vk = haskey(var_ids, varkey) ?
             lookup_binding(ctx, var_ids[varkey]).kind :
             var_kind(ctx, varkey, true)
         if vk === :static_parameter
             throw(LoweringError(e, "local variable name `$(varkey.name)` conflicts with a static parameter"))
-        elseif vk === nothing && (is_toplevel_global_scope || is_soft_scope)
+        elseif (vk === nothing && (is_toplevel_global_scope || is_soft_scope) &&
+            !(ctx.scope_layers[varkey.layer].is_macro_expansion))
             var_ids[varkey] = init_binding(ctx, e, varkey, :global)
         else
             var_ids[varkey] = init_binding(ctx, e, varkey, something(vk, :local))
