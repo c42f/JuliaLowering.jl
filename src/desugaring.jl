@@ -2971,6 +2971,13 @@ function expand_function_def(ctx, ex, docs, rewrite_call=identity, rewrite_body=
             self_type = name[2]
         end
         doc_obj = self_type
+    elseif kind(name) == K"curly"
+        @chk numchildren(name) >= 2
+        self_type = @ast ctx ex [K"function_type"
+                                 expand_forms_2(ctx, expand_curly(ctx, name))]
+        name = name[1]
+        doc_obj = name
+        name_str = get(kind(name) == K"." ? name[1] : name, :name_val, nothing)
     else
         if kind(name) == K"Placeholder"
             # Anonymous function. In this case we may use an ssavar for the

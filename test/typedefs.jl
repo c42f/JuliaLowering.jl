@@ -128,6 +128,27 @@ let s = test_mod.S5{Any}(42.0, "hi")
     @test s.x === 42.0
     @test s.y == "hi"
 end
+@test JuliaLowering.include_string(test_mod, """
+function S5{Int}(x::Int)
+    S5(x, x)
+end
+""") === nothing
+let s = test_mod.S5{Int}(1)
+    @test s.x === 1
+    @test s.y === 1
+    @test s isa test_mod.S5{Int}
+end
+@test_throws MethodError test_mod.S5{Int}(1.1)
+@test JuliaLowering.include_string(test_mod, """
+function S5{<:AbstractFloat}(x)
+    S5(x, x)
+end
+""") === nothing
+let s = test_mod.S5{<:AbstractFloat}(Float64(1.1))
+    @test s.x === 1.1
+    @test s.y === 1.1
+    @test s isa test_mod.S5{Float64}
+end
 
 # User defined inner constructors and helper functions for structs without type params
 @test JuliaLowering.include_string(test_mod, """
