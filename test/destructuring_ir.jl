@@ -87,7 +87,7 @@ end
 #---------------------
 LoweringError:
 (xs..., ys...) = x
-#      └────┘ ── multiple `...` in destructuring assignment are ambiguous
+└────────────┘ ── multiple `...` in destructuring assignment are ambiguous
 
 ########################################
 # Recursive destructuring
@@ -376,7 +376,7 @@ end
 #---------------------
 LoweringError:
 (x ; a, b) = rhs
-└────────┘ ── Property destructuring must use a single `;` before the property names, eg `(; a, b) = rhs`
+# └─────┘ ── property destructuring must use a single `;` before the property names, eg `(; a, b) = rhs`
 
 ########################################
 # Error: Property destructuring with values for properties
@@ -384,4 +384,4 @@ LoweringError:
 #---------------------
 LoweringError:
 (; a=1, b) = rhs
-#  └─┘ ── invalid assignment location
+#  └─┘ ── expected identifier or `::`

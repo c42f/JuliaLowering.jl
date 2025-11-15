@@ -560,7 +560,7 @@ cglobal = 10
 #---------------------
 LoweringError:
 cglobal = 10
-└─────┘ ── invalid assignment location
+└─────┘ ── invalid `core` on left side of assignment
 
 ########################################
 # Error: assigning to `ccall`
@@ -568,7 +568,7 @@ ccall = 10
 #---------------------
 LoweringError:
 ccall = 10
-└───┘ ── invalid assignment location
+└───┘ ── invalid `core` on left side of assignment
 
 ########################################
 # Error: assigning to `var"ccall"`
@@ -576,7 +576,7 @@ var"ccall" = 10
 #---------------------
 LoweringError:
 var"ccall" = 10
-#   └───┘ ── invalid assignment location
+#   └───┘ ── invalid `core` on left side of assignment
 
 ########################################
 # Error: Invalid function name ccall
@@ -585,7 +585,7 @@ end
 #---------------------
 LoweringError:
 function ccall()
-#        └───┘ ── Invalid function name
+#        └───┘ ── invalid function name
 end
 
 ########################################
@@ -595,7 +595,7 @@ end
 #---------------------
 LoweringError:
 function A.ccall()
-#        └─────┘ ── Invalid function name
+#          └───┘ ── this is a reserved identifier
 end
 
 ########################################
@@ -661,4 +661,4 @@ tuple(((xs...)...)...)
 #---------------------
 LoweringError:
 (xs...)
-#└───┘ ── `...` expression outside call
+#└───┘ ── unexpected splat not in `call`, `tuple`, `curly`, or array expression
